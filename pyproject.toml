@@ -1,7 +1,7 @@
 [project]
 name = "chargen"
 version = "0.1.0"
-description = "AI-directed pixel-art character and prop generation from an animated template, with a small browser playground"
+description = "Semantic sprite skinning: AI-directed pixel-art characters painted onto a labeled, hand-animated template, with props and a small browser playground"
 requires-python = ">=3.13"
 dependencies = [
     "numpy>=2.5.3",

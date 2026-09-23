@@ -1,17 +1,17 @@
 <div align="center">
 
-# Character Generation
+# Semantic Sprite Skinning
 
 **A faceless pixel-art mannequin becomes an animated cyberpunk courier, in a lit rooftop scene, with an AI agent
 directing (and drawing) every pixel.**
 
-<a href="https://schlessera.github.io/character-generation/">
-  <img src="https://img.shields.io/badge/%E2%96%B6%20%20PLAY%20THE%20LIVE%20DEMO-schlessera.github.io%2Fcharacter--generation-ff3fa4?style=for-the-badge&labelColor=1d1c26" alt="Play the live demo" height="42">
+<a href="https://schlessera.github.io/semantic-sprite-skinning/">
+  <img src="https://img.shields.io/badge/%E2%96%B6%20%20PLAY%20THE%20LIVE%20DEMO-schlessera.github.io%2Fsemantic--sprite--skinning-ff3fa4?style=for-the-badge&labelColor=1d1c26" alt="Play the live demo" height="42">
 </a>
 
 <br><br>
 
-<a href="https://schlessera.github.io/character-generation/"><img src="docs/images/hero.gif" alt="Juno walking across the rooftop while flying cars pass overhead" width="800"></a>
+<a href="https://schlessera.github.io/semantic-sprite-skinning/"><img src="docs/images/hero.gif" alt="Juno walking across the rooftop while flying cars pass overhead" width="800"></a>
 
 <sub>Runs in the browser, nothing to install.<br>
 <kbd>WASD</kbd> / arrows move · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>J</kbd> attack · <kbd>E</kbd> interact<br>
@@ -40,6 +40,11 @@ The answer is **Juno "Static" Okafor**, a rooftop data courier with a magenta un
 cyber-arm, animated in every frame of the template and in eight directions. Around her is a rooftop full of
 hand-drawn props, lit by neon, fire and passing flying cars.
 
+We call the approach **semantic sprite skinning**. In 3D, you skin a mesh onto an animated rig. Here the rig is the
+pixel template itself, and it is *semantic*: every pixel of every frame knows which body part it belongs to. A character
+is then a short recipe that says what each body part is made of, and the generator skins it onto every frame the
+template's artist animated.
+
 The finished demo is fun, but the more interesting part is how the problem got broken down:
 
 ```mermaid
@@ -62,10 +67,11 @@ flowchart LR
 | 2 | [Teaching the AI anatomy](#2--teaching-the-ai-anatomy) | Labeling every pixel of every frame with the body part it belongs to |
 | 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
 | 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
-| 5 | [Variations for free](#5--variations-for-free) | A new colorway is a ten-line file |
-| 6 | [The AI picks up the pencil](#6--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
-| 7 | [From sources to sprites](#7--from-sources-to-sprites) | The build that assembles everything |
-| 8 | [Mood lighting](#8--mood-lighting) | How atmospheric can basic pixel graphics get? |
+| 5 | [Closing the gap](#5--closing-the-gap) | 25 rounds of the agent comparing its render to the mockup, and where it stopped paying off |
+| 6 | [Variations for free](#6--variations-for-free) | A new colorway is a ten-line file |
+| 7 | [The AI picks up the pencil](#7--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
+| 8 | [From sources to sprites](#8--from-sources-to-sprites) | The build that assembles everything |
+| 9 | [Mood lighting](#9--mood-lighting) | How atmospheric can basic pixel graphics get? |
 
 ---
 
@@ -166,8 +172,8 @@ the generator paints onto every labeled frame:
 ```toml
 [palette]           # color ramps; the template's tone picks the slot (base / shade / light / blush / ink)
 skin   = { base = "#b07148", shade = "#7f4a2d", light = "#95593a", blush = "#b8624f" }
-jacket = { base = "#34323d", shade = "#23222a", light = "#2b2a33", ink = "#141318" }
-chrome = { base = "#d9e1ea", shade = "#8894a3", light = "#f4f8fb", ink = "#3a4250" }
+jacket = { base = "#3b3946", shade = "#24232c", light = "#302e3a", ink = "#141318" }
+chrome = { base = "#c3ccd6", shade = "#7c8796", light = "#eef3f8", ink = "#3a4250" }
 
 [parts]             # body part (or group) -> material; later lines win
 head = "skin"
@@ -184,8 +190,8 @@ color = "orange"
 
 A recipe works in layers. First every body part gets a material, and the template's tone picks the shade, so the
 original lighting carries over. Then small **rules** add details derived from the labels' geometry: a collar where the
-torso meets the neck, a hem where it meets the legs, a zipper down the middle of the torso, cuffs, soles, a glowing
-wrist joint on the cyber-arm. Because the rules are geometric, they adapt to each pose by themselves.
+torso meets the neck, a hem where it meets the legs, open zipper edges over a black shirt, cuffs, soles, and plate
+seams with glowing joints on the cyber-arm. Because the rules are geometric, they adapt to each pose by themselves.
 
 Hair and the visor can't be derived from the body, so they are drawn as small **head grids**, one per facing, which
 get placed on the tracked head in every frame. A grid character can mean "keep the template pixel" or "use this
@@ -202,7 +208,107 @@ left-facing views show the magenta fringe.
 </tr>
 </table>
 
-## 5 · Variations for free
+## 5 · Closing the gap
+
+The first recipe got Juno's colors and the broad strokes right, but next to the pixel mockup it was clearly an
+approximation. The hair was a rounded magenta cap, not a mane sweeping to one side. The shaved side was a few brown
+pixels, the jacket had a single stripe, and the cyber-arm was a plain white sleeve. The question was whether the agent
+could close that gap by itself, the way a pixel artist would: look, compare, fix, look again. And for how long that
+keeps paying off.
+
+The mockup is "pixel art" from image generation, so it isn't on a clean grid either. `chargen/mockup.py` measures its
+pixel size from the rhythm of its color edges (about 9 screen pixels per art pixel here), finds the grid offset where
+the cells are most uniform, and snaps each of the five views back to real art pixels. Then `just compare juno` puts
+every mockup view directly above the rendered sprite at the same scale, with close-ups of the heads, and prints a
+similarity score.
+
+With that side-by-side in place, the work became a loop that the agent ran on its own, 25 times:
+
+```mermaid
+flowchart LR
+    C["just compare juno<br/>mockup above render + score"] --> L["Look: pick what differs most<br/>silhouette · texture · trim"]
+    L --> E["Edit the recipe<br/>head grids · rules · palette"]
+    E --> R["Re-render every view"]
+    R --> C
+    R --> A["Every 5 steps: check all<br/>animations, save a snapshot"]
+```
+
+Every five steps the recipe was saved to `characters/juno/history/step-NN.toml`, so each stage of the progression is
+rebuilt from source like every other image here:
+
+<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after 0, 5, 10, 15, 20 and 25 iteration steps, in five views" width="920"></p>
+
+<p align="center"><img src="docs/images/juno-iteration-heads.png" alt="Head close-ups (front, profile, back) across the same steps" width="920"></p>
+
+What each block of five steps did (the full log, step by step, is
+[`characters/juno/history/NOTES.md`](characters/juno/history/NOTES.md)):
+
+| steps | focus | similarity |
+|---|---|---|
+| 0 | first recipe: colors, rule-based trim, a simple hair cap | 0.614 |
+| 1–5 | **shape.** Hair redrawn from the snapped mockup (part, sweep, buzzed side, strand lines, jagged tips), open jacket over a black shirt, high collar, cyber-arm seams and joint glows | 0.706 |
+| 6–10 | **color.** Hair, jacket, chrome, orange and shoes sampled from the mockup's pixels; the visor became a framed lens; an ear on the shaved side; chest logo and back print from the concept | 0.752 |
+| 11–15 | **detail and motion.** Near-black hair outline, cargo pockets and jogger cuffs, finger gaps on the cyber-hand, a circuit pattern shaved into the undercut, trim that turns with the body in the spinning attack | 0.768 |
+| 16–20 | **the views the mockup doesn't show.** Strand direction on the back of the head, strand tips on the left-facing views, the collar from behind, heel tabs, a visor glint | 0.766 |
+| 21–25 | **proportion.** A narrower visor at the mockup's lens widths, anchored to the front of the face and running under the hair, stubble down the temple, a straight zipper on twisted poses | 0.768 |
+
+The similarity score is deliberately coarse. It lets every opaque pixel look for a same-colored pixel within one pixel
+in the other image, so it forgives one-pixel drift but not a wrong shape or color. A perfect 1.0 is out of reach for
+reasons explained below.
+
+<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.768" width="720"></p>
+
+The curve shows the returns diminishing. Shape (steps 1–5) and color (6–10) were the big wins. After step 15 the score
+is flat, and it's worth looking at why, because most of the remaining gap can't be closed by more iterations.
+
+**The two images follow different rules.** Juno is built by a rule system: the template's five tones, recolored
+through a small palette, plus geometric rules keyed to body-part labels. The mockup was painted by an image model that
+follows none of those rules. That difference shows up in the numbers:
+
+- **The silhouettes already match.** Counting only whether a pixel is there, allowing one pixel of drift, step 25
+  matches the mockup's outline at 98 to 100% in every view. The shape was solved early (step 0 was already at 96 to
+  99%). The whole remaining gap is inside the outline.
+- **The palettes don't.** Each mockup view contains about 300 distinct colors, the soft, noisy shading typical of image
+  generation. Juno's views use about 30, because a sprite built from ramps has a limited palette by design. Even the
+  mockup itself, reduced to its own best 30 colors, only scores about 0.88 against the original. That is the practical
+  ceiling for any clean-palette sprite, and step 25's 0.77 has closed a bit more than half of the distance from step 0
+  to it.
+- **The proportions differ.** The mockup's face is shorter: from the visor to the collar it has three rows, the template
+  has five. Its visor sits a row lower, the mane ends a row or two higher, and its hem and shoes sit a row or two
+  higher. The visor is anchored to the template's eyes and the trim to the template's labels, so every feature lands
+  where the template's anatomy puts it, not where the mockup drew it.
+- **The shading comes from the template.** Folds and light come from the template's tones, which an artist drew for a
+  bald mannequin. Where the mockup shades a fold or puts a highlight somewhere else, a recipe can recolor the
+  template's shading but not move it.
+- **Rules have to work in every frame.** The mockup shows one idle frame per view. The recipe paints 248 frames. A
+  change that would match the mockup pixel for pixel in the idle pose (a hand-placed pocket, a fold drawn exactly where
+  the mockup has it) would sit in the wrong place as soon as she walks, so the agent kept to rules that hold in every
+  pose, and accepted the gap.
+
+In other words, the loop converged close to the best Juno this rule system can express. More fidelity would take a
+different system (a template with the mockup's proportions, free-form body grids, hair that may overlap the shoulders),
+not more iterations.
+
+The later steps still made visible differences where the score doesn't look, but three of the most visible ones were not
+found by the agent. A human watching the run pointed out that the strands on the back of the head ran
+against the sweep (step 16), that the visor was too wide (step 23), and then that narrowing it had trimmed the wrong
+end in the 3/4-left view, sliding the lens off the front of the face (step 25). Each took one step to fix once named.
+The loop is good at converging on a reference. It is weaker at noticing that a detail is wrong in a way the reference
+comparison doesn't measure.
+
+Some details needed new capabilities in the generator, and the agent added them where the recipe format fell short:
+
+- a `band` rule places a seam at a fraction of a body part's height (an elbow is always halfway down the arm, whatever
+  the pose), optionally as a single pixel;
+- stripes can run along a part's front or back edge, mirror their offset when the character turns around, and stay
+  `straight` on twisted poses;
+- `rule_facing = "head"` makes trim follow the tracked head through the spinning attack, so the zipper doesn't end up
+  on her back;
+- `[outline] keep` lists the head-grid colors that keep their own color on the silhouette (the ear, the hair outline).
+
+All of these are opt-in, so the earlier snapshots still render exactly as they did.
+
+## 6 · Variations for free
 
 Once one character exists, the next one is cheap. Recipes can extend each other, so a new colorway only lists what
 changes:
@@ -231,7 +337,7 @@ flycar_parked = { w = 80, h = 38, kind = "solid", base = 14, variants = {
 
 <p align="center"><img src="docs/images/cars.png" alt="Car variants next to Juno" width="620"></p>
 
-## 6 · The AI picks up the pencil
+## 7 · The AI picks up the pencil
 
 <p align="center"><img src="docs/images/rooftop-concept.jpg" alt="Rooftop concept art" width="820"></p>
 
@@ -272,7 +378,7 @@ the outline never wobbles.
 
 <p align="center"><img src="docs/images/prop-anims.gif" alt="Animated props" width="420"></p>
 
-## 7 · From sources to sprites
+## 8 · From sources to sprites
 
 Everything above is source material: template, labels, recipes, pixel files and manifests. One command turns it into
 what the browser loads.
@@ -300,6 +406,7 @@ flowchart TB
 | `just build` | Packs the props atlas and renders every character sheet into `web/data/` |
 | `just preview juno` | Contact sheet of every animation in every facing |
 | `just heads juno` | Shows a character's head grids next to the template's head outlines |
+| `just compare juno` | The pixel mockup above the rendered character, per view, with head close-ups |
 | `just labels run` | Template frames colored by body part, for review |
 | `just pixel vending_machine` | A sprite at 12× and at game scale next to the character |
 | `just smoke` | Headless Chromium plays the demo with the keyboard and checks the results |
@@ -307,7 +414,7 @@ flowchart TB
 
 Every push to `main` runs the same build and the smoke test on GitHub Actions and publishes the demo to GitHub Pages.
 
-## 8 · Mood lighting
+## 9 · Mood lighting
 
 With a character and a world in place, the last question was a fun one: how atmospheric can plain pixel graphics get
 with a few technical tricks?
@@ -366,10 +473,59 @@ A few patterns did most of the work:
   character and variant after that almost free.
 - **Parallel agents, each with its own eyes.** Label groups, prop groups and tile sets went to separate subagents. Each
   one validated and *looked at* its own renders, and reported what it wasn't sure about.
+- **Compare against the reference, not against memory.** Snapping the mockup back onto its pixel grid gave the agent
+  a like-for-like picture and a score to check its render against, so it could keep improving the character without
+  supervision. A human glance still caught what the comparison couldn't measure.
 - **Image generation where it shines.** Generated images supplied the ideas and the references, never the shipped
   pixels.
 - **Everything reproducible.** Every artifact, including the images in this README, is rebuilt from source with a
   `just` command.
+
+## Is semantic sprite skinning a good way to make pixel characters?
+
+Juno is "generated" in an unusual sense: nobody drew her frames, but no model painted them either. A hand-animated
+template supplies the motion, a label per pixel supplies the anatomy, and a recipe of about 9 KB paints her onto all
+248 frames. After building one character this way, here is an honest look at what that buys and what it costs.
+
+**What works**
+
+- **The animation is the template artist's.** The hardest part of a pixel character, motion that reads at 32 pixels,
+  comes from a human animator and survives dressing unchanged. Squash, anticipation and the spinning kick are all
+  still there.
+- **Consistency comes for free.** The cyber-arm is on the right arm in every frame, the collar sits on the neck in
+  every pose, and the hair follows the tracked head through a jump. Frame-by-frame generation struggles exactly here.
+- **Variants are almost free.** Once the recipe exists, a colorway is a ten-line file and renders all 248 frames in
+  seconds. That is the right economics for crowds of NPCs, team colors, or unlockable skins.
+- **Everything is text.** Recipes, head grids and labels are diffable and reviewable in git, and every image in this
+  README is rebuilt from them. An agent can read and edit every part of the pipeline, and measure its own progress.
+- **It iterates.** With a reference and a score, an agent improved the character over 25 mostly unattended rounds,
+  and each improvement applied to every frame at once.
+
+**What doesn't**
+
+- **The template sets the ceiling.** Proportions, pose, silhouette and shading all come from the mannequin. Chunkier
+  shoes, baggy trousers, a longer or shorter face, or a different light direction need a different template, not a
+  better recipe. The plateau in chapter 5 is this limit showing up in numbers.
+- **Anything off the body is hard.** Hair is a rigid grid glued to the head. It can't fall over the shoulders, swing
+  when she runs, or lag behind a turn. Capes, long coats, held props and secondary motion would all need new
+  mechanisms.
+- **Rules are blunt.** A zipper is "a column through the middle of the torso". On twisted poses that can come out as a
+  squiggle, and small details (a pocket, a logo) are either one pixel or not there. A pixel artist would redraw those
+  frames by hand.
+- **The up-front cost is high.** Every opaque pixel of 129 template frames had to be labeled before the first
+  character existed. That pays off over many characters, not for one.
+- **Taste still needs a human.** The agent converged on the reference but missed a visor that was too wide and hair
+  strands running backwards until a person pointed them out. A score measures closeness, not whether something looks
+  right.
+- **Mirroring has side effects.** Left-facing frames are mirrored right-facing ones, so asymmetric designs need their
+  own head grids, and the template's lighting flips with the frame.
+
+**Where it fits.** Compared with the alternatives, this sits in the middle. Drawing every frame by hand gives the best
+result and costs the most. Generating frames with an image model is fast but inconsistent from frame to frame and not
+on a real pixel grid (chapter 7 shows what happens). Rendering a 3D model down to pixels is consistent but needs the 3D
+model and loses the hand-drawn feel. Recipes on a labeled template are consistent, cheap per character and fully
+reproducible. They are a strong fit for many characters sharing one rig and a good first pass for an artist to finish,
+but not a replacement for a pixel artist on a hero character.
 
 ## Try it yourself
 
