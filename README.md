@@ -386,7 +386,7 @@ and a repair patch repeated too visibly across the grid, so both were toned down
 
 The floor then got more variety. Plain concrete now picks from eleven tiles, weighted so near-plain slabs are common
 and ones with a feature (a pothole, an anchor plate, oil drips, a faded paint line) are rare. And since every tile drew
-its own joints, the 16 px grid showed everywhere, so 20% of the 2×2 blocks of plain floor are now drawn as one big
+its own joints, the 16 px grid showed everywhere, so 30% of the 2×2 blocks of plain floor are now drawn as one big
 32×32 slab (three designs, dealt out in turn): four quadrant tiles with joints only on the slab's outer edge. Looking
 at the result also turned up an old bug: the cell hash never went above 0.5, so every tile list had only ever used
 its first half.
