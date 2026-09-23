@@ -483,7 +483,7 @@ function draw(fixedT) {
   } else {
     ctx.drawImage(objC, 0, 0);
   }
-  drawGlows(camX, camY, now);
+  if (lit) drawGlows(camX, camY, now);  // lighting off: plain pixel art, no colored halos
   for (const fl of flyers.slice().sort((a, b) => a.y - b.y)) drawFlyer(fl, camX, camY, now, lit);
   if (hud) {
     ctx.fillStyle = "#cfd3e6"; ctx.font = "8px monospace";
