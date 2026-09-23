@@ -2,7 +2,8 @@
 
 # Character Generation
 
-**From a blank, animated pixel-art mannequin to a fully animated cyberpunk character and a lit rooftop scene, with an AI agent directing (and drawing) every pixel.**
+**A faceless pixel-art mannequin becomes an animated cyberpunk courier, in a lit rooftop scene, with an AI agent
+directing (and drawing) every pixel.**
 
 <a href="https://schlessera.github.io/character-generation/">
   <img src="https://img.shields.io/badge/%E2%96%B6%20%20PLAY%20THE%20LIVE%20DEMO-schlessera.github.io%2Fcharacter--generation-ff3fa4?style=for-the-badge&labelColor=1d1c26" alt="Play the live demo" height="42">
@@ -12,35 +13,38 @@
 
 <a href="https://schlessera.github.io/character-generation/"><img src="docs/images/hero.gif" alt="Juno walking across the rooftop while flying cars pass overhead" width="800"></a>
 
-<sub>Runs in the browser, no install. <kbd>WASD</kbd>/arrows move · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>J</kbd> attack · <kbd>E</kbd> interact · <kbd>C</kbd> switch character · <kbd>V</kbd> animation gallery · <kbd>L</kbd> lighting on/off · <kbd>F</kbd> flying car</sub>
+<sub>Runs in the browser, nothing to install.<br>
+<kbd>WASD</kbd> / arrows move · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>J</kbd> attack · <kbd>E</kbd> interact<br>
+<kbd>C</kbd> switch character · <kbd>V</kbd> animation gallery · <kbd>L</kbd> lighting on/off · <kbd>F</kbd> call a flying car</sub>
 
 </div>
 
 ---
 
-## What this is
+## The idea
 
-An experiment in letting an AI coding agent run a whole pixel-art pipeline on its own. The starting point is a free
-[character template](https://erisesra.itch.io/character-templates-pack) by Eris Esra: a bald, featureless mannequin with
-158 hand-animated frames (idle, walk, run, jump, punch-and-kick, interact, turn-around) in five facing directions.
+Pixel-art character templates are a gift to game developers. Someone has already done the hard part, the animation,
+and you "only" have to dress the mannequin. This project starts from
+[Eris Esra's Character Templates Pack](https://erisesra.itch.io/character-templates-pack): a bald, featureless figure
+with 158 hand-animated frames of idle, walk, run, jump, a punch-and-kick combo, interact and a turn-around, drawn in
+five directions.
 
-The goal was to turn those *template shapes* into the *specifics of a character design*, **Juno "Static" Okafor**, a
-rooftop data courier with a magenta undercut, an LED visor and a chrome cyber-arm, across every frame of every
-animation. The agent had to work out how to do that by itself, then build a small world around her and make it atmospheric.
+Dressing it is still a lot of work. Every frame has to become a specific character, the hair has to sit on a head that
+squashes and stretches, and a cyber-arm has to stay on the same arm through a spinning kick. So the question behind
+this repository was:
 
-The interesting part is not the demo but how the problem was broken down:
+> *Can an AI agent figure out, largely by itself, how to go from generic template shapes to the specifics of a
+> character design, and then build a small world around that character?*
 
-1. **Understand the template** and turn it into data an LLM can reason about.
-2. **Label every pixel** of every template frame with the body part it belongs to.
-3. **Describe a character as a recipe** (palette, per-part materials, geometric rules, small pixel grids) that
-   renders onto all 158 frames at once.
-4. **Draw props by hand, pixel by pixel**, using generated concept art only as a reference, because resampling
-   concept art does not produce pixel art.
-5. **Add light**: colored lights, per-object computed shadows, glowing neon and cars flying overhead.
+The answer is **Juno "Static" Okafor**, a rooftop data courier with a magenta undercut, an LED visor and a chrome
+cyber-arm, animated in every frame of the template and in eight directions. Around her is a rooftop full of
+hand-drawn props, lit by neon, fire and passing flying cars.
+
+The finished demo is fun, but the more interesting part is how the problem got broken down:
 
 ```mermaid
 flowchart LR
-    T["Animated template<br/>.aseprite · 158 frames"] --> C["Catalog<br/>frames · tones · head tracking"]
+    T["Animated template<br/>158 frames"] --> C["Catalog<br/>frames · tones · head tracking"]
     C --> L["Body-part labels<br/>one text file per frame"]
     CA["Concept art<br/>image generation"] -. reference .-> R["Character recipe<br/>recipe.toml"]
     L --> G(("Generator"))
@@ -52,49 +56,68 @@ flowchart LR
     A --> E
 ```
 
+| | Chapter | In one sentence |
+|---|---|---|
+| 1 | [Meet the mannequin](#1--meet-the-mannequin) | Turning an `.aseprite` file into data an LLM can reason about |
+| 2 | [Teaching the AI anatomy](#2--teaching-the-ai-anatomy) | Labeling every pixel of every frame with the body part it belongs to |
+| 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
+| 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
+| 5 | [Variations for free](#5--variations-for-free) | A new colorway is a ten-line file |
+| 6 | [The AI picks up the pencil](#6--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
+| 7 | [From sources to sprites](#7--from-sources-to-sprites) | The build that assembles everything |
+| 8 | [Mood lighting](#8--mood-lighting) | How atmospheric can basic pixel graphics get? |
+
 ---
 
-## 1 · Understanding the template
+## 1 · Meet the mannequin
 
-<img src="docs/images/template-sheet.png" alt="The template's animations" width="720">
+<p align="center"><img src="docs/images/template-sheet.png" alt="The template's animations" width="720"></p>
 
-The pack ships `.aseprite` files. A small reader (`chargen/aseprite.py`, no dependencies beyond numpy) pulls out
-frames, layers and animation tags, and the catalog (`chargen/catalog.py`) normalizes them:
+The pack ships Aseprite files, so the first step was a small reader (`chargen/aseprite.py`) that pulls out frames and
+animation tags. Getting the data out was easy. Understanding it took more work, and a few details shaped everything
+that followed.
 
-- **Tags → animations × directions.** The source tags contain typos (a second `Jump_Side` that is really `Jump_Up`),
-  so directions come from tag *order*, which is consistent.
-- **Five tones, not colors.** Every template pixel is one of exactly five colors: lit fill, shade, light shade, blush
-  and ink (outline). The template's shading is the most valuable information in it, so each pixel is stored as a tone.
-  Recoloring then means "map tones to a new material", which keeps the original artist's light and form.
-- **Head tracking.** The head is matched against per-direction head templates in every frame, including the
-  squashed and stretched heads during jumps and the spinning heads in the attack. This yields an anchor for anything
-  that has to sit on the head: hair, visors, hats.
-- **Left is not just a mirror.** The template only has right-facing side views. Left facings are generated by mirroring
-  *and* swapping anatomical sides (see labels below), so a character with one cyber-arm keeps it on the correct arm.
+The template has **no colors in the usual sense**. Every pixel is one of exactly five tones: lit fill, shade, light
+shade, blush and ink. That shading is the most valuable thing in the template: it is the artist's understanding of
+light and form. So the catalog stores tones, not colors. Recoloring then becomes "map each tone to a new material",
+and Juno's jacket inherits the original folds and shadows for free.
 
-## 2 · Labeling the template: what, why, how
+The **head gets tracked** in every frame. It squashes during jumps and whips around during the attack, so each frame's
+head is matched against per-direction head templates. That gives anything that has to sit on the head, like hair,
+visors and hats, a reliable anchor.
 
-<img src="docs/images/labels-frame.png" alt="A template frame, its part labels, and the overlay" width="760">
+And **left isn't simply a mirror image.** The template only draws the right-facing side views. Mirroring them for
+the left side is fine for a symmetric mannequin, but it would move a one-sided cyber-arm to the wrong arm. How that gets
+solved is the subject of the next chapter.
 
-**What.** Every opaque pixel of every unique frame (129 of the 158 frames are unique) gets a body-part label: head,
-neck, torso, left/right arm, left/right hand, left/right leg, left/right foot, or effect (the white smears in the attack).
-Sides are *anatomical*: facing the viewer, the character's right arm is on screen-left.
+## 2 · Teaching the AI anatomy
 
-**Why.** Labels are the one-time investment that makes every character after that cheap. With labels, "a black bomber
-jacket with orange cuffs and a chrome right arm" becomes a handful of rules over labels that hold in *all* frames,
-including the extreme poses. Without them, every frame would need to be repainted by hand.
+<p align="center"><img src="docs/images/labels-frame.png" alt="A template frame, its part labels, and the overlay" width="760"></p>
 
-**How.** Automatic heuristics (head from tracking, a hip line, screen sides) produced a rough first guess. A hand-made
-reference frame fixed the conventions, then eight AI subagents labeled the animations in parallel, one group each.
-Each agent worked in a loop: edit the text file, validate it, render it, look at the render, fix it. They reported
-back the pixels they were unsure about, for example which lit shape in a mid-air jump frame is a thigh and which is a forearm.
+Recoloring by tone alone gives you a mannequin in one color. To say "black bomber jacket, orange cuffs, chrome right
+arm", the generator needs to know which pixels *are* the jacket, the cuffs and the right arm, in every frame and in
+every pose. So every opaque pixel of all 129 unique frames carries a body-part label: head, neck, torso, left and
+right arm, hand, leg and foot, plus an effects label for the white smears of the attack.
 
-<img src="docs/images/labels-sheet.png" alt="Labels stay consistent through walk, run, jump and attack" width="760">
+The labels are anatomical, not screen-based. When the mannequin faces you, its right arm is on your left. That rule
+fixes the mirroring problem: a left-facing frame is the right-facing frame mirrored *with its left and right labels
+swapped*, so the cyber-arm stays on Juno's right arm whichever way she turns.
 
-## 3 · A representation an LLM can actually edit
+This is by far the most expensive step, and it only has to happen once. After that, a character is a handful of rules
+over labels, and those rules hold in all 158 frames, including the awkward mid-air and mid-kick poses.
 
-Everything the agent reads or writes about pixels is **plain text, one character per pixel**, aligned so that a row
-of the image is a row of the file. A label file puts the template's tones and the labels side by side:
+The labeling itself was a small AI production line. Simple heuristics made a rough first guess: the head from
+tracking, a hip line, screen sides. One carefully hand-labeled reference frame pinned down the conventions. Then
+eight subagents took one group of animations each and worked in a tight loop: edit the label file, validate it,
+render it, *look* at the render, fix what's wrong. Each agent came back with a list of the pixels it wasn't sure
+about, for example whether a lit blob in a mid-air jump frame is a tucked thigh or a forearm.
+
+<p align="center"><img src="docs/images/labels-sheet.png" alt="Labels stay consistent through walk, run, jump and attack" width="760"></p>
+
+## 3 · Pixels as text
+
+Every image an agent reads or edits here is also a **plain text file with one character per pixel**, where a row of
+the file is a row of the image. A label file shows the template's tones and the labels side by side:
 
 ```text
 # frame 0 rotate/all[0] 100ms head=down@9,7
@@ -107,7 +130,7 @@ of the image is a row of the file. A label file puts the template's tones and th
 31 |           #..s##s..#           |...........pppppqqqqq...........|
 ```
 
-Hand-drawn props use the same idea with a shared palette, where every character is a named color:
+The hand-drawn props use the same idea, with a shared palette in which every character is a named color:
 
 ```text
 # fire_barrel 13x24          O orange  y fire yellow  Y fire hot  R/r rust  # outline  . transparent
@@ -118,16 +141,13 @@ Hand-drawn props use the same idea with a shared palette, where every character 
 ..#OyYYYYyO#.
 ```
 
-This format turned out to matter a lot:
+That turned out to matter more than any single algorithm. An LLM can *see* the shapes in text like this, talk about
+"columns 9 to 11 of rows 21 to 25", and change exactly those pixels. Every edit is a readable diff, so review is just
+git. And because every format comes with a checker (sizes, palette, "every opaque pixel is labeled") and a renderer
+that shows the result at 12× next to the character, the agents never had to trust their own text. They looked at the
+picture.
 
-- **Readable and writable by an LLM.** Shapes are visible in the text itself. An agent can say "the left arm is
-  columns 9–11 in rows 21–25" and edit exactly that.
-- **Diffable and reviewable.** Every change is a text diff, and git shows exactly which pixels moved.
-- **Verifiable.** Every text format has a checker (sizes, palette, "every opaque pixel is labeled") and a renderer that
-  shows the result at 12× next to the character at game scale. The agents look at those renders; they don't just trust
-  the text.
-
-## 4 · From concept art to character
+## 4 · Dressing the mannequin
 
 <table>
 <tr>
@@ -135,13 +155,13 @@ This format turned out to matter a lot:
 <td><img src="docs/images/juno-pixel-mockup.jpg" alt="Pixel mockup at template proportions"></td>
 </tr>
 <tr>
-<td><sub>Concept turnaround (image generation): what the character <i>is</i>.</sub></td>
-<td><sub>A pixel mockup at the template's proportions: what reads at 32 px.</sub></td>
+<td><sub>The concept turnaround (image generation) settles who Juno is.</sub></td>
+<td><sub>A pixel mockup at the template's proportions shows what still reads at 32 pixels.</sub></td>
 </tr>
 </table>
 
-The concept art is only a reference. The character itself is a **recipe**, `characters/juno/recipe.toml`, which the
-generator applies to every labeled frame:
+The concept art is a reference, not an ingredient. Juno herself is a **recipe**, `characters/juno/recipe.toml`, that
+the generator paints onto every labeled frame:
 
 ```toml
 [palette]           # color ramps; the template's tone picks the slot (base / shade / light / blush / ink)
@@ -162,21 +182,18 @@ sides = ["down"]
 color = "orange"
 ```
 
-Four layers, applied in order:
+A recipe works in layers. First every body part gets a material, and the template's tone picks the shade, so the
+original lighting carries over. Then small **rules** add details derived from the labels' geometry: a collar where the
+torso meets the neck, a hem where it meets the legs, a zipper down the middle of the torso, cuffs, soles, a glowing
+wrist joint on the cyber-arm. Because the rules are geometric, they adapt to each pose by themselves.
 
-1. **Materials.** Each body part gets a color ramp. The template tone picks the ramp slot, so the original shading
-   carries over automatically.
-2. **Rules.** Small procedural details computed from label geometry: a collar where the torso touches the neck, a hem
-   where it touches the legs, a zipper stripe down the torso's center, cuffs, a glowing wrist joint, soles.
-3. **Head grids.** One small pixel grid per facing, in head-local coordinates, placed on the tracked head in every
-   frame: hair, the undercut and the visor. Grid characters can mean "keep the template pixel" or "use this
-   material, shaded like the template pixel underneath", so one grid survives squash-and-stretch.
-4. **Outline.** The silhouette gets its own ink color.
+Hair and the visor can't be derived from the body, so they are drawn as small **head grids**, one per facing, which
+get placed on the tracked head in every frame. A grid character can mean "keep the template pixel" or "use this
+material, shaded like the pixel underneath", which lets a single grid survive squash-and-stretch. The anatomical
+sides pay off again here: the undercut is on Juno's right, so the right-facing views show the shaved side and the
+left-facing views show the magenta fringe.
 
-Asymmetry is handled through the anatomical sides: the undercut is on Juno's right, so the right-facing views show the
-shaved side and the left-facing views show the magenta fringe.
-
-<img src="docs/images/juno-facings.png" alt="Template and Juno in all eight facings" width="820">
+<p align="center"><img src="docs/images/juno-facings.png" alt="Template and Juno in all eight facings" width="820"></p>
 
 <table>
 <tr>
@@ -185,9 +202,10 @@ shaved side and the left-facing views show the magenta fringe.
 </tr>
 </table>
 
-### Variations are one small file
+## 5 · Variations for free
 
-Recipes can extend each other. A colorway is only the difference:
+Once one character exists, the next one is cheap. Recipes can extend each other, so a new colorway only lists what
+changes:
 
 ```toml
 # characters/juno-glitch/recipe.toml
@@ -200,10 +218,10 @@ jacket = { base = "#3a2a55", shade = "#271c3b", light = "#312447", ink = "#150e2
 orange = { base = "#ff3fd2", shade = "#b8209a" }   # trim turns hot pink
 ```
 
-<img src="docs/images/variants.png" alt="Template, Juno, and the Glitch variant" width="620">
+<p align="center"><img src="docs/images/variants.png" alt="Template, Juno, and the Glitch variant" width="620"></p>
 
-The same idea works for props. The flying car is painted with three placeholder paint colors, and each variant in
-`assets/props/props.toml` is three hex values:
+The same trick works for props. The flying car is painted with three placeholder paint colors, and every variant in
+`assets/props/props.toml` is just three new hex values:
 
 ```toml
 flycar_parked = { w = 80, h = 38, kind = "solid", base = 14, variants = {
@@ -211,99 +229,105 @@ flycar_parked = { w = 80, h = 38, kind = "solid", base = 14, variants = {
   taxi = { "1" = "#6e4a08", "2" = "#c89414", "3" = "#f6d23a" } } }
 ```
 
-<img src="docs/images/cars.png" alt="Car variants next to Juno" width="620">
+<p align="center"><img src="docs/images/cars.png" alt="Car variants next to Juno" width="620"></p>
 
-## 5 · Building a world: why the props are drawn by hand
+## 6 · The AI picks up the pencil
 
-<img src="docs/images/rooftop-concept.jpg" alt="Rooftop concept art" width="820">
+<p align="center"><img src="docs/images/rooftop-concept.jpg" alt="Rooftop concept art" width="820"></p>
 
-Image generation is great at concept art and bad at *pixel art at a planned size*. Its "pixel art" is painted at
-roughly 4–5 screen pixels per art pixel, with no consistent grid, soft glows and far more detail than 20×40 pixels can
-hold. Shrinking it to game size gives mush:
+A character needs a world, and this is where it would be tempting to let image generation do the work. It's excellent
+at concept art like the rooftop above. It is not good at *pixel art at a planned size*. Its "pixel art" is painted at
+roughly four or five screen pixels per art pixel, with no consistent grid, soft glows, and far more detail than a
+20×40 sprite can hold. Shrinking it to game size produces mush:
 
-<img src="docs/images/props-resample-vs-drawn.png" alt="Generated reference, resampled version, hand-placed pixels" width="660">
+<p align="center"><img src="docs/images/props-resample-vs-drawn.png" alt="Generated reference, resampled version, hand-placed pixels" width="660"></p>
 
-Forcing the model onto a grid didn't work either. It was given a guide image with one grid cell per art pixel and a slot
-per object at its exact planned size. It kept the slots, ignored the grid, and painted high resolution again:
+Forcing the model onto a grid didn't help either. Given a guide image with one grid cell per art pixel and a slot per
+object at its exact size, it respected the slots, ignored the grid, and painted in high resolution again:
 
-<img src="docs/images/grid-attempt.png" alt="Grid-locked generation attempt" width="760">
+<p align="center"><img src="docs/images/grid-attempt.png" alt="Grid-locked generation attempt" width="760"></p>
 
-So the pipeline splits the work:
+So the roles got split. The concept art decides *what* an object is: its parts, colors and mood. The manifest,
+`props.toml`, decides *how big* it is next to the character, along with its collision footprint, glow, animation
+timing and paint variants. And the pixels themselves are placed deliberately, by agents working in the palette text
+format.
 
 ```mermaid
 flowchart LR
     C["Concept art<br/>scene · per-object sheets"] --> D["Automatic draft<br/>downscale + palette snap"]
-    M["props.toml<br/>size · kind · collision · glow · frames · variants"] --> D
-    D --> H["Hand-placed pixels<br/>AI agents redraw every pixel<br/>render → look → fix"]
+    M["props.toml<br/>size · collision · glow · frames · variants"] --> D
+    D --> H["Hand-placed pixels<br/>render → look → fix"]
     H --> A["atlas.png + atlas.json<br/>+ emissive layer"]
 ```
 
-- **The concept art decides *what* an object is:** its parts, colors and mood.
-- **`props.toml` decides *how big* it is** at game scale next to the character, plus its collision footprint, glow
-  color, animation timings and paint variants.
-- **The pixels are placed deliberately.** Parallel agents redrew all 34 props and 24 floor and wall tiles by hand in the
-  palette text format, following a written style guide (`docs/pixel-art.md`: 3/4 top-down view, light from the top left,
-  2–4 shades per material, a 1 px outline, no noise). Each agent reviewed its own renders at 12× and at game scale next
-  to the character, and floor tiles in a random mix to catch seams.
+A rough automatic draft (the middle column above) served only as a starting hint. Parallel agents then redrew all 34
+props and 24 floor and wall tiles following a written style guide ([`docs/pixel-art.md`](docs/pixel-art.md): a 3/4
+top-down view, light from the top left, two to four shades per material, a one-pixel outline, no noise). Every agent
+checked its sprites at 12× and next to Juno at game scale, and checked the floor tiles in a random mix to catch seams.
 
-<img src="docs/images/props-sheet.png" alt="All props and tiles" width="820">
+<p align="center"><img src="docs/images/props-sheet.png" alt="All props and tiles" width="820"></p>
 
-**Animations are frames in the same format.** A second file per frame changes only the pixels that move, so the
-outline never wobbles:
+Animations use the same format: each extra frame is a copy of the sprite that changes only the pixels that move, so
+the outline never wobbles.
 
-<img src="docs/images/prop-anims.gif" alt="Animated props" width="420">
+<p align="center"><img src="docs/images/prop-anims.gif" alt="Animated props" width="420"></p>
 
-## 6 · The build
+## 7 · From sources to sprites
 
-One command turns all of that source material into what the browser loads:
+Everything above is source material: template, labels, recipes, pixel files and manifests. One command turns it into
+what the browser loads.
 
 ```mermaid
 flowchart TB
     subgraph Sources
-      V["vendor/…/*.aseprite<br/>template"]
-      LB["assets/template/16x32/labels/*.txt"]
+      V["template .aseprite"]
+      LB["labels/*.txt"]
       RC["characters/*/recipe.toml"]
-      PX["assets/props/pixel/*.txt<br/>palette.toml · props.toml"]
+      PX["pixel/*.txt · palette.toml · props.toml"]
     end
-    V --> CAT["catalog + head tracking"] --> GEN["render recipe onto every frame<br/>(+ mirrored left facings)"]
+    V --> CAT["catalog + head tracking"] --> GEN["render recipe onto every frame<br/>+ mirrored left facings"]
     LB --> GEN
     RC --> GEN
-    GEN --> SH["web/data/characters/NAME/sheet.png + sheet.json"]
-    PX --> PK["check · variants · frames · pack"] --> AT["web/data/props/atlas.png · atlas_emissive.png · atlas.json"]
+    GEN --> SH["characters/NAME/sheet.png + sheet.json"]
+    PX --> PK["check · variants · frames · pack"] --> AT["props atlas + emissive layer"]
     SH --> WEB["web/ = the whole site"]
     AT --> WEB
 ```
 
 | Command | What it does |
 |---|---|
+| `just play` | Builds everything and serves the demo at <http://localhost:8000> |
 | `just build` | Packs the props atlas and renders every character sheet into `web/data/` |
-| `just play` | Builds, then serves the demo at <http://localhost:8000> |
-| `just preview juno` | Contact sheet of every animation × facing, plus large idle facings |
-| `just heads juno` | Prints a character's head grids aligned with the template's head outlines |
+| `just preview juno` | Contact sheet of every animation in every facing |
+| `just heads juno` | Shows a character's head grids next to the template's head outlines |
 | `just labels run` | Template frames colored by body part, for review |
-| `just pixel vending_machine` | Reference · 12× zoom · game scale next to the character |
-| `just smoke` | Headless Chromium drives the demo with the keyboard and checks the results |
-| `just media` | Regenerates every image in this README from the pipeline and the running demo |
+| `just pixel vending_machine` | A sprite at 12× and at game scale next to the character |
+| `just smoke` | Headless Chromium plays the demo with the keyboard and checks the results |
+| `just media` | Regenerates every image in this README |
 
-Every push to `main` runs the same build and the smoke test in GitHub Actions and deploys `web/` to GitHub Pages
-(`.github/workflows/pages.yml`).
+Every push to `main` runs the same build and the smoke test on GitHub Actions and publishes the demo to GitHub Pages.
 
-## 7 · How atmospheric can basic pixel graphics get?
+## 8 · Mood lighting
 
-With the art in place, the last step was to see how far a few technical tricks take plain pixel graphics.
+With a character and a world in place, the last question was a fun one: how atmospheric can plain pixel graphics get
+with a few technical tricks?
 
-<img src="docs/images/lighting-compare.png" alt="Flat pixel art versus lit scene" width="880">
+<p align="center"><img src="docs/images/lighting-compare.png" alt="Flat pixel art versus lit scene" width="880"></p>
 
-- **Colored light, not darkness.** Every glowing prop becomes a light (vending machine, neon sign, fire barrel, beacon,
-  mushrooms), plus the neon floor strips, the wall lights and a cool moon. Their light is added into one buffer, which
-  then multiplies the scene. Colored shadows come for free: a spot in one light's shadow is still lit by the others.
-- **Shadows computed from the sprites themselves.** Each opaque pixel of an object has a height above its ground line.
-  Its columns are projected onto the floor away from each light and filled pixel by pixel. Shadows are soft at the
-  edges and fade with distance from the object, and Juno's shadow is recomputed from her current animation frame.
-- **Never darker than night.** Shadows only remove *direct* light, so any number of overlapping shadows bottoms out at
-  the ambient level, never black.
-- **Flat bands, no dithering.** Light fades in clean, flat-shaded steps that suit the pixel art.
-- **Neon glows.** Pixels in neon and fire colors are drawn at full brightness on top of the lit scene.
+Quite a lot, it turns out. Every glowing prop became a colored light source: the vending machine, the neon sign, the
+fire barrel, the antenna beacon, the glowing mushrooms. The neon floor strips, the wall lights and a cool moon join
+them. All that light is added up in one buffer that then colors the scene, so shadows come out tinted: a spot in the
+fire's shadow is still bathed in the sign's pink.
+
+The shadows are computed from the sprites themselves. Each pixel of an object gets a height above its ground line, and
+the object's columns are projected onto the floor away from every light, so a chair casts a chair-shaped shadow and a
+mast casts a long, thin one. Shadows soften at the edges and fade as they stretch away from their object. Juno's shadow
+is recomputed every frame from her current pose.
+
+A few rules keep it looking like pixel art rather than a filter. Light falls off in flat, clean bands instead of
+smooth gradients or dithering. Neon and fire pixels are drawn at full brightness on top of the lit scene, so they
+really glow. And shadows only ever remove direct light, so no pile-up of overlapping shadows can get darker than the
+night itself.
 
 <table>
 <tr>
@@ -311,76 +335,94 @@ With the art in place, the last step was to see how far a few technical tricks t
 <td><img src="docs/images/flyover.png" alt="A flying taxi's headlight sweeping the roof" width="400"></td>
 </tr>
 <tr>
-<td><sub>Each prop and the character cast their own shadows, away from every light.</sub></td>
-<td><sub>Flying cars pass overhead. Their headlights cast live shadows as they sweep across the roof.</sub></td>
+<td><sub>Every prop and the character cast their own shadows, away from every light.</sub></td>
+<td><sub>Flying cars pass overhead, and their headlights sweep the roof with live shadows.</sub></td>
 </tr>
 </table>
 
 ```mermaid
 flowchart LR
     MO["moon"] --> D["direct light"]
-    PL["point lights<br/>baked with their shadows"] --> D
+    PL["neon, fire & lamps<br/>shadows baked in"] --> D
     CAR["flying car lights<br/>live shadows"] --> D
-    D --> O["× occlusion<br/>hero shadow · contact shadows"]
+    D --> O["× Juno's shadow<br/>× contact shadows"]
     O --> A["+ ambient"]
-    A --> F["floor × light"]
-    F --> E["+ emissive pixels + bloom"]
+    A --> F["scene × light"]
+    F --> E["+ glowing pixels"]
 ```
 
-The details are in [`docs/lighting.md`](docs/lighting.md).
+The full model is described in [`docs/lighting.md`](docs/lighting.md).
 
 ---
 
-## How the AI organized the work
+## Behind the scenes: how the AI organized the work
 
-This was built in a conversation with an AI coding agent (Claude). The pattern that worked, over and over:
+All of this came out of a conversation with an AI coding agent (Claude), with image generation for the concept art.
+A few patterns did most of the work:
 
-- **Make the problem text-shaped first.** A parser, the tone/label text files and the pixel palette files came before
-  any drawing.
-- **Invest once, reuse everywhere.** Labeling the template took the most effort, and it made every later character and
-  variant almost free.
-- **Split work across parallel subagents, each with a verification loop.** Label groups, prop groups and tile sets were
-  handed to separate agents. Each one validated and *looked at* its own renders before reporting, and reported the
-  cases it was unsure about.
-- **Use image generation for what it's good at.** Generated images were the concept art and design references. They
-  were never the shipped pixels.
-- **Keep everything reproducible.** Every artifact, including the images in this README, is rebuilt from source by a
+- **First make the problem text-shaped.** The Aseprite reader, the tone and label files and the pixel palette format
+  all came before any drawing.
+- **Invest once, reuse everywhere.** Labeling the template was the biggest single effort, and it made every
+  character and variant after that almost free.
+- **Parallel agents, each with its own eyes.** Label groups, prop groups and tile sets went to separate subagents. Each
+  one validated and *looked at* its own renders, and reported what it wasn't sure about.
+- **Image generation where it shines.** Generated images supplied the ideas and the references, never the shipped
+  pixels.
+- **Everything reproducible.** Every artifact, including the images in this README, is rebuilt from source with a
   `just` command.
 
-## Repository layout
+## Try it yourself
+
+You'll need [uv](https://docs.astral.sh/uv/) and [just](https://just.systems/).
+
+```sh
+just setup    # Python dependencies + headless Chromium for the tests
+just play     # build everything and serve the demo at http://localhost:8000
+```
+
+<details>
+<summary><b>Repository layout</b></summary>
 
 ```text
 characters/          character recipes (recipe.toml) and their concept art
 assets/template/     per-frame body-part labels for the 16x32 template
 assets/props/        palette.toml, props.toml, hand-drawn pixel files, concept + reference art
-chargen/             Python pipeline: aseprite reader, catalog, labels, recipes, props, tools
-web/                 the demo (static site): engine, lighting, level; build output goes to web/data/
+chargen/             Python pipeline: aseprite reader, catalog, labels, recipes, props, review tools
+web/                 the demo (a static site); the build writes its data to web/data/
 tools/               smoke test, benchmark, README media generator
 docs/                labeling guide, pixel-art style guide, lighting notes, README images
 vendor/              the Eris Esra character template (unmodified, with its license)
 ```
 
-## Running it locally
+</details>
 
-Requires [uv](https://docs.astral.sh/uv/) and [just](https://just.systems/).
+---
 
-```sh
-just setup    # Python deps + headless Chromium for the tests
-just play     # build everything and serve the demo at http://localhost:8000
-```
+## Credits
 
-## Credits and license
+<div align="center">
 
-**Original character template created by Eris Esra: <https://erisesra.itch.io/character-templates-pack>**
+Original character template created by **Eris Esra**<br>
+<https://erisesra.itch.io/character-templates-pack>
+
+<a href="https://erisesra.itch.io/character-templates-pack"><img src="docs/images/badges/itchio-badge-color.svg" alt="Character Templates Pack on itch.io" height="54"></a>
+
+</div>
 
 The template (v4.1) is included unmodified in [`vendor/eris-esra-character-templates/`](vendor/eris-esra-character-templates/)
-so the demo builds out of the box. The template, and everything in this repository derived from it (the label files in
-`assets/template/` and the character sprite sheets), remains under Eris Esra's terms, not this repository's license.
-Those terms allow use in commercial and non-commercial projects and require this credit and link for free products.
-They do not allow character commissions, asset packs, or reselling the template with add-ons or modifications. The
-pack is pay-what-you-want. If you build on it, please get it from the link above and support the author.
+so the demo builds out of the box. It is pay-what-you-want: if this project is useful to you, please get the pack
+from itch.io and support the author.
 
-Concept art and design reference images were generated with an image model (gpt-image-2). All in-game props and tiles
-were drawn as pixel files in this repository.
+The template, and everything in this repository derived from it (the label files in `assets/template/` and the
+generated character sprite sheets), stays under Eris Esra's terms rather than this repository's license. Those terms
+allow use in commercial and non-commercial projects and ask free projects for exactly the credit above. They do not
+allow character commissions, asset packs, or reselling the template with add-ons or modifications.
 
-The source code and documentation are released under the [MIT License](LICENSE).
+Concept art and design references were generated with an image model (gpt-image-2). Every in-game prop and tile was
+drawn as a pixel file in this repository. The "Available on itch.io" badge is from the
+[official itch.io press kit](https://itch.io/press-kit).
+
+## License
+
+The source code and documentation are released under the [MIT License](LICENSE). The template and the artwork
+derived from it follow Eris Esra's terms, described above.
