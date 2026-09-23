@@ -24,10 +24,13 @@ const band = (v, n) => Math.round(v * n) / n;
 // everywhere is plain rounding; blue-noise t turns each band edge into a fine, even stipple
 // one band wide, with none of the cross-hatch of ordered dithering. `amount` blends between.
 const NOISE = 64;
-let noise = null, noiseAmount = 0;
-export function setDitherNoise(map, amount) { noise = map; noiseAmount = amount; }
+// Keep double precision: rounding thresholds to Float32 can move a band edge.
+const thresholds = new Float64Array(NOISE * NOISE).fill(0.5);
+export function setDitherNoise(map, amount) {
+  for (let i = 0; i < thresholds.length; i++) thresholds[i] = map ? 0.5 + (map[i] - 0.5) * amount : 0.5;
+}
 function threshold(wx, wy) {
-  return noise ? 0.5 + (noise[((wy & (NOISE - 1)) << 6) | (wx & (NOISE - 1))] - 0.5) * noiseAmount : 0.5;
+  return thresholds[((wy & (NOISE - 1)) << 6) | (wx & (NOISE - 1))];
 }
 const dband = (v, n, wx, wy) => Math.min(n, Math.floor(v * n + threshold(wx, wy))) / n;
 
@@ -128,6 +131,24 @@ function blur(m, W, H, r = 1, passes = 2, tmp = new Float32Array(m.length)) {
       }
       continue;
     }
+    if (r === 2) {
+      // Five taps in the original order, with one Float32 write per pass.
+      for (let y = 0; y < H; y++) {
+        const row = y * W;
+        for (let x = 0; x < W; x++) {
+          tmp[row + x] = (m[row + Math.max(0, x - 2)] + m[row + Math.max(0, x - 1)] +
+            m[row + x] + m[row + Math.min(W - 1, x + 1)] + m[row + Math.min(W - 1, x + 2)]) / 5;
+        }
+      }
+      for (let y = 0; y < H; y++) {
+        const row = y * W, a = Math.max(0, y - 2) * W, b = Math.max(0, y - 1) * W;
+        const c = Math.min(H - 1, y + 1) * W, d = Math.min(H - 1, y + 2) * W;
+        for (let x = 0; x < W; x++) {
+          m[row + x] = (tmp[a + x] + tmp[b + x] + tmp[row + x] + tmp[c + x] + tmp[d + x]) / 5;
+        }
+      }
+      continue;
+    }
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       let s = 0;
       for (let k = -r; k <= r; k++) { const xx = Math.min(W - 1, Math.max(0, x + k)); s += m[y * W + xx]; }
@@ -148,8 +169,9 @@ function writeLightBands(D, VW, levels, y0, y1, camX, camY) {
   const a = D.ia.data, b = D.ib.data, al = D.accLit, ar = D.accRaw, bands = D.bands;
   for (let y = y0; y < y1; y++) {
     const x0 = D.active[y * 2], end = (y * VW + D.active[y * 2 + 1]) * 3;
+    const noiseRow = ((camY + y) & (NOISE - 1)) << 6;
     for (let i = (y * VW + x0) * 3, j = i / 3 * 4, x = x0; i < end; i += 3, j += 4, x++) {
-      const t = threshold(camX + x, camY + y);
+      const t = thresholds[noiseRow | ((camX + x) & (NOISE - 1))];
       a[j] = bands[(Math.max(0, Math.min(1, al[i])) * levels + t) | 0];
       b[j] = bands[(Math.max(0, Math.min(1, ar[i])) * levels + t) | 0];
       a[j + 1] = bands[(Math.max(0, Math.min(1, al[i + 1])) * levels + t) | 0];
@@ -286,31 +308,12 @@ export class Lighting {
     for (const o of this.walls) this.castShadow(m, W, H, 0, 0, null, o);
     blur(m, W, H, cfg.blur ?? 1, 2);
     for (let i = 0; i < W * H; i++) if (this.wallMask[i]) m[i] = 0;
-    const [moonLit, mctx] = canvas(W, H);
-    const img = mctx.createImageData(W, H), mc = rgb(cfg.moon.color);
-    const lv = cfg.levels;
+    // Moon attenuation is independent of its color (and of ambient/darkness).
+    this.moonShade = new Float64Array(W * H);
     for (let i = 0; i < W * H; i++) {
-      const f = dband(1 - cfg.moon.shadow * m[i], lv, i % W, (i / W) | 0);
-      for (let k = 0; k < 3; k++) img.data[i * 4 + k] = mc[k] * f;
-      img.data[i * 4 + 3] = 255;
+      this.moonShade[i] = dband(1 - cfg.moon.shadow * m[i], levels, i % W, (i / W) | 0);
     }
-    mctx.putImageData(img, 0, 0);
-    this.moonLit = moonLit;
-    // Addition of nonnegative byte channels is associative, including saturation.
-    // Bake the moon and constant lights together; flickering lights still add separately.
-    const steady = this.lights.filter(L => !L.flicker);
-    this.flickering = this.lights.filter(L => L.flicker);
-    const sx = Math.min(0, ...steady.map(L => L.ox)), sy = Math.min(0, ...steady.map(L => L.oy));
-    const sw = Math.max(W, ...steady.map(L => L.ox + L.lit.width)) - sx;
-    const sh = Math.max(H, ...steady.map(L => L.oy + L.lit.height)) - sy;
-    this.steady = { x: sx, y: sy };
-    for (const which of ["lit", "raw"]) {
-      const [c, g] = canvas(sw, sh);
-      g.globalCompositeOperation = "lighter";
-      g.drawImage(which === "lit" ? this.moonLit : this.moonRaw(), -sx, -sy);
-      for (const L of steady) g.drawImage(L[which], L.ox - sx, L.oy - sy);
-      this.steady[which] = c;
-    }
+    this.recolorMoon();
     // contact shadows: a soft pool around each footprint (multiply layer). Each is an
     // ellipse a little larger than the footprint, darkest at its center and fading out,
     // then blurred, so it reads like light blocked near the ground rather than a box.
@@ -335,6 +338,38 @@ export class Lighting {
     }
     actx.putImageData(aimg, 0, 0);
     this.ao = ao;
+  }
+
+  // Darkness changes only ambient/moon/car colors. Retain point-light textures,
+  // contact shadows and the exact quantized moon field; rebuild the combined maps.
+  recolorMoon() {
+    const { W, H, cfg } = this;
+    this.ambient = rgb(cfg.ambient);
+    this._moonRaw = null;
+    const [moonLit, mctx] = canvas(W, H);
+    const img = mctx.createImageData(W, H), mc = rgb(cfg.moon.color);
+    for (let i = 0; i < W * H; i++) {
+      const f = this.moonShade[i];
+      for (let k = 0; k < 3; k++) img.data[i * 4 + k] = mc[k] * f;
+      img.data[i * 4 + 3] = 255;
+    }
+    mctx.putImageData(img, 0, 0);
+    this.moonLit = moonLit;
+    // Addition of nonnegative byte channels is associative, including saturation.
+    // Bake the moon and constant lights together; flickering lights still add separately.
+    const steady = this.lights.filter(L => !L.flicker);
+    this.flickering = this.lights.filter(L => L.flicker);
+    const sx = Math.min(0, ...steady.map(L => L.ox)), sy = Math.min(0, ...steady.map(L => L.oy));
+    const sw = Math.max(W, ...steady.map(L => L.ox + L.lit.width)) - sx;
+    const sh = Math.max(H, ...steady.map(L => L.oy + L.lit.height)) - sy;
+    this.steady = { x: sx, y: sy };
+    for (const which of ["lit", "raw"]) {
+      const [c, g] = canvas(sw, sh);
+      g.globalCompositeOperation = "lighter";
+      g.drawImage(which === "lit" ? this.moonLit : this.moonRaw(), -sx, -sy);
+      for (const L of steady) g.drawImage(L[which], L.ox - sx, L.oy - sy);
+      this.steady[which] = c;
+    }
   }
 
   // Light buffer for the view: direct light (moon + point lights), optionally occluded by
@@ -531,38 +566,49 @@ export class Lighting {
         for (const o of occluders) this.castShadow(mask, bw, bh, x0 + camX, y0 + camY, light, o);
         blur(mask, bw, bh, this.cfg.blur ?? 1, 2, D.tmp);
       }
-      for (let sy = top; sy < bottom; sy++) for (let sx = D.rows[sy * 2]; sx < D.rows[sy * 2 + 1]; sx++) {
-        const x = sx - x0, y = sy - y0;
-        const wx = x0 + camX + x + 0.5, wy = y0 + camY + y + 0.5;
-        let f;
-        if (L.type === "spot") {
-          const vx = wx - L.x, vy = wy - L.y, vz = -L.h, d = Math.sqrt(vx * vx + vy * vy + vz * vz);
-          const c = (vx * ax + vy * ay + vz * az) / d;
-          if (c <= cosOut) continue;
-          const k = Math.min(1, (c - cosOut) / (cosIn - cosOut));
-          const spot = k * k * (3 - 2 * k);  // smoothstep: soft beam edge
-          const dx = wx - L.tx, dy = wy - L.ty, dr2 = (dx * dx + dy * dy) / (reach * reach);
-          if (dr2 >= 1) continue;
-          f = spot * L.intensity * (1 - dr2) / (1 + dr2 * 2.2 * 2.2 * 2);
-        } else {
-          const dx = wx - L.x, dy = (wy - L.y) * 1.15;
-          const d = Math.sqrt(dx * dx + dy * dy) / L.radius;
-          if (d >= 1) continue;
-          const v = 1 - d;
-          f = v * Math.sqrt(v) * L.intensity;
+      // Hoist light/scanline invariants without regrouping the falloff arithmetic.
+      const accRaw = D.accRaw, accLit = D.accLit, wallMask = this.wallMask;
+      const W = this.W, H = this.H, shadow = this.cfg.shadow;
+      const spotLight = L.type === "spot", vz = -L.h, vz2 = vz * vz;
+      const reach2 = reach * reach, coneWidth = cosIn - cosOut;
+      for (let sy = top; sy < bottom; sy++) {
+        const y = sy - y0, wy = y0 + camY + y + 0.5, vy = wy - L.y;
+        const dy = (wy - L.y) * 1.15, aimY = wy - L.ty;
+        const my = y0 + camY + y, wallRow = my * W, maskRow = y * bw;
+        const viewRow = (y0 + y) * VW;
+        const end = D.rows[sy * 2 + 1];
+        for (let sx = D.rows[sy * 2]; sx < end; sx++) {
+          const x = sx - x0, wx = x0 + camX + x + 0.5;
+          let f;
+          if (spotLight) {
+            const vx = wx - L.x, d = Math.sqrt(vx * vx + vy * vy + vz2);
+            const c = (vx * ax + vy * ay + vz * az) / d;
+            if (c <= cosOut) continue;
+            const k = Math.min(1, (c - cosOut) / coneWidth);
+            const spot = k * k * (3 - 2 * k);  // smoothstep: soft beam edge
+            const dx = wx - L.tx, dr2 = (dx * dx + aimY * aimY) / reach2;
+            if (dr2 >= 1) continue;
+            f = spot * L.intensity * (1 - dr2) / (1 + dr2 * 2.2 * 2.2 * 2);
+          } else {
+            const dx = wx - L.x, d = Math.sqrt(dx * dx + dy * dy) / L.radius;
+            if (d >= 1) continue;
+            const v = 1 - d;
+            f = v * Math.sqrt(v) * L.intensity;
+          }
+          const i = (viewRow + x0 + x) * 3;
+          let fs = f;
+          if (mask) {
+            const mx = x0 + camX + x;
+            const wall = mx >= 0 && my >= 0 && mx < W && my < H && wallMask[wallRow + mx];
+            if (!wall) fs *= 1 - shadow * mask[maskRow + x];
+          }
+          accRaw[i] += f * col[0]; accLit[i] += fs * col[0];
+          accRaw[i + 1] += f * col[1]; accLit[i + 1] += fs * col[1];
+          accRaw[i + 2] += f * col[2]; accLit[i + 2] += fs * col[2];
         }
-        const i = ((y0 + y) * VW + x0 + x) * 3;
-        let fs = f;
-        if (mask) {
-          const mx = x0 + camX + x, my = y0 + camY + y;
-          const wall = mx >= 0 && my >= 0 && mx < this.W && my < this.H && this.wallMask[my * this.W + mx];
-          if (!wall) fs *= 1 - this.cfg.shadow * mask[y * bw + x];
-        }
-        D.accRaw[i] += f * col[0]; D.accLit[i] += fs * col[0];
-        D.accRaw[i + 1] += f * col[1]; D.accLit[i + 1] += fs * col[1];
-        D.accRaw[i + 2] += f * col[2]; D.accLit[i + 2] += fs * col[2];
       }
     }
+
     // flat bands per channel, like the baked lights
     writeLightBands(D, VW, levels, activeY0, activeY1, camX, camY);
     D.x = activeX0; D.y = activeY0;

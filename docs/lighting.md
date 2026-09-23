@@ -65,6 +65,12 @@ The hero's masks are blurred only within their nonzero bounds plus the same blur
 Light positions and shadow projections are recomputed every frame without position
 quantization or cached static shadows; moving cars and the hero retain live shadows.
 
+The radius-2 box blur uses five explicit taps in the original addition order, with the same
+edge clamping and Float32 writes after each horizontal/vertical pass. This avoids the inner
+kernel loops in bakes, hero shadows and headlight shadows without shifting a band edge.
+Moving-light accumulation hoists light constants and scanline values out of the pixel loop;
+the falloff arithmetic and order of Float32 accumulation stay the same.
+
 Car sprites (moon/ambient tint and emissive pixels) and their blurred moon silhouettes are
 prepared at load for each model, animation frame, and direction, including unlit sprites
 for the lighting toggle. Per-frame draws reuse these canvases at the current position;
@@ -74,7 +80,13 @@ headlight shadows still respond to the scene every frame.
 The `-`/`+` keys set the night's darkness in 10% steps (`darkness`, 40% at startup). They dim the
 ambient light, the moon and the light on flying cars toward 12% of their strength; neon, fire,
 lamps and car headlights keep full strength, so a fully dark roof is lit only by its own lights.
-The moon is baked into the light maps, so each step re-bakes them (about 0.1 s).
+The moon's quantized attenuation is cached in double precision. Each step recolors that field
+and recombines the moon with the existing point-light textures; contact shadows, point-light
+falloff and shadow rasterization are reused. The raw moon canvas is invalidated too. The
+60 ms key debounce and car-tint invalidation are unchanged. `build()` still performs a full
+bake when geometry, light settings other than moon/ambient color, or dithering change;
+`recolorMoon()` is only for moon/ambient color changes. The retained field costs 896 KiB on
+this map.
 
 ## Dithering
 Quantizing light into `levels` bands leaves visible rings around lights, worst on a dark night. Every
@@ -85,3 +97,23 @@ almost no low-frequency energy, so band edges become a fine, even stipple one ba
 the cross-hatch of ordered (Bayer) dithering. The map is indexed by world position, so the pattern is
 baked with the light maps and does not crawl when the camera scrolls. `dither` scales it (0 = plain
 rounding).
+
+The 64x64 thresholds are blended with `dither` once in `setDitherNoise`, then looked up directly.
+They use Float64 storage to preserve the original JavaScript arithmetic exactly. Moving-light
+band conversion also computes the noise row once per scanline.
+
+## Performance checks
+Local headless Chromium, synchronous `__game.draw(t)` via `tools/bench.py`: medians of
+three alternating original/optimized runs (120 measured frames per car count per run).
+
+| Cars | Before mean / p95 (ms) | After mean / p95 (ms) |
+| --- | --- | --- |
+| 0 | 2.18 / 2.5 | 2.08 / 2.3 |
+| 1 | 4.25 / 5.9 | 3.50 / 4.3 |
+| 3 | 7.30 / 8.9 | 5.75 / 6.7 |
+| 5 | 9.92 / 12.7 | 7.85 / 9.5 |
+
+Initial bake: median 92 → 84 ms over three loads each. Darkness changes: median 45.5 →
+2.3 ms over 18 changes each (ranges 42–53 → 1.4–9.1 ms, excluding the unchanged debounce).
+Timings vary with host load and browser warmup. All four saved benchmark references match
+exactly (`--compare`, max difference 0); they were not regenerated.
