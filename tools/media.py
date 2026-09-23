@@ -545,9 +545,15 @@ def hero_overlay(size: tuple[int, int]) -> Image.Image:
     out = Image.new("RGBA", size, (0, 0, 0, 0))
     title = concept_title()
     title = title.resize((W * 2 // 5, round(title.height * (W * 2 // 5) / title.width)), Image.LANCZOS)
-    shadow = Image.new("RGBA", title.size, (8, 6, 12, 0))
-    shadow.putalpha(title.getchannel("A").point(lambda v: v * 0.8))
-    out.alpha_composite(shadow, (16 + 2, 12 + 2))
+    # soft dark halo behind the letters: the alpha grown a little, blurred, darkened
+    from PIL import ImageFilter
+    pad = 24
+    halo_a = Image.new("L", (title.width + 2 * pad, title.height + 2 * pad), 0)
+    halo_a.paste(title.getchannel("A"), (pad, pad))
+    halo_a = halo_a.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.GaussianBlur(9)).point(lambda v: min(255, v * 1.6))
+    halo = Image.new("RGBA", halo_a.size, (6, 4, 10, 0))
+    halo.putalpha(halo_a.point(lambda v: v * 0.85))
+    out.alpha_composite(halo, (16 - pad + 2, 12 - pad + 3))
     out.alpha_composite(title, (16, 12))
     bust = Image.open(ROOT / "characters/juno/concept/juno-bust.png").convert("RGBA")
     bust = bust.crop(bust.getbbox())
@@ -555,6 +561,18 @@ def hero_overlay(size: tuple[int, int]) -> Image.Image:
     bust = bust.resize((round(bust.width * h / bust.height), h), Image.LANCZOS)
     out.alpha_composite(bust, (W - bust.width - 8, H - bust.height))
     return out
+
+
+def border_vignette(size: tuple[int, int], width: int = 70, strength: float = 0.45) -> Image.Image:
+    """Darkening that only creeps in from the frame's edges (flat in the middle, no ellipse)."""
+    W, H = size
+    x = np.minimum(np.arange(W), W - 1 - np.arange(W)) / width
+    y = np.minimum(np.arange(H), H - 1 - np.arange(H)) / width
+    fx, fy = np.clip(1 - x, 0, 1) ** 2, np.clip(1 - y, 0, 1) ** 2
+    a = strength * np.maximum(fx[None, :], fy[:, None])
+    v = Image.new("RGBA", size, (4, 3, 8, 0))
+    v.putalpha(Image.fromarray((a * 255).astype(np.uint8)))
+    return v
 
 
 def hero_loop(pg, grab):
@@ -565,8 +583,9 @@ def hero_loop(pg, grab):
     shots = _hero_pass(pg, grab)
     pg.evaluate("window.__game.loopMs(0)")
     frames = [up(s_, 2) for s_ in shots[:-1]]
-    overlay = hero_overlay(frames[0].size)
+    vignette, overlay = border_vignette(frames[0].size), hero_overlay(frames[0].size)
     for f in frames:
+        f.alpha_composite(vignette)
         f.alpha_composite(overlay)
     gif(frames, "hero.gif", HERO_DT)
     diff = np.abs(np.asarray(shots[0], int) - np.asarray(shots[-1], int)).max()
