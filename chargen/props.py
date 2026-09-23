@@ -189,29 +189,46 @@ def _pack(sprites, meta, tiles, emissive) -> Path:
     return OUT
 
 
-def preview(scale: int = 4) -> Path:
-    """All sprites and tiles on a dark floor at `scale`x, next to the character for size."""
+def preview(scale: int = 4, width: int = 400) -> Path:
+    """All sprites and tiles on a dark floor at `scale`x, next to the character for size.
+
+    Sprites are shelf-packed: each gets a cell as wide as itself (or its label), rows wrap at
+    `width` px and are as tall as their tallest sprite, so big sprites never overlap others."""
+    from PIL import ImageDraw
     atlas = Image.open(OUT / "atlas.png")
     meta = json.loads((OUT / "atlas.json").read_text())
     char = ROOT / "web/data/characters/juno/sheet.png"
-    items = [("juno", Image.open(char).crop((0, 0, 32, 32)))] if char.exists() else []
-    for k, s in list(meta["sprites"].items()):  # frame 0 of each sprite
-        items.append((k, atlas.crop((s["x"], s["y"], s["x"] + s["w"], s["y"] + s["h"]))))
-    cols, cell = 8, 50
-    rows = (len(items) + cols - 1) // cols
+    items = [(k, atlas.crop((s["x"], s["y"], s["x"] + s["w"], s["y"] + s["h"])))  # frame 0 of each sprite
+             for k, s in meta["sprites"].items()]
+    items.sort(key=lambda it: -it[1].height)  # similar sizes share a row
+    if char.exists():
+        items.insert(0, ("juno", Image.open(char).crop((0, 0, 32, 32))))
+    probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+    label_h, gap = 4, 6  # px at 1x: label line above each sprite, space between cells
+    place, x, y, row_h = [], gap, 0, 0
     tiles = list(meta["tiles"].items())
-    th = ((len(tiles) + 11) // 12) * 18
-    im = Image.new("RGBA", (cols * cell, rows * cell + th + 4), (30, 29, 38, 255))
+    top = ((len(tiles) + 11) // 12) * 18 + 4
+    y = top
+    for k, spr in items:
+        w = max(spr.width, int(probe.textlength(k) / scale) + 2)
+        if x + w > width - gap and x > gap:
+            x, y, row_h = gap, y + row_h + label_h + gap, 0
+        place.append((k, spr, x, y, w))
+        x += w + gap
+        row_h = max(row_h, spr.height)
+    rows_end = {}
+    for k, spr, px, py, w in place:  # bottom-align sprites within their row
+        rows_end[py] = max(rows_end.get(py, 0), spr.height)
+    H = max(py + label_h + rows_end[py] for _, _, _, py, _ in place) + gap
+    im = Image.new("RGBA", (width, H), (30, 29, 38, 255))
     for i, (k, t) in enumerate(tiles):
         im.alpha_composite(atlas.crop((t["x"], t["y"], t["x"] + 16, t["y"] + 16)), ((i % 12) * 18 + 2, (i // 12) * 18 + 2))
-    for i, (k, spr) in enumerate(items):
-        cx, cy = (i % cols) * cell, th + 4 + (i // cols) * cell
-        im.alpha_composite(spr, (cx + (cell - spr.width) // 2, cy + cell - spr.height - 2))
+    for k, spr, px, py, w in place:
+        im.alpha_composite(spr, (px + (w - spr.width) // 2, py + label_h + rows_end[py] - spr.height))
     big = im.resize((im.width * scale, im.height * scale), Image.NEAREST)
-    from PIL import ImageDraw
     d = ImageDraw.Draw(big)
-    for i, (k, _) in enumerate(items):
-        d.text(((i % cols) * cell * scale + 4, (th + 4 + (i // cols) * cell) * scale + 2), k, fill=(170, 170, 190, 255))
+    for k, spr, px, py, w in place:
+        d.text((px * scale, py * scale - 2), k, fill=(170, 170, 190, 255))
     PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
     p = PREVIEW_DIR / "props.png"
     big.save(p)
