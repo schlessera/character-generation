@@ -459,7 +459,8 @@ moves. That matters most on a dark night (the `-`/`+` keys), where hard bands wo
 light. Neon and fire pixels are drawn at full brightness on top of the lit scene, so they
 really glow. Juno glows a little too: her recipe marks the cyan ramp as emissive, so the build writes a second sheet
 with just the visor lens (drawn half self-lit) and the cyber-arm's joints (fully self-lit), and a faint cyan light
-pools on the roof under her cyber-arm, following it as she turns. And shadows only ever remove direct light, so no pile-up of
+pools on the roof under her cyber-arm, following it as she turns. Some props glow partly in the same way: the vending
+machine's backlit window, the reflections in the neon puddles and the parked cars' standby tail lights. And shadows only ever remove direct light, so no pile-up of
 overlapping shadows can get darker than the night itself.
 
 <table>

@@ -126,3 +126,9 @@ part by `emissive_parts` (her cyber-arm: 1.0). The game draws them over the lit 
 occlusion-tracking emissive layer as the props. A recipe `light` ({color, radius, intensity, anchor}) adds
 a small moving point light without shadows; with `anchor` the build stores that part's centroid per
 frame, so the light sits on the ground under it (Juno's cyber-arm) and shifts as she turns.
+
+Props use the same idea: `emissive` chars in `props.toml` are fully self-lit (neon, fire, lamps, the
+flying cars' lights), and `emissive_dim = { chars, strength }` adds partly self-lit ones, with the
+strength stored in the emissive atlas's alpha: the vending machine's backlit product window (0.5), the
+neon puddles' reflections (0.6) and the parked cars' standby tail strip (0.5), so they still read on a
+fully dark night.

@@ -132,7 +132,8 @@ def build() -> Path:
             emissive[name] = _emissive(g, tile_em.get(name, ""))
             continue
         chars = it.get("emissive", "MnZxyY" if it.get("glow") else "")
-        m = {k: v for k, v in it.items() if k not in ("cell", "sheet", "alpha_min", "outline", "emissive", "variants")}
+        dim = it.get("emissive_dim", {})
+        m = {k: v for k, v in it.items() if k not in ("cell", "sheet", "alpha_min", "outline", "emissive", "emissive_dim", "variants")}
         # the default look plus one sprite set per palette variant: NAME, NAME_VARIANT
         for vname, over in [("", None)] + list(it.get("variants", {}).items()):
             out = f"{name}_{vname}" if vname else name
@@ -140,16 +141,22 @@ def build() -> Path:
                 g = read(f)
                 key = out if k == 0 else f"{out}@{k}"
                 sprites[key] = to_rgba(g, over)
-                emissive[key] = _emissive(g, chars)
+                emissive[key] = _emissive(g, chars, dim)
             meta[out] = {**m, **({"variant_of": name} if vname else {})}
     return _pack(sprites, meta, tiles, emissive)
 
 
-def _emissive(grid: np.ndarray, chars: str) -> np.ndarray:
-    """Only the self-lit pixels (neon, fire): drawn unlit on top of the lit scene."""
+def _emissive(grid: np.ndarray, chars: str, dim: dict | None = None) -> np.ndarray:
+    """Only the self-lit pixels (neon, fire): drawn unlit on top of the lit scene. `dim`
+    ({chars, strength}) adds partly self-lit pixels (a backlit window, standby lights); their
+    alpha is the strength, so they blend between their lit color and full brightness."""
     from .pixeltool import to_rgba
     px = to_rgba(grid)
-    px[~np.isin(grid, list(chars))] = 0
+    dim_chars = list((dim or {}).get("chars", ""))
+    keep = np.isin(grid, list(chars)) | np.isin(grid, dim_chars)
+    px[~keep] = 0
+    part = np.isin(grid, dim_chars) & ~np.isin(grid, list(chars))
+    px[part, 3] = round(255 * (dim or {}).get("strength", 1.0))
     return px
 
 

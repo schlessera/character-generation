@@ -3,6 +3,7 @@
 # cell = [row, col] in the source sheet grid. kind: solid (blocks movement at its base),
 # decal (flat on the floor, walkable, drawn under characters), tall props are y-sorted.
 # glow_anim = per-frame glow strength multiplier.
+# emissive_dim = { chars, strength }: partly self-lit pixels (backlit windows, standby lights).
 # emissive = palette chars that stay full-bright under lighting (default for glowing props:
 #   neon/fire chars "MnZxyY"); tiles opt in with emissive_tiles below.
 # anim = per-frame ms; frame 0 is NAME.txt, frame k is NAME@k.txt.
@@ -15,7 +16,7 @@ cols = 4
 rows = 3
 alpha_min = 200
 [sheets.items]
-vending_machine = { cell = [0, 0], w = 22, h = 40, kind = "solid", base = 8, glow = "#ff3fd2", anim = [1400, 80, 60, 900], glow_anim = [1.0, 0.35, 0.9, 1.0] }
+vending_machine = { cell = [0, 0], w = 22, h = 40, kind = "solid", base = 8, glow = "#ff3fd2", anim = [1400, 80, 60, 900], glow_anim = [1.0, 0.35, 0.9, 1.0], emissive_dim = { chars = "JOQj", strength = 0.5 } }
 ac_unit         = { cell = [0, 1], w = 22, h = 18, kind = "solid", base = 8, anim = [70, 70, 70] }
 water_tank      = { cell = [0, 2], w = 32, h = 46, kind = "solid", base = 10 }
 satellite_dish  = { cell = [0, 3], w = 22, h = 26, kind = "solid", base = 6 }
@@ -40,7 +41,7 @@ cable_spool     = { cell = [0, 2], w = 16, h = 16, kind = "solid", base = 7 }
 roof_hatch      = { cell = [0, 3], w = 20, h = 14, kind = "decal" }
 drain_grate     = { cell = [0, 4], w = 12, h = 8, kind = "decal" }
 cables          = { cell = [1, 0], w = 22, h = 10, kind = "decal", outline = false }
-neon_puddle     = { cell = [1, 1], w = 24, h = 10, alpha_min = 90, kind = "decal", outline = false, anim = [300, 300, 300] }
+neon_puddle     = { cell = [1, 1], w = 24, h = 10, alpha_min = 90, kind = "decal", outline = false, anim = [300, 300, 300], emissive_dim = { chars = "MZnx", strength = 0.6 } }
 warning_stripe  = { cell = [1, 2], w = 24, h = 7, kind = "decal", outline = false }
 oil_stain       = { cell = [1, 3], w = 14, h = 8, alpha_min = 90, kind = "decal", outline = false }
 drone_pad       = { cell = [1, 4], w = 32, h = 20, kind = "decal", glow = "#3ff0ff", anim = [250, 250, 250, 250], emissive = "MnZxQ" }
@@ -63,7 +64,7 @@ alpha_min = 200
 [sheets.items]
 # variants: palette overrides for the car paint ramp (chars 1 2 3) -> sprites NAME_VARIANT
 flycar = { cell = [0, 0], w = 104, h = 50, kind = "flyer", anim = [90, 90], emissive = "xZWQYy", variants = { red = { "1" = "#4a0c16", "2" = "#a01c2c", "3" = "#e8484c" }, taxi = { "1" = "#6e4a08", "2" = "#c89414", "3" = "#f6d23a" }, police = { "1" = "#5a6070", "2" = "#c8ccd6", "3" = "#f4f6f8" }, black = { "1" = "#0c0c12", "2" = "#23232e", "3" = "#44445a" } } }
-flycar_parked = { cell = [0, 0], w = 80, h = 38, kind = "solid", base = 14, variants = { red = { "1" = "#4a0c16", "2" = "#a01c2c", "3" = "#e8484c" }, taxi = { "1" = "#6e4a08", "2" = "#c89414", "3" = "#f6d23a" }, police = { "1" = "#5a6070", "2" = "#c8ccd6", "3" = "#f4f6f8" }, black = { "1" = "#0c0c12", "2" = "#23232e", "3" = "#44445a" } } }
+flycar_parked = { cell = [0, 0], w = 80, h = 38, kind = "solid", base = 14, emissive_dim = { chars = "q", strength = 0.5 }, variants = { red = { "1" = "#4a0c16", "2" = "#a01c2c", "3" = "#e8484c" }, taxi = { "1" = "#6e4a08", "2" = "#c89414", "3" = "#f6d23a" }, police = { "1" = "#5a6070", "2" = "#c8ccd6", "3" = "#f4f6f8" }, black = { "1" = "#0c0c12", "2" = "#23232e", "3" = "#44445a" } } }
 
 [[sheets]]
 file = "tiles.png"
