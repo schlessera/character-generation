@@ -31,4 +31,4 @@ after step NN. Similarity: mean over the five mockup views (see `chargen/mockup.
 | 22 | stripe `straight = true`: the zipper stays one straight column on twisted run and attack poses | 0.766 |
 | 23 | visor narrowed to the mockup's lens widths (front 7 px, 3/4 6 px, profile 5 px); it spanned the whole face (flagged by the human watching) | 0.767 |
 | 24 | the lens runs under the hair with a dark end cap instead of stopping short | 0.768 |
-| 25 | stubble continues down the temple beside the visor to the ear; the 3/4-left lens re-anchored to the front of the face (step 23 had trimmed the wrong end there; flagged by the human watching) | 0.768 |
+| 25 | stubble continues down the temple beside the visor to the ear; the 3/4-left lens re-anchored to the front of the face (step 23 had trimmed the wrong end there; flagged by the human watching); from behind, the visor tip no longer pokes out past the head, just one dim lens pixel on the cheek edge (flagged too) | 0.767 |

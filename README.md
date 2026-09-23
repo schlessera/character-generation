@@ -250,13 +250,13 @@ What each block of five steps did (the full log, step by step, is
 | 6–10 | **color.** Hair, jacket, chrome, orange and shoes sampled from the mockup's pixels; the visor became a framed lens; an ear on the shaved side; chest logo and back print from the concept | 0.752 |
 | 11–15 | **detail and motion.** Near-black hair outline, cargo pockets and jogger cuffs, finger gaps on the cyber-hand, a circuit pattern shaved into the undercut, trim that turns with the body in the spinning attack | 0.768 |
 | 16–20 | **the views the mockup doesn't show.** Strand direction on the back of the head, strand tips on the left-facing views, the collar from behind, heel tabs, a visor glint | 0.766 |
-| 21–25 | **proportion.** A narrower visor at the mockup's lens widths, anchored to the front of the face and running under the hair, stubble down the temple, a straight zipper on twisted poses | 0.768 |
+| 21–25 | **proportion.** A narrower visor at the mockup's lens widths, anchored to the front of the face and running under the hair, stubble down the temple, a straight zipper on twisted poses | 0.767 |
 
 The similarity score is deliberately coarse. It lets every opaque pixel look for a same-colored pixel within one pixel
 in the other image, so it forgives one-pixel drift but not a wrong shape or color. A perfect 1.0 is out of reach for
 reasons explained below.
 
-<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.768" width="720"></p>
+<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767" width="720"></p>
 
 The curve shows the returns diminishing. Shape (steps 1–5) and color (6–10) were the big wins. After step 15 the score
 is flat, and it's worth looking at why, because most of the remaining gap can't be closed by more iterations.
@@ -289,10 +289,11 @@ In other words, the loop converged close to the best Juno this rule system can e
 different system (a template with the mockup's proportions, free-form body grids, hair that may overlap the shoulders),
 not more iterations.
 
-The later steps still made visible differences where the score doesn't look, but three of the most visible ones were not
+The later steps still made visible differences where the score doesn't look, but four of the most visible ones were not
 found by the agent. A human watching the run pointed out that the strands on the back of the head ran
 against the sweep (step 16), that the visor was too wide (step 23), and then that narrowing it had trimmed the wrong
-end in the 3/4-left view, sliding the lens off the front of the face (step 25). Each took one step to fix once named.
+end in the 3/4-left view, sliding the lens off the front of the face, and that the lens poked out past the back of
+the head in the 3/4-back views (both step 25). Each took one step to fix once named.
 The loop is good at converging on a reference. It is weaker at noticing that a detail is wrong in a way the reference
 comparison doesn't measure.
 
