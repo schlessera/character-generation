@@ -3,7 +3,9 @@
 // Model (all at native resolution, no filtering):
 //  - Shadow strength fades with distance from the casting column's ground point (full at the
 //    contact, cfg.fadeTo at the tip), and shadow masks are blurred (cfg.blur) for soft edges;
-//    light and shadow values are posterized into flat bands (cfg.levels), no dithering.
+//    light and shadow values are posterized into flat bands (cfg.levels). The band edges are
+//    dithered with a static, world-anchored blue-noise threshold map (cfg.dither): no ordered
+//    pattern, and it doesn't crawl when the camera moves.
 //  - Every standing object is a billboard on its ground line. A sprite pixel's height above
 //    the ground is its distance above that line. Each pixel's 4 corners are projected onto
 //    the floor away from a light (point light: P + (P - L) * h / (Lh - h); moon: P + dir * h),
@@ -16,6 +18,18 @@
 
 // Flat-shaded bands: round a 0..1 value to `n` steps (no dithering).
 const band = (v, n) => Math.round(v * n) / n;
+
+// Blue-noise dithered bands. A value is quantized with floor(v * n + t), where t is a
+// threshold from a tileable 64x64 blue-noise map at the pixel's WORLD position. t = 0.5
+// everywhere is plain rounding; blue-noise t turns each band edge into a fine, even stipple
+// one band wide, with none of the cross-hatch of ordered dithering. `amount` blends between.
+const NOISE = 64;
+let noise = null, noiseAmount = 0;
+export function setDitherNoise(map, amount) { noise = map; noiseAmount = amount; }
+function threshold(wx, wy) {
+  return noise ? 0.5 + (noise[((wy & (NOISE - 1)) << 6) | (wx & (NOISE - 1))] - 0.5) * noiseAmount : 0.5;
+}
+const dband = (v, n, wx, wy) => Math.min(n, Math.floor(v * n + threshold(wx, wy))) / n;
 
 function rgb(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -130,17 +144,18 @@ function blur(m, W, H, r = 1, passes = 2, tmp = new Float32Array(m.length)) {
 
 // Clamp first, then round nonnegative band indices with integer truncation.
 // Accumulators are Float32; the small integer band count keeps this exact.
-function writeLightBands(D, VW, levels, y0, y1) {
+function writeLightBands(D, VW, levels, y0, y1, camX, camY) {
   const a = D.ia.data, b = D.ib.data, al = D.accLit, ar = D.accRaw, bands = D.bands;
   for (let y = y0; y < y1; y++) {
-    const end = (y * VW + D.active[y * 2 + 1]) * 3;
-    for (let i = (y * VW + D.active[y * 2]) * 3, j = i / 3 * 4; i < end; i += 3, j += 4) {
-      a[j] = bands[(Math.max(0, Math.min(1, al[i])) * levels + 0.5) | 0];
-      b[j] = bands[(Math.max(0, Math.min(1, ar[i])) * levels + 0.5) | 0];
-      a[j + 1] = bands[(Math.max(0, Math.min(1, al[i + 1])) * levels + 0.5) | 0];
-      b[j + 1] = bands[(Math.max(0, Math.min(1, ar[i + 1])) * levels + 0.5) | 0];
-      a[j + 2] = bands[(Math.max(0, Math.min(1, al[i + 2])) * levels + 0.5) | 0];
-      b[j + 2] = bands[(Math.max(0, Math.min(1, ar[i + 2])) * levels + 0.5) | 0];
+    const x0 = D.active[y * 2], end = (y * VW + D.active[y * 2 + 1]) * 3;
+    for (let i = (y * VW + x0) * 3, j = i / 3 * 4, x = x0; i < end; i += 3, j += 4, x++) {
+      const t = threshold(camX + x, camY + y);
+      a[j] = bands[(Math.max(0, Math.min(1, al[i])) * levels + t) | 0];
+      b[j] = bands[(Math.max(0, Math.min(1, ar[i])) * levels + t) | 0];
+      a[j + 1] = bands[(Math.max(0, Math.min(1, al[i + 1])) * levels + t) | 0];
+      b[j + 1] = bands[(Math.max(0, Math.min(1, ar[i + 1])) * levels + t) | 0];
+      a[j + 2] = bands[(Math.max(0, Math.min(1, al[i + 2])) * levels + t) | 0];
+      b[j + 2] = bands[(Math.max(0, Math.min(1, ar[i + 2])) * levels + t) | 0];
     }
   }
 }
@@ -256,8 +271,8 @@ export class Lighting {
         const d = Math.hypot(x - R, (y - R) * 1.15) / R;  // slightly squashed: ground plane in 3/4 view
         if (d >= 1) continue;
         const f = Math.pow(1 - d, 1.5) * L.intensity;
-        const q = band(f, levels);
-        const qs = band(f * (1 - sh * mask[y * size + x]), levels);
+        const q = dband(f, levels, ox + x, oy + y);
+        const qs = dband(f * (1 - sh * mask[y * size + x]), levels, ox + x, oy + y);
         const i = (y * size + x) * 4;
         for (let k = 0; k < 3; k++) { a.data[i + k] = col[k] * qs; b.data[i + k] = col[k] * q; }
         a.data[i + 3] = b.data[i + 3] = 255;
@@ -275,7 +290,7 @@ export class Lighting {
     const img = mctx.createImageData(W, H), mc = rgb(cfg.moon.color);
     const lv = cfg.levels;
     for (let i = 0; i < W * H; i++) {
-      const f = band(1 - cfg.moon.shadow * m[i], lv);
+      const f = dband(1 - cfg.moon.shadow * m[i], lv, i % W, (i / W) | 0);
       for (let k = 0; k < 3; k++) img.data[i * 4 + k] = mc[k] * f;
       img.data[i * 4 + 3] = 255;
     }
@@ -314,7 +329,7 @@ export class Lighting {
     blur(occ, W, H, cfg.contactBlur ?? 2, 2);
     const [ao, actx] = canvas(W, H), aimg = actx.createImageData(W, H), dark = cfg.contact ?? 0.6;
     for (let i = 0; i < W * H; i++) {
-      const v = 255 * band(1 - dark * Math.min(1, occ[i] * 1.8), levels * 2);
+      const v = 255 * dband(1 - dark * Math.min(1, occ[i] * 1.8), levels * 2, i % W, (i / W) | 0);
       aimg.data[i * 4] = aimg.data[i * 4 + 1] = aimg.data[i * 4 + 2] = v;
       aimg.data[i * 4 + 3] = 255;
     }
@@ -404,7 +419,7 @@ export class Lighting {
     }
     for (let i = 0; i < shade.length; i++) {
       // flat bands like the light maps: soft edges become a few clean steps
-      const v = band(shade[i], this.cfg.levels);
+      const v = dband(shade[i], this.cfg.levels, ox + i % size, oy + ((i / size) | 0));
       img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = 255 * v;
       img.data[i * 4 + 3] = 255;
     }
@@ -549,7 +564,7 @@ export class Lighting {
       }
     }
     // flat bands per channel, like the baked lights
-    writeLightBands(D, VW, levels, activeY0, activeY1);
+    writeLightBands(D, VW, levels, activeY0, activeY1, camX, camY);
     D.x = activeX0; D.y = activeY0;
     D.w = Math.max(0, activeX1 - activeX0); D.h = Math.max(0, activeY1 - activeY0);
     dirtyX0 = Math.min(dirtyX0, activeX0); dirtyX1 = Math.max(dirtyX1, activeX1);

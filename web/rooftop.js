@@ -76,7 +76,8 @@ export const LIGHTING = {
   ambient: "#2a2b48",
   moon: { color: "#4c5884", dir: [0.62, 0.42], length: 0.75, shadow: 0.8 },
   shadow: 0.88,     // fraction of a light removed inside its shadow
-  levels: 12,       // flat-shaded bands for light falloff and shadow edges
+  levels: 20,       // flat-shaded bands for light falloff and shadow edges
+  dither: 1,        // blue-noise dithering of the band edges (0 = hard bands, 1 = full)
   maxShadow: 60,    // px, caps shadows from low lights
   carLight: "#8a92b8",  // light on things above the roof (the flying car): moon + ambient
   fadeTo: 0.15,     // shadow strength left at the far tip (1 = no fade)

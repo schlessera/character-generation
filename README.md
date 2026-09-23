@@ -452,8 +452,11 @@ the object's columns are projected onto the floor away from every light, so a ch
 mast casts a long, thin one. Shadows soften at the edges and fade as they stretch away from their object. Juno's shadow
 is recomputed every frame from her current pose.
 
-A few rules keep it looking like pixel art rather than a filter. Light falls off in flat, clean bands instead of
-smooth gradients or dithering. Neon and fire pixels are drawn at full brightness on top of the lit scene, so they
+A few rules keep it looking like pixel art rather than a filter. Light falls off in flat bands rather than smooth
+gradients. The band edges are dithered, but with a static blue-noise map anchored to the world instead of a classic
+ordered pattern, so they read as fine, even grain rather than a grid of dots, and the grain stays put when the camera
+moves. That matters most on a dark night (the `-`/`+` keys), where hard bands would show as rings around every
+light. Neon and fire pixels are drawn at full brightness on top of the lit scene, so they
 really glow. And shadows only ever remove direct light, so no pile-up of overlapping shadows can get darker than the
 night itself.
 

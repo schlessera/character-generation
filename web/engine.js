@@ -26,7 +26,7 @@ async function loadCharacter(name) {
 // ------------------------------------------------------------------ level
 // Tiles and props come from data/props/atlas.{png,json} (written by `just props`).
 import { TILE, LEGEND, SLABS, SOLID_TILES, MAP, PROPS, DECALS, LIGHTING, FLYOVER } from "./rooftop.js";
-import { Lighting, alphaMask } from "./lighting.js";
+import { Lighting, alphaMask, setDitherNoise } from "./lighting.js";
 
 const MAP_W = MAP[0].length * TILE, MAP_H = MAP.length * TILE;
 let atlas, atlasImg, emissiveImg, mapCanvas, emissiveMap, solids = [], props = [], animDecals = [];
@@ -117,6 +117,18 @@ async function loadLevel() {
       flyerShadowSprite(car, dir, s, f);
     }
   }
+}
+
+// Blue-noise threshold map (tools/bluenoise.py) that dithers the lighting's band edges.
+async function loadDitherNoise() {
+  const img = new Image();
+  img.src = "bluenoise.png";
+  await img.decode();
+  const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+  const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+  const px = g.getImageData(0, 0, img.width, img.height).data, map = new Float32Array(img.width * img.height);
+  for (let i = 0; i < map.length; i++) map[i] = (px[i * 4] + 0.5) / 256;
+  setDitherNoise(map, LIGHTING.dither ?? 0);
 }
 
 function buildLighting() {
@@ -520,6 +532,7 @@ function loop(now) {
 (async () => {
   const names = await (await fetch(BASE + "index.json", { cache: "no-store" })).json();
   chars = await Promise.all(names.map(loadCharacter));
+  await loadDitherNoise();
   await loadLevel();
   ci = Math.min(1, chars.length - 1);  // the first real character (index 0 is the bare template)
   window.__game = { hero, chars, keys, props, solids, lighting: () => lighting, setLighting: v => { lightingOn = v; },
