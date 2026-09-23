@@ -470,7 +470,9 @@ zero changed lines before anything was rebuilt, which is the same safety net tha
 
 ## 7 · Variations for free
 
-Once one character exists, the next one is cheap. Recipes can extend each other, so a new colorway only lists what
+Once one character exists, the next one is cheap. This is the classic pixel-game palette swap (one sprite set, many
+enemies), except that it works per body part: a variant can recolor only the cyber-arm, or turn the jacket trim into
+another material, and still share every frame of animation with the original. Recipes can extend each other, so a new colorway only lists what
 changes:
 
 ```toml
@@ -682,6 +684,12 @@ template supplies the motion, a label per pixel supplies the anatomy, and a reci
   every pose, and the hair follows the tracked head through a jump. Frame-by-frame generation struggles exactly here.
 - **Variants are almost free.** Once the recipe exists, a colorway is a ten-line file and renders all 248 frames in
   seconds. That is the right economics for crowds of NPCs, team colors, or unlockable skins.
+- **The old pixel-game tricks come back.** Pixel games have always stretched a sprite set with palette swaps: the
+  same goblin in green, red and blue, a stronger enemy with a different-colored arm. Here that is not a separate
+  art pass but a change of materials, and because materials are assigned per body part, the swap can be as targeted
+  as "only the right arm" or "only the boots". Image-generation pipelines struggle with exactly this: every variant is
+  a new generation that has to stay consistent with the others in every frame. With semantic sprite skinning the
+  variant is guaranteed to share every frame of animation with the original, pixel for pixel.
 - **Everything is text.** Recipes, head grids and labels are diffable and reviewable in git, and every image in this
   README is rebuilt from them. An agent can read and edit every part of the pipeline, and measure its own progress.
 - **It iterates.** With a reference and a score, an agent improved the character over 25 mostly unattended rounds,
