@@ -528,6 +528,35 @@ HERO_CARS = {           # step -> car (x in map px; start and end beyond the lig
 }
 
 
+def concept_title() -> Image.Image:
+    """Juno's name block (name, rule, subtitle) cut from the concept sheet, its dark
+    background keyed out to transparency."""
+    im = np.asarray(Image.open(ROOT / "characters/juno/concept/juno-concept.png").convert("RGB"))[25:118, 12:418]
+    im = im.astype(float)
+    bg = np.median(im.reshape(-1, 3), axis=0)
+    a = np.clip((np.abs(im - bg).max(2) - 12) / 70, 0, 1)
+    rgb = np.clip((im - bg * (1 - a[..., None])) / np.maximum(a[..., None], 1e-3), 0, 255)
+    return Image.fromarray(np.dstack([rgb, a * 255]).astype(np.uint8), "RGBA")
+
+
+def hero_overlay(size: tuple[int, int]) -> Image.Image:
+    """Name top left, concept bust bottom right, for compositing over the hero loop."""
+    W, H = size
+    out = Image.new("RGBA", size, (0, 0, 0, 0))
+    title = concept_title()
+    title = title.resize((W * 2 // 5, round(title.height * (W * 2 // 5) / title.width)), Image.LANCZOS)
+    shadow = Image.new("RGBA", title.size, (8, 6, 12, 0))
+    shadow.putalpha(title.getchannel("A").point(lambda v: v * 0.8))
+    out.alpha_composite(shadow, (16 + 2, 12 + 2))
+    out.alpha_composite(title, (16, 12))
+    bust = Image.open(ROOT / "characters/juno/concept/juno-bust.png").convert("RGBA")
+    bust = bust.crop(bust.getbbox())
+    h = H * 3 // 5
+    bust = bust.resize((round(bust.width * h / bust.height), h), Image.LANCZOS)
+    out.alpha_composite(bust, (W - bust.width - 8, H - bust.height))
+    return out
+
+
 def hero_loop(pg, grab):
     """Two passes: the first finds the loop length, the second renders it with every prop
     animation fitted to a whole number of cycles (engine `loopMs`), so there is no seam."""
@@ -535,7 +564,11 @@ def hero_loop(pg, grab):
     pg.evaluate(f"window.__game.loopMs({n * HERO_DT})")
     shots = _hero_pass(pg, grab)
     pg.evaluate("window.__game.loopMs(0)")
-    gif([up(s_, 2) for s_ in shots[:-1]], "hero.gif", HERO_DT)
+    frames = [up(s_, 2) for s_ in shots[:-1]]
+    overlay = hero_overlay(frames[0].size)
+    for f in frames:
+        f.alpha_composite(overlay)
+    gif(frames, "hero.gif", HERO_DT)
     diff = np.abs(np.asarray(shots[0], int) - np.asarray(shots[-1], int)).max()
     print(f"hero loop: {len(shots) - 1} frames, {(len(shots) - 1) * HERO_DT} ms, seam difference {diff}")
     pg.evaluate("window.__game.pause(false)")
