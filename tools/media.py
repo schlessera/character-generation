@@ -297,6 +297,37 @@ SSS_STAGES = [("template", "the animated template"), ("labels", "every pixel lab
               ("shaded", "labels, with the template's shading"), ("first", "the first recipe"),
               ("final", "the recipe after 25 steps")]
 SSS_ROTATION = ["down", "down_side", "side", "up_side", "up", "up_side_l", "side_l", "down_side_l"]
+# quick colorways for the last stage: material -> one base color (shades are derived)
+SSS_VARIANTS = [
+    {"hair": "#9dff3a", "jacket": "#3a2a55", "orange": "#ff3fd2", "cyan": "#ffe93f"},
+    {"hair": "#7fd8ff", "jacket": "#d6dbe4", "orange": "#2b8cff", "skin": "#e8b894", "pants": "#39404f"},
+    {"hair": "#d8262e", "jacket": "#4a1418", "orange": "#ffc83a", "cyan": "#ff5a3c", "skin": "#8a5534"},
+    {"hair": "#f4f1e6", "jacket": "#1c1c22", "orange": "#ffe24a", "chrome": "#d9b45a", "skin": "#f0c8a8"},
+    {"hair": "#8a4dff", "jacket": "#15294f", "orange": "#ff6fb0", "cyan": "#7dff9a", "pants": "#22222e"},
+    {"hair": "#ff8a1f", "jacket": "#135a5c", "orange": "#ffe64a", "skin": "#c98a5e", "shoes": "#ff8a1f"},
+    {"hair": "#3a3a44", "jacket": "#7a1f3d", "orange": "#e8e8f0", "cyan": "#ff3f5a", "skin": "#5e3a26"},
+    {"hair": "#2fe0c0", "jacket": "#2a2a2a", "orange": "#2fe0c0", "chrome": "#e05a2a", "pants": "#4a3a2a"},
+    {"hair": "#f2c14e", "jacket": "#5a3a22", "orange": "#c0392b", "cyan": "#3ff0ff", "skin": "#e0a878"},
+    {"hair": "#ff4fd8", "jacket": "#e8e2f0", "orange": "#8a4dff", "pants": "#e8e2f0", "shoes": "#1c1c22"},
+]
+
+
+def _ramp(hex_color: str) -> dict:
+    """A full ramp (base/shade/light/deep/blush/ink) from one base color."""
+    import colorsys
+    r, g, b = (int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    h, l, s_ = colorsys.rgb_to_hls(r, g, b)
+    at = lambda k: tuple(round(c * 255) for c in colorsys.hls_to_rgb(h, max(0, min(1, l * k)), s_))
+    return {"base": at(1.0), "shade": at(0.72), "light": at(0.86), "deep": at(0.52), "blush": at(1.05), "ink": at(0.25)}
+
+
+def _variant(over: dict):
+    import copy
+    rec = copy.deepcopy(juno)
+    for material, col in over.items():
+        ramp = _ramp(col)
+        rec.ramps[material] = {k: v for k, v in ramp.items() if k in rec.ramps[material] or k in ("base", "shade", "light")}
+    return rec
 
 
 def _font(size: int, bold: bool = True):
@@ -328,42 +359,66 @@ def _stage_px(stage: str, f, first) -> np.ndarray:
 
 
 def semantic_gif():
-    """Template -> labels -> shaded labels -> first recipe -> final recipe, while Juno walks and
-    turns through all eight facings; plays forward, then backward, then loops."""
+    """Template -> labels -> shaded labels -> first recipe -> final recipe -> colorways, and back
+    through the stages again. Every stage is a whole number of full turns through the eight
+    facings while Juno keeps walking (one walk cycle per facing); walking and turning always run
+    forward, so the loop is seamless."""
     first = Recipe(ROOT / "characters/juno/history/step-00.toml")
-    W, H, s, per_stage, per_facing, wipe = 480, 480, 10, 16, 4, 4
+    W, H, s = 480, 480, 10
+    per_facing, wipe = 4, 6
+    turn = per_facing * len(SSS_ROTATION)
     title_f, caption_f, handle_f = _font(46), _font(20, False), _font(20, False)
-    fwd = []
-    for k in range(len(SSS_STAGES) * per_stage):
-        facing = SSS_ROTATION[(k // per_facing) % len(SSS_ROTATION)]
-        walk = frames["walk"][facing]
-        f = walk[k % len(walk)]
-        si, j = divmod(k, per_stage)
-        px = _stage_px(SSS_STAGES[si][0], f, first)
-        caption = SSS_STAGES[si][1]
-        if si + 1 < len(SSS_STAGES) and j >= per_stage - wipe:  # wipe to the next stage, left to right
-            nxt = _stage_px(SSS_STAGES[si + 1][0], f, first)
-            edge = round((j - (per_stage - wipe) + 1) / (wipe + 1) * 32)
-            px = px.copy()
-            px[:, :edge] = nxt[:, :edge]
-        im = Image.new("RGBA", (W, H), BG)
-        d = ImageDraw.Draw(im)
-        # title: "Semantic Sprite " white, "Skinning" magenta
-        a, b = "Semantic Sprite ", "Skinning"
-        wa, wb = d.textlength(a, font=title_f), d.textlength(b, font=title_f)
-        x0 = (W - wa - wb) / 2
-        d.text((x0, 18), a, font=title_f, fill=(236, 238, 246))
-        d.text((x0 + wa, 18), b, font=title_f, fill=(255, 63, 164))
-        # ground shadow + sprite
-        cx, top = W // 2, 88
-        d.ellipse([cx - 60, top + 31 * s - 14, cx + 60, top + 31 * s + 8], fill=(14, 13, 20))
-        im.alpha_composite(up(px, s), (cx - 16 * s, top))
-        tw = d.textlength(caption, font=caption_f)
-        d.text(((W - tw) / 2, top + 32 * s + 10), caption, font=caption_f, fill=DIM)
-        hw = d.textlength("@schlessera", font=handle_f)
-        d.text((W - hw - 14, H - 32), "@schlessera", font=handle_f, fill=(150, 152, 175))
-        fwd.append(im)
-    gif(fwd + fwd[-2:0:-1], "semantic-sprite-skinning.gif", 100)
+    variants = [_variant(v) for v in SSS_VARIANTS]
+    names = [n for n, _ in SSS_STAGES] + ["variants"]
+    order = names + names[-2:0:-1]  # forward, then back (without repeating the ends)
+    turns = {"variants": 2}  # the colorways get two turns
+    per_variant = 2 * turn // len(variants)
+    captions = dict(SSS_STAGES) | {"variants": "any colorway: a ten-line recipe"}
+
+    def stage_px(stage, f, j):
+        if stage == "variants":
+            return render_frame(variants[min(j // per_variant, len(variants) - 1)], f)
+        return _stage_px(stage, f, first)
+
+    out, k = [], 0
+    for si, stage in enumerate(order):
+        nxt, n = order[(si + 1) % len(order)], turns.get(stage, 1) * turn
+        for j in range(n):
+            facing = SSS_ROTATION[(k // per_facing) % len(SSS_ROTATION)]
+            walk = frames["walk"][facing]
+            f = walk[k % len(walk)]
+            px = stage_px(stage, f, j)
+            if j >= n - wipe:  # wipe into the next stage (right to left when going back)
+                after = stage_px(nxt, f, 0)
+                edge = round((j - (n - wipe) + 1) / (wipe + 1) * 32)
+                px = px.copy()
+                if names.index(nxt) < names.index(stage):
+                    px[:, 32 - edge:] = after[:, 32 - edge:]
+                else:
+                    px[:, :edge] = after[:, :edge]
+            out.append(_sss_frame(px, captions[stage], title_f, caption_f, handle_f, W, H, s))
+            k += 1
+    gif(out, "semantic-sprite-skinning.gif", 100)
+
+
+def _sss_frame(px, caption, title_f, caption_f, handle_f, W, H, s) -> Image.Image:
+    im = Image.new("RGBA", (W, H), BG)
+    d = ImageDraw.Draw(im)
+    # title: "Semantic Sprite " white, "Skinning" magenta
+    a, b = "Semantic Sprite ", "Skinning"
+    wa, wb = d.textlength(a, font=title_f), d.textlength(b, font=title_f)
+    x0 = (W - wa - wb) / 2
+    d.text((x0, 18), a, font=title_f, fill=(236, 238, 246))
+    d.text((x0 + wa, 18), b, font=title_f, fill=(255, 63, 164))
+    # ground shadow + sprite
+    cx, top = W // 2, 88
+    d.ellipse([cx - 60, top + 31 * s - 14, cx + 60, top + 31 * s + 8], fill=(14, 13, 20))
+    im.alpha_composite(up(px, s), (cx - 16 * s, top))
+    tw = d.textlength(caption, font=caption_f)
+    d.text(((W - tw) / 2, top + 32 * s + 10), caption, font=caption_f, fill=DIM)
+    hw = d.textlength("@schlessera", font=handle_f)
+    d.text((W - hw - 14, H - 32), "@schlessera", font=handle_f, fill=(150, 152, 175))
+    return im
 
 
 def variants_figure():
