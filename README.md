@@ -70,10 +70,11 @@ flowchart LR
 | 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
 | 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
 | 5 | [Closing the gap](#5--closing-the-gap) | 25 rounds of the agent comparing its render to the mockup, and where it stopped paying off |
-| 6 | [Variations for free](#6--variations-for-free) | A new colorway is a ten-line file |
-| 7 | [The AI picks up the pencil](#7--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
-| 8 | [From sources to sprites](#8--from-sources-to-sprites) | The build that assembles everything |
-| 9 | [Mood lighting](#9--mood-lighting) | How atmospheric can basic pixel graphics get? |
+| 6 | [Debugging in plain text](#6--debugging-in-plain-text) | Two bugs, tracked down with a query and fixed with a few characters |
+| 7 | [Variations for free](#7--variations-for-free) | A new colorway is a ten-line file |
+| 8 | [The AI picks up the pencil](#8--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
+| 9 | [From sources to sprites](#9--from-sources-to-sprites) | The build that assembles everything |
+| 10 | [Mood lighting](#10--mood-lighting) | How atmospheric can basic pixel graphics get? |
 
 ---
 
@@ -311,7 +312,163 @@ Some details needed new capabilities in the generator, and the agent added them 
 
 All of these are opt-in, so the earlier snapshots still render exactly as they did.
 
-## 6 · Variations for free
+## 6 · Debugging in plain text
+
+Because every layer of a character is text (the template's labels, the recipe, its head grids), a visual bug turns
+into a question you can ask the data. Both bugs below were spotted by the human watching the demo. Finding and fixing
+each one took minutes, and the fix was a few characters in the one file that was wrong.
+
+### The visor that showed through the back of the head
+
+**The symptom.** Seen from behind at an angle, Juno had two bright cyan pixels next to her head, as if her visor was
+shining through her hair.
+
+**Finding the source.** Instead of scrolling through 248 frames, the agent wrote a short script. It rendered every
+frame of every animation, and for each frame where the tracked head faces away from the camera, it listed every pixel
+that has one of the visor's cyan colors and sits on the head, the neck or the empty background:
+
+```text
+idle   up_side    0: (14, 22) (14, 23)
+idle   up_side_l  0: (14, 7) (14, 8)
+walk   up_side    1: (13, 22) (13, 23)
+run    up_side    0: (12, 22) (12, 23)
+attack down       3: (15, 25) (15, 26)     <- the spinning kick turns her head away mid-attack
+...
+```
+
+The pattern said it all. It was always exactly two pixels, always in the same place relative to the head, only in the
+two 3/4-back views, and in every animation. That rules out the body-part labels and the geometric rules, and points
+at the one thing that is placed relative to the tracked head: the head grid for those two views. There it was:
+the visor's tip, `vV`, was drawn two columns outside the head's outline.
+
+**The fix.** Two lines in `characters/juno/recipe.toml`. A head grid is a little picture of the hair and visor for
+one view, one character per pixel, placed on the tracked head in every frame. The legend maps each character to a
+material, and `.` keeps the template's pixel. Here is the 3/4-back grid with its fix. From behind, only one dim pixel
+of lens now shows on the cheek edge, as in the mockup:
+
+```diff
+ [head.legend]
+ k = "hair.ink"      # hair outline
+ b = "hair.base"     # hair
+ D = "hair.deep"     # strand lines between the waves
+ H = "hair.shade"
+ i = "hair.light"
+ u = "stubble.base"  # the shaved side: u/U checker, w for the pattern shaved into it
+ U = "stubble.shade"
+ w = "stubble.light"
+ v = "cyan.base"     # visor lens
+ V = "cyan.shade"
+
+ [head.grids]
+ up_side = """
+ ...................
+ .......kkkkk.......
+ ....kkkbbbbbkk.....
+ ...kbbbbbiibbbk....
+ ..kbbbbbbDbbbbk....
+ .kbbbDbbDbbDUuUk...
+ kbbbDbbDbbDuwwUk...
+ .kbDbbDbbDuUuwuk...
+ kbbbbDbbbDUuUwwk...
+ .kHbDbbbbDuUuUuk...
+-.kHDbbbDDu.....vV..
++.kHDbbbDDu...V.....
+ ..kHHbbbDuU........
+ ..kHHbbbbk.........
+ ...kHHbkk..........
+ ...kHHk............
+ ....kk.............
+ """
+```
+
+The `vV` stuck out on and past the head's outline (the `k` that ends the rows above), where there is no face to
+carry a visor. The mirrored grid for the
+other 3/4-back view had the same tip on its left, where the mane covers the face, so there it simply went:
+
+```diff
+ up_side_l = """
+ ...
+-VvbDbbbbbbDuUuUuk.
++.kbDbbbbbbDuUuUuk.
+```
+
+<p align="center"><img src="docs/images/debug-visor.png" alt="The 3/4-back views before and after the visor fix" width="560"></p>
+
+### The arm that switched sides
+
+**The symptom.** Walking up and to the right, for one frame out of four, the chrome cyber-arm jumped to Juno's left
+side.
+
+**Finding the source.** The arm's material comes from the body-part labels, so the question was whether a frame's
+labels disagreed with its neighbors. The agent computed, for every frame, the average position of the pixels labeled
+right arm and left arm, and flagged each frame where their order flips compared to the rest of its animation and
+direction:
+
+```text
+rotate  all        frames 3, 4, 5     the turn-around: real
+run     side       frames 64, 65      arms swinging past each other in profile: real
+interact side      frame 88           the reaching arm: real
+attack  side/up_side                  the spinning kick: real
+walk    up_side    frame 43           seen from behind, a swinging arm can't cross the body: wrong
+```
+
+The scan narrowed 129 frames down to six groups of candidates, and a moment of judgment about the motion left
+one. In frame 43
+the stride pulls the near arm back toward the camera, and whoever labeled it (an agent, in chapter 2) read that arm
+as the right one.
+
+**The fix.** Swap the letters in that frame's label file, `assets/template/16x32/labels/043.txt`. Each row shows the
+template's pixels on the left (`#` ink, `s` shade, `.` lit) and their body-part labels on the right (`H` head, `N`
+neck, `T` torso, `R`/`L` right/left arm, `r`/`l` hands, `P`/`Q` legs, `p`/`q` feet). The tones stay; only `R` and `L`,
+and `r` and `l`, trade places:
+
+```diff
+ # frame 43 walk/up_side[3] 100ms head=up_side@10,6
+ 16 |           #sssss...#           |...........HHHHHHHHHH...........|
+ 17 |            ###sss##            |............HHNNNNNH............|
+-18 |            #..sss##            |............RRRTTTLL............|
+-19 |            #..ssss##           |............RRRTTTTLL...........|
+-20 |           #...sssss#           |...........RRRRTTTTTL...........|
+-21 |           #...sssss##          |...........RRRRTTTTTLL..........|
+-22 |          #....sssss##          |..........RRRRRTTTTTLL..........|
+-23 |          #....sssss###         |..........RRRRRTTTTTLLL.........|
+-24 |          #...ssssss###         |..........RRRRTTTTTTLLL.........|
+-25 |          #..ssssss####         |..........rrrTTTTTTllll.........|
+-26 |           ####sss# ##          |...........rrrPPPPP.ll..........|
++18 |            #..sss##            |............LLLTTTRR............|
++19 |            #..ssss##           |............LLLTTTTRR...........|
++20 |           #...sssss#           |...........LLLLTTTTTR...........|
++21 |           #...sssss##          |...........LLLLTTTTTRR..........|
++22 |          #....sssss##          |..........LLLLLTTTTTRR..........|
++23 |          #....sssss###         |..........LLLLLTTTTTRRR.........|
++24 |          #...ssssss###         |..........LLLLTTTTTTRRR.........|
++25 |          #..ssssss####         |..........lllTTTTTTrrrr.........|
++26 |           ####sss# ##          |...........lllPPPPP.rr..........|
+ 27 |              #sss#             |..............PPPPP.............|
+ 28 |              #..#              |..............PPPP..............|
+```
+
+On the left you can see the pose that confused the labeler: the big lit block on the left is the near arm swinging
+back toward the camera, and the narrow shaded strip on the right is the far arm swinging forward.
+
+The first version of that swap script split the rows at the wrong `|` and changed nothing. `git diff --stat` showed
+zero changed lines before anything was rebuilt, which is the same safety net that makes every other edit reviewable.
+
+<p align="center"><img src="docs/images/debug-arms.png" alt="The four frames of the walk to the north-east, before and after the label fix" width="700"></p>
+
+### Why this works so well with an agent
+
+- **A bug becomes a query.** Colors, labels and coordinates are data, so "where does the visor show up where it
+  shouldn't?" is a ten-line script over every frame, not an hour of squinting at sprite sheets.
+- **The fix lives in one place.** Nobody repainted a frame. A dozen characters of a head grid, or 55 letters of one label
+  file, changed. The build then re-renders every animation, the mirrored left-facing views, the Glitch
+  colorway and every image in this README.
+- **Every change is reviewable.** A diff of a text file shows exactly which pixels changed and why, so the human can
+  check the agent's work the same way as any other code change.
+- **The loop closes visually.** After every fix the agent renders the affected frames and looks at them, and the
+  figures above are rebuilt from the git history by `just media`, so the before and after stay reproducible.
+
+## 7 · Variations for free
 
 Once one character exists, the next one is cheap. Recipes can extend each other, so a new colorway only lists what
 changes:
@@ -340,7 +497,7 @@ flycar_parked = { w = 80, h = 38, kind = "solid", base = 14, variants = {
 
 <p align="center"><img src="docs/images/cars.png" alt="Car variants next to Juno" width="620"></p>
 
-## 7 · The AI picks up the pencil
+## 8 · The AI picks up the pencil
 
 <p align="center"><img src="docs/images/rooftop-concept.jpg" alt="Rooftop concept art" width="820"></p>
 
@@ -401,7 +558,7 @@ frame from the textured first frame and carries over only each frame's own movin
 
 <p align="center"><img src="docs/images/prop-anims.gif" alt="Animated props" width="420"></p>
 
-## 8 · From sources to sprites
+## 9 · From sources to sprites
 
 Everything above is source material: template, labels, recipes, pixel files and manifests. One command turns it into
 what the browser loads.
@@ -437,7 +594,7 @@ flowchart TB
 
 Every push to `main` runs the same build and the smoke test on GitHub Actions and publishes the demo to GitHub Pages.
 
-## 9 · Mood lighting
+## 10 · Mood lighting
 
 With a character and a world in place, the last question was a fun one: how atmospheric can plain pixel graphics get
 with a few technical tricks?
@@ -549,9 +706,23 @@ template supplies the motion, a label per pixel supplies the anatomy, and a reci
 - **Mirroring has side effects.** Left-facing frames are mirrored right-facing ones, so asymmetric designs need their
   own head grids, and the template's lighting flips with the frame.
 
+**Iterate first, finish last.** The biggest practical win may be timing. Because a character is a recipe, the whole
+cast can stay at "good enough" quality while the game itself is still changing: every animation exists, looks roughly
+right and can be played and tested, and a change in design (a new jacket, a different visor, another colorway) costs
+minutes instead of redrawing hundreds of frames. Once the designs stop changing, the generated sheets become the
+starting point for a finishing pass, by an artist or a dedicated AI going frame by frame, that adds what rules can't
+express well: secondary motion in the hair, hand-placed highlights, a cleaner zipper in the twisted poses. That pass
+only has to happen once, on assets that are known to be final.
+
+A human pixel artist doesn't get that split. Without a way to produce the 80% version of every frame at once, the
+artist has to work at full fidelity from the first frame, and every design change later means redrawing all the
+affected frames by hand, so designs tend to get locked early to protect the investment. Here the expensive, artistic
+work moves to the end, when it is known exactly which frames will ship, and everything before that stays cheap to
+change.
+
 **Where it fits.** Compared with the alternatives, this sits in the middle. Drawing every frame by hand gives the best
 result and costs the most. Generating frames with an image model is fast but inconsistent from frame to frame and not
-on a real pixel grid (chapter 7 shows what happens). Rendering a 3D model down to pixels is consistent but needs the 3D
+on a real pixel grid (chapter 8 shows what happens). Rendering a 3D model down to pixels is consistent but needs the 3D
 model and loses the hand-drawn feel. Recipes on a labeled template are consistent, cheap per character and fully
 reproducible. They are a strong fit for many characters sharing one rig and a good first pass for an artist to finish,
 but not a replacement for a pixel artist on a hero character.

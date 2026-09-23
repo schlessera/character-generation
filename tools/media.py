@@ -421,6 +421,50 @@ def _sss_frame(px, caption, title_f, caption_f, handle_f, W, H, s) -> Image.Imag
     return im
 
 
+VISOR_FIX, ARM_FIX = "d3f8508", "e589148"  # the commits that fixed the two bugs in the README
+
+
+def _git_show(rev: str, path: str) -> str:
+    return subprocess.run(["git", "show", f"{rev}:{path}"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+
+
+def debugging_figures():
+    """Before/after of two bugs the README walks through, rendered from the git history."""
+    import dataclasses
+    import tempfile
+    s = 8
+    # 1. the visor tip poking out past the back of the head (3/4 back views)
+    with tempfile.NamedTemporaryFile("w", suffix=".toml", delete=False) as t:
+        t.write(_git_show(VISOR_FIX + "^", "characters/juno/recipe.toml"))
+    before, after = Recipe(Path(t.name)), Recipe(ROOT / "characters/juno/history/step-25.toml")
+    ims = []
+    for label, rec in [("before", before), ("after", after)]:
+        pair = Image.new("RGBA", (64 * s, 24 * s), (0, 0, 0, 0))
+        for c, facing in enumerate(["up_side", "up_side_l"]):
+            pair.alpha_composite(up(idle(rec, facing)[2:26], s), (c * 32 * s, 0))
+        ims.append((label, pair))
+    save(caption_row(ims, gap=40), "debug-visor.png")
+    # 2. right and left arm labels swapped in one frame of the walk to the north-east
+    old = _git_show(ARM_FIX + "^", "assets/template/16x32/labels/043.txt")
+    old_lab = np.array([list(r.split("|")[2]) for r in old.splitlines() if r and not r.startswith("#")], "<U1")
+    walk = frames["walk"]["up_side"]
+    rows = []
+    for label, f3 in [("before", dataclasses.replace(walk[3], labels=old_lab)), ("after", walk[3])]:
+        strip = Image.new("RGBA", (4 * 32 * s, 32 * s), (0, 0, 0, 0))
+        for c, f in enumerate(walk[:3] + [f3]):
+            strip.alpha_composite(up(render_frame(juno, f), s), (c * 32 * s, 0))
+        d = ImageDraw.Draw(strip)
+        d.rectangle([3 * 32 * s + 2, 2, 4 * 32 * s - 3, 32 * s - 3], outline=(255, 63, 164, 255), width=3)
+        rows.append((label, strip))
+    out = Image.new("RGBA", (rows[0][1].width + 120, 2 * (32 * s + 10) + 10), BG)
+    dd = ImageDraw.Draw(out)
+    for r, (label, strip) in enumerate(rows):
+        y = 10 + r * (32 * s + 10)
+        dd.text((12, y + 16 * s - 8), label, font=F, fill=TEXT)
+        out.alpha_composite(strip, (120, y))
+    save(out, "debug-arms.png")
+
+
 def variants_figure():
     s = 6
     items = [("template", None), ("Juno", juno), ("Juno (Glitch)", glitch)]
@@ -773,6 +817,7 @@ if __name__ == "__main__":
     facings_figure()
     iteration_figures()
     semantic_gif()
+    debugging_figures()
     variants_figure()
     walk_gif()
     anims_gif()
