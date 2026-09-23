@@ -286,7 +286,8 @@ function flyerShadowSprite(car, dir, s, f) {
   shCtx.restore();
   shCtx.filter = "none";
   shCtx.globalCompositeOperation = "source-in";
-  shCtx.fillStyle = "#383838"; shCtx.fillRect(0, 0, shC.width, shC.height);
+  const g = Math.round(255 * (1 - 0.78 * LIGHTING.moon.shadow / 0.8));  // default 0.8 -> #383838
+  shCtx.fillStyle = `rgb(${g},${g},${g})`; shCtx.fillRect(0, 0, shC.width, shC.height);
   shCtx.globalCompositeOperation = "destination-over";
   shCtx.fillStyle = "#fff"; shCtx.fillRect(0, 0, shC.width, shC.height);
   shCtx.globalCompositeOperation = "source-over";
@@ -301,6 +302,8 @@ function update(dt) {
   if (hit("c")) { ci = (ci + 1) % chars.length; }
   if (hit("v")) gallery = !gallery;
   if (hit("l")) lightingOn = !lightingOn;
+  if (hit("-")) setShadowScale(shadowScale - 0.1);
+  if (hit("=") || hit("+")) setShadowScale(shadowScale + 0.1);
   const busy = ONE_SHOT.has(hero.anim) && hero.anim !== "jump";
   if (!busy) {
     if (hit(" ")) play("jump");
@@ -462,8 +465,22 @@ function draw(fixedT) {
   for (const fl of flyers.slice().sort((a, b) => a.y - b.y)) drawFlyer(fl, camX, camY, now, lit);
   if (hud) {
     ctx.fillStyle = "#cfd3e6"; ctx.font = "8px monospace";
-    ctx.fillText(`${c.meta.name}  ${hero.anim}/${hero.facing}  f${hero.frame}  light:${lightingOn ? "on" : "off"} [L]`, 4, 10);
+    ctx.fillText(`${c.meta.name}  ${hero.anim}/${hero.facing}  f${hero.frame}  light:${lightingOn ? "on" : "off"} [L]  shadow:${Math.round(shadowScale * 100)}% [-/+]`, 4, 10);
   }
+}
+
+// Shadow darkness (keys - and +): one multiplier over the cast, moon and contact shadow
+// strengths. They are baked into the light maps, so a change re-bakes them (~0.1 s).
+const SHADOW_BASE = { cast: LIGHTING.shadow, moon: LIGHTING.moon.shadow, contact: LIGHTING.contact };
+let shadowScale = 1, rebake = 0;
+function setShadowScale(v) {
+  shadowScale = Math.round(Math.max(0, Math.min(1.5, v)) * 10) / 10;
+  LIGHTING.shadow = Math.min(1, SHADOW_BASE.cast * shadowScale);
+  LIGHTING.moon.shadow = Math.min(1, SHADOW_BASE.moon * shadowScale);
+  LIGHTING.contact = Math.min(1, SHADOW_BASE.contact * shadowScale);
+  carShadows.clear();
+  clearTimeout(rebake);
+  rebake = setTimeout(buildLighting, 60);
 }
 
 let last = performance.now(), paused = false;
@@ -485,6 +502,6 @@ function loop(now) {
     draw: t => draw(t), setFlyers: list => { flyers = list; }, pause: v => { paused = v; },
     // deterministic capture (README media): advance the simulation by a fixed step, press a key once
     update: dt => update(dt), press: k => pressed.add(k), loopMs: ms => { loopMs = ms; },
-    hud: v => { hud = v; }, setCharacter: name => { ci = Math.max(0, chars.findIndex(c => c.name === name)); } };  // debugging / automated checks
+    hud: v => { hud = v; }, shadowScale: v => (v === undefined ? shadowScale : setShadowScale(v)), setCharacter: name => { ci = Math.max(0, chars.findIndex(c => c.name === name)); } };  // debugging / automated checks
   requestAnimationFrame(loop);
 })();

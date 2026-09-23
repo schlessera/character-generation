@@ -30,7 +30,8 @@ Implementation: `web/lighting.js` (algorithm notes at the top), wired in `web/en
 
 ## Knobs
 `fadeTo` (shadow strength left at the tip), `blur` (penumbra radius), `contact`, `contactSpread`,
-`contactBlur` (darkness, reach and edge softness of the contact shadows),
+`contactBlur` (darkness, reach and edge softness of the contact shadows; the `-`/`+` keys scale the
+cast, moon and contact darkness together in 10% steps and re-bake the light maps),
 `ambient`, `moon.color/dir/length/shadow`, `shadow` (strength inside a shadow), `levels`
 (flat bands for falloff and shadow edges), `maxShadow`. Per light: `radius`, `intensity`, `h`, `shadow`
 (strength scale), `maxShadow` (floor strips use short, weak shadows).
