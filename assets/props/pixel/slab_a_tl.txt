@@ -1,0 +1,17 @@
+# slab_a_tl 16x16
+aAAAAAAAAAAAAAAA
+AsSSSSSSSSSsSSSS
+Asssssssssssssss
+ASssssssssssssss
+ASssssssssssssss
+ASssssssssssssss
+ASssssssssssssss
+ASssssssSsssssss
+ASssssssSSssssss
+ASssssssssssssss
+Asssssssssssssss
+Asssssssssssssss
+Asssssssssssssss
+ASssssssssssssss
+ASssssssssssssss
+Asssssssssssssss

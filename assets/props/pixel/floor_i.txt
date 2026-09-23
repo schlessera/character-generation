@@ -1,0 +1,17 @@
+# floor_i 16x16
+aAAAAAAAAAAAAAAA
+AsSSSSSSSSSSsSss
+AAssssssssssssss
+ASssssssssssssss
+ASssssssssssssss
+ASssssssssssssss
+ASssssssssssssss
+Asssssssssssssss
+Asssssssssssssss
+AssssssssAssssss
+AsssssssssAsssss
+AssssssssssSssss
+Asssssssssssssss
+Asssssssssssssss
+AsSSssssssssssss
+Asssssssssssssss

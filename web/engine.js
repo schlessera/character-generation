@@ -25,7 +25,7 @@ async function loadCharacter(name) {
 
 // ------------------------------------------------------------------ level
 // Tiles and props come from data/props/atlas.{png,json} (written by `just props`).
-import { TILE, LEGEND, SOLID_TILES, MAP, PROPS, DECALS, LIGHTING, FLYOVER } from "./rooftop.js";
+import { TILE, LEGEND, SLABS, SOLID_TILES, MAP, PROPS, DECALS, LIGHTING, FLYOVER } from "./rooftop.js";
 import { Lighting, alphaMask } from "./lighting.js";
 
 const MAP_W = MAP[0].length * TILE, MAP_H = MAP.length * TILE;
@@ -51,6 +51,15 @@ function frameIndex(p, t) {
   return 0;
 }
 
+// The big-slab quadrant for a plain floor cell, if its aligned 2x2 block was picked as a slab.
+function slabTile(tx, ty) {
+  const bx = tx - (tx & 1), by = ty - (ty & 1);
+  for (let y = by; y < by + 2; y++) for (let x = bx; x < bx + 2; x++) if (MAP[y]?.[x] !== ".") return null;
+  if (hash(bx * 31 + 7, by * 17 + 3) >= SLABS.chance) return null;
+  const set = SLABS.sets[Math.floor(hash(by * 13 + 5, bx * 29 + 11) * SLABS.sets.length)];
+  return `${set}_${ty === by ? "t" : "b"}${tx === bx ? "l" : "r"}`;
+}
+
 function hash(x, y) { let h = x * 374761393 + y * 668265263; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967296; }
 
 async function loadLevel() {
@@ -69,7 +78,7 @@ async function loadLevel() {
   const m = mapCanvas.getContext("2d");
   MAP.forEach((row, ty) => [...row].forEach((ch, tx) => {
     const opts = LEGEND[ch];
-    const t = atlas.tiles[opts[Math.floor(hash(tx, ty) * opts.length)]];
+    const t = atlas.tiles[slabTile(tx, ty) ?? opts[Math.floor(hash(tx, ty) * opts.length)]];
     m.drawImage(atlasImg, t.x, t.y, t.w, t.h, tx * TILE, ty * TILE, TILE, TILE);
     em.drawImage(emissiveImg, t.x, t.y, t.w, t.h, tx * TILE, ty * TILE, TILE, TILE);
   }));

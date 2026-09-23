@@ -384,6 +384,11 @@ spill). Seven agents took one group each (metal, furniture, glowing props, litte
 same render, look and fix loop. The floor needed one more round in the lit scene: the moss read as bright green specks
 and a repair patch repeated too visibly across the grid, so both were toned down.
 
+The floor then got more variety. Plain concrete now picks from eleven tiles, weighted so near-plain slabs are common
+and ones with a feature (a pothole, an anchor plate, oil drips, a faded paint line) are rare. And since every tile drew
+its own joints, the 16 px grid showed everywhere, so about a third of the 2×2 blocks of plain floor are now drawn as
+one big 32×32 slab: four quadrant tiles with joints only on the slab's outer edge.
+
 <p align="center"><img src="docs/images/props-texture-pass.png" alt="Props before and after the texture and wear pass" width="820"></p>
 
 Animations use the same format: each extra frame is a copy of the sprite that changes only the pixels that move, so

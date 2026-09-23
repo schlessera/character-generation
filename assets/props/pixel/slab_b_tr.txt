@@ -1,0 +1,17 @@
+# slab_b_tr 16x16
+AAAAAAAAAAAAAAAA
+sSSSSSSSSSSsssss
+ssssssssssssssss
+ssssssssssssssss
+ssssssssssssssss
+sssssssAssssssss
+ssssssSAssssssss
+ssssssSAssssssss
+sssssssAssssssss
+sssssssAssssssss
+ssssssssssssssss
+sSSSsssAssssssss
+SSSSSSsAssssssss
+SSSSSSSAssssssss
+SSSSSSSAsSSsssss
+SSSSSSSASSSSSSss

@@ -3,17 +3,23 @@
 
 export const TILE = 16;
 
-// '.' floor (random concrete variant), ',' dark floor, 'r' rust, 'g' grate, 'm' membrane,
+// '.' floor (random concrete variant, sometimes part of a big slab), ',' dark floor, 'r' rust, 'g' grate, 'm' membrane,
 // 'v' gravel, 'a' arrow, '<' '-' '=' '>' neon strip, 'C' wall cap (solid), 'W' wall face,
 // 'G' wall graffiti, 'N' wall neon, 'P' wall pipes, 'R' wall with rail (solid).
+// A tile name repeated in a list is picked more often: plain slabs are common, marked ones rare.
 export const LEGEND = {
-  ".": ["floor_a", "floor_c", "floor_d", "floor_f", "floor_a", "floor_c"],
-  ",": ["floor_dark1", "floor_dark2"], "b": ["floor_b", "floor_e"],
-  "r": ["floor_rust"], "g": ["grate"], "m": ["membrane"], "v": ["gravel"], "a": ["floor_arrow"],
+  ".": ["floor_a", "floor_a", "floor_a", "floor_g", "floor_g", "floor_h", "floor_h", "floor_i",
+        "floor_c", "floor_d", "floor_f", "floor_j", "floor_k", "floor_l", "floor_m", "floor_n"],
+  ",": ["floor_dark1", "floor_dark2", "floor_dark3", "floor_dark4"], "b": ["floor_b", "floor_e"],
+  "r": ["floor_rust"], "g": ["grate"], "m": ["membrane", "membrane_b"], "v": ["gravel", "gravel_b"],
+  "a": ["floor_arrow"],
   "<": ["neon_l"], "-": ["neon_m1"], "=": ["neon_m2"], ">": ["neon_r"],
   "C": ["wall_cap"], "W": ["wall_face"], "G": ["wall_graffiti"], "N": ["wall_neon"],
   "P": ["wall_pipes"], "R": ["wall_rail"],
 };
+// Big 32x32 slabs: an aligned 2x2 block of plain floor ('.') becomes one slab this often.
+// Each set is four tiles NAME_tl NAME_tr NAME_bl NAME_br with joints only on the outer edge.
+export const SLABS = { chance: 0.3, sets: ["slab_a", "slab_b"] };
 export const SOLID_TILES = new Set(["C", "W", "G", "N", "P", "R"]);
 
 export const MAP = [
