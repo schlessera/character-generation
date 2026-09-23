@@ -40,8 +40,12 @@ function instance(name, x, y) {
 }
 
 // Current frame index of an animated prop at time t (ms).
+// Capture-only (README loop): with loopMs set, every prop animation runs a whole number of
+// cycles per loop (each cycle stretched a few percent), so the loop has no seam.
+let loopMs = 0;
 function frameIndex(p, t) {
   if (!p.s.anim) return 0;
+  if (loopMs) t = (t % loopMs) * Math.max(1, Math.round(loopMs / p.total)) * p.total / loopMs;
   let k = (t + p.phase) % p.total;
   for (let i = 0; i < p.s.anim.length; i++) { if (k < p.s.anim[i]) return i; k -= p.s.anim[i]; }
   return 0;
@@ -473,12 +477,14 @@ function loop(now) {
   const names = await (await fetch(BASE + "index.json", { cache: "no-store" })).json();
   chars = await Promise.all(names.map(loadCharacter));
   await loadLevel();
-  ci = Math.max(0, chars.length - 1);
+  ci = Math.min(1, chars.length - 1);  // the first real character (index 0 is the bare template)
   window.__game = { hero, chars, keys, props, solids, lighting: () => lighting, setLighting: v => { lightingOn = v; },
     flyer: () => flyers[flyers.length - 1] ?? null, flyers: () => flyers,
     autoFly: v => { autoFly = v; }, clearFlyers: () => { flyers = []; },
     // benchmark hooks: render one frame synchronously at a fixed time; place cars
     draw: t => draw(t), setFlyers: list => { flyers = list; }, pause: v => { paused = v; },
+    // deterministic capture (README media): advance the simulation by a fixed step, press a key once
+    update: dt => update(dt), press: k => pressed.add(k), loopMs: ms => { loopMs = ms; },
     hud: v => { hud = v; }, setCharacter: name => { ci = Math.max(0, chars.findIndex(c => c.name === name)); } };  // debugging / automated checks
   requestAnimationFrame(loop);
 })();
