@@ -51,16 +51,30 @@ function frameIndex(p, t) {
   return 0;
 }
 
-// The big-slab quadrant for a plain floor cell, if its aligned 2x2 block was picked as a slab.
+// Big slabs: rank the aligned 2x2 blocks of plain floor by hash, turn the first
+// SLABS.chance of them into slabs, and deal the slab sets out in turn so each one is used.
+let slabs = null;
 function slabTile(tx, ty) {
-  const bx = tx - (tx & 1), by = ty - (ty & 1);
-  for (let y = by; y < by + 2; y++) for (let x = bx; x < bx + 2; x++) if (MAP[y]?.[x] !== ".") return null;
-  if (hash(bx * 31 + 7, by * 17 + 3) >= SLABS.chance) return null;
-  const set = SLABS.sets[Math.floor(hash(by * 13 + 5, bx * 29 + 11) * SLABS.sets.length)];
-  return `${set}_${ty === by ? "t" : "b"}${tx === bx ? "l" : "r"}`;
+  if (!slabs) {
+    const blocks = [];
+    for (let by = 0; by + 1 < MAP.length; by += 2) for (let bx = 0; bx + 1 < MAP[0].length; bx += 2) {
+      if ([0, 1].every(dy => [0, 1].every(dx => MAP[by + dy][bx + dx] === "."))) blocks.push([bx, by]);
+    }
+    blocks.sort((p, q) => hash(p[0] * 31 + 7, p[1] * 17 + 3) - hash(q[0] * 31 + 7, q[1] * 17 + 3));
+    slabs = new Map(blocks.slice(0, Math.round(blocks.length * SLABS.chance))
+      .map(([bx, by], i) => [`${bx},${by}`, SLABS.sets[i % SLABS.sets.length]]));
+  }
+  const bx = tx - (tx & 1), by = ty - (ty & 1), set = slabs.get(`${bx},${by}`);
+  return set ? `${set}_${ty === by ? "t" : "b"}${tx === bx ? "l" : "r"}` : null;
 }
 
-function hash(x, y) { let h = x * 374761393 + y * 668265263; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967296; }
+// Integer hash of a cell -> [0, 1). Math.imul keeps the mixing in 32 bits (plain float
+// multiplies lost the low bits, and the result never reached 0.5).
+function hash(x, y) {
+  let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
 
 async function loadLevel() {
   atlas = await (await fetch("data/props/atlas.json", { cache: "no-store" })).json();

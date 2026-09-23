@@ -8,8 +8,9 @@ export const TILE = 16;
 // 'G' wall graffiti, 'N' wall neon, 'P' wall pipes, 'R' wall with rail (solid).
 // A tile name repeated in a list is picked more often: plain slabs are common, marked ones rare.
 export const LEGEND = {
-  ".": ["floor_a", "floor_a", "floor_a", "floor_g", "floor_g", "floor_h", "floor_h", "floor_i",
-        "floor_c", "floor_d", "floor_f", "floor_j", "floor_k", "floor_l", "floor_m", "floor_n"],
+  ".": [...Array(12).fill("floor_a"), ...Array(6).fill("floor_g"), ...Array(6).fill("floor_h"),
+        ...Array(3).fill("floor_i"), "floor_c", "floor_c", "floor_f", "floor_f", "floor_d",
+        "floor_j", "floor_k", "floor_l", "floor_m", "floor_n"],
   ",": ["floor_dark1", "floor_dark2", "floor_dark3", "floor_dark4"], "b": ["floor_b", "floor_e"],
   "r": ["floor_rust"], "g": ["grate"], "m": ["membrane", "membrane_b"], "v": ["gravel", "gravel_b"],
   "a": ["floor_arrow"],
@@ -17,9 +18,9 @@ export const LEGEND = {
   "C": ["wall_cap"], "W": ["wall_face"], "G": ["wall_graffiti"], "N": ["wall_neon"],
   "P": ["wall_pipes"], "R": ["wall_rail"],
 };
-// Big 32x32 slabs: an aligned 2x2 block of plain floor ('.') becomes one slab this often.
+// Big 32x32 slabs: this share of the aligned 2x2 blocks of plain floor ('.') become one slab.
 // Each set is four tiles NAME_tl NAME_tr NAME_bl NAME_br with joints only on the outer edge.
-export const SLABS = { chance: 0.3, sets: ["slab_a", "slab_b"] };
+export const SLABS = { chance: 0.15, sets: ["slab_a", "slab_b", "slab_c"] };
 export const SOLID_TILES = new Set(["C", "W", "G", "N", "P", "R"]);
 
 export const MAP = [

@@ -1,9 +1,6 @@
-# slab_a_br 16x16
-Asssssssssssssss
-ssssssssssssssss
-ssssssssssssssss
-ssssssssssssssss
-ssssssssSSssssss
+# slab_c_tr 16x16
+AAAAAAAAAAAAAAAA
+SSSSSSSSSSssSSSs
 ssssssssssssssss
 ssssssssssssssss
 ssssssssssssssss
@@ -12,6 +9,9 @@ ssssssssssssssss
 ssssssssssssssss
 ssssssssssssssss
 ssssssssssssssss
-sssssssssssssssA
-sssssssssssssssF
-sssssssssssssAFF
+ssssssssssssssss
+ssssSsssssssssss
+ssssssssssssssss
+ssssssssssssssss
+ssssssssssssssss
+ssssssssssssssss
