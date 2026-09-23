@@ -454,7 +454,14 @@ back toward the camera, and the narrow shaded strip on the right is the far arm 
 The first version of that swap script split the rows at the wrong `|` and changed nothing. `git diff --stat` showed
 zero changed lines before anything was rebuilt, which is the same safety net that makes every other edit reviewable.
 
-<p align="center"><img src="docs/images/debug-arms.png" alt="The four frames of the walk to the north-east, before and after the label fix" width="700"></p>
+<p align="center"><img src="docs/images/debug-arms.png" alt="The four frames of the walk to the north-east: the template, before and after the label fix" width="700"></p>
+
+The top row is the template itself, checked pixel for pixel against the artist's own sprite sheet: the odd-looking
+fourth frame is how it was drawn, a twisting mid-step pose. It follows the rule every walk obeys, opposite arm and leg
+swing together, with the arm swinging forward (away from the camera) drawn as a dark silhouette. Applying that rule to
+the legs turned up one more mix-up: in the second frame the two legs were labeled the wrong way round. Juno's legs use
+the same materials on both sides, so nothing changed on screen, but the labels are right now for any character whose
+legs differ.
 
 That figure caught a follow-up bug. In its first version, the "after" frame seemed to have no cyber-arm at all. The
 labels were right now, but the template draws a far arm swinging behind the body entirely in outline ink, so the

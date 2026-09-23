@@ -449,14 +449,15 @@ def debugging_figures():
     old_lab = np.array([list(r.split("|")[2]) for r in old.splitlines() if r and not r.startswith("#")], "<U1")
     walk = frames["walk"]["up_side"]
     rows = []
-    for label, f3 in [("before", dataclasses.replace(walk[3], labels=old_lab)), ("after", walk[3])]:
+    for label, f3 in [("template", None), ("before", dataclasses.replace(walk[3], labels=old_lab)), ("after", walk[3])]:
         strip = Image.new("RGBA", (4 * 32 * s, 32 * s), (0, 0, 0, 0))
-        for c, f in enumerate(walk[:3] + [f3]):
-            strip.alpha_composite(up(render_frame(juno, f), s), (c * 32 * s, 0))
+        for c, f in enumerate(walk[:3] + [f3 or walk[3]]):
+            px = _tones(f) if f3 is None else render_frame(juno, f)
+            strip.alpha_composite(up(px, s), (c * 32 * s, 0))
         d = ImageDraw.Draw(strip)
         d.rectangle([3 * 32 * s + 2, 2, 4 * 32 * s - 3, 32 * s - 3], outline=(255, 63, 164, 255), width=3)
         rows.append((label, strip))
-    out = Image.new("RGBA", (rows[0][1].width + 120, 2 * (32 * s + 10) + 10), BG)
+    out = Image.new("RGBA", (rows[0][1].width + 120, len(rows) * (32 * s + 10) + 10), BG)
     dd = ImageDraw.Draw(out)
     for r, (label, strip) in enumerate(rows):
         y = 10 + r * (32 * s + 10)
