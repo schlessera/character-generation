@@ -73,7 +73,10 @@ export const LIGHTING = {
   maxShadow: 60,    // px, caps shadows from low lights
   carLight: "#8a92b8",  // light on things above the roof (the flying car): moon + ambient
   fadeTo: 0.15,     // shadow strength left at the far tip (1 = no fade)
-  blur: 1,          // penumbra: box-blur radius (2 passes) applied to shadow masks
+  blur: 2,          // penumbra: box-blur radius (2 passes) applied to shadow masks
+  contact: 0.72,    // contact shadow darkness at the center of a footprint
+  contactSpread: 3, // px the contact shadow reaches beyond the footprint
+  contactBlur: 2,   // box-blur radius (2 passes) softening the contact shadow's edge
 };
 
 // Flyover: an unseen vehicle crossing above the roof; only its lights are visible.

@@ -296,15 +296,29 @@ export class Lighting {
       for (const L of steady) g.drawImage(L[which], L.ox - sx, L.oy - sy);
       this.steady[which] = c;
     }
-    // contact shadows: darken just around each footprint (multiply layer)
-    const [ao, actx] = canvas(W, H);
-    actx.fillStyle = "#fff"; actx.fillRect(0, 0, W, H);
+    // contact shadows: a soft pool around each footprint (multiply layer). Each is an
+    // ellipse a little larger than the footprint, darkest at its center and fading out,
+    // then blurred, so it reads like light blocked near the ground rather than a box.
+    const occ = new Float32Array(W * H), spread = cfg.contactSpread ?? 3;
     for (const o of this.occluders) {
       if (o.box) continue;
-      const fy = o.groundY - 1, fw = o.fw;
-      actx.fillStyle = "#909090"; actx.fillRect(Math.round(o.cx - fw / 2) - 1, fy - 1, fw + 2, o.y0 + o.h - fy + 2);
-      actx.fillStyle = "#505050"; actx.fillRect(Math.round(o.cx - fw / 2), fy, fw, o.y0 + o.h - fy + 1);
+      const fy = o.groundY - 1, depth = Math.max(2, o.y0 + o.h - fy + 1);
+      const cx = o.cx, cy = fy + depth / 2, rx = o.fw / 2 + spread, ry = depth / 2 + spread * 0.6;
+      for (let y = Math.max(0, Math.floor(cy - ry)); y <= Math.min(H - 1, Math.ceil(cy + ry)); y++) {
+        for (let x = Math.max(0, Math.floor(cx - rx)); x <= Math.min(W - 1, Math.ceil(cx + rx)); x++) {
+          const d = Math.hypot((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry);
+          if (d < 1) occ[y * W + x] = Math.max(occ[y * W + x], Math.pow(1 - d, 0.45));
+        }
+      }
     }
+    blur(occ, W, H, cfg.contactBlur ?? 2, 2);
+    const [ao, actx] = canvas(W, H), aimg = actx.createImageData(W, H), dark = cfg.contact ?? 0.6;
+    for (let i = 0; i < W * H; i++) {
+      const v = 255 * band(1 - dark * Math.min(1, occ[i] * 1.8), levels * 2);
+      aimg.data[i * 4] = aimg.data[i * 4 + 1] = aimg.data[i * 4 + 2] = v;
+      aimg.data[i * 4 + 3] = 255;
+    }
+    actx.putImageData(aimg, 0, 0);
     this.ao = ao;
   }
 

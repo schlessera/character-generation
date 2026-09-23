@@ -22,12 +22,15 @@ Implementation: `web/lighting.js` (algorithm notes at the top), wired in `web/en
   shadows cut out is computed once at load. The moon and non-flickering lights are combined
   into one canvas per light buffer; flickering lights are added individually each frame.
 - Per frame: the hero's shadow from its current animation frame, for the moon and every light
-  in range, and contact shadows (AO) under props, both applied to the direct light only; objects lit
+  in range, and contact shadows (AO) under props, both applied to the direct light only (a contact
+  shadow is a soft elliptical pool a little wider than the footprint, darkest in the middle and
+  blurred at the edge, not a box); objects lit
   without shadows (no self-shadowing); emissive pixels (`web/data/props/atlas_emissive.png`,
   chosen by palette chars in `props.toml`) drawn unlit on top; soft additive bloom halos last.
 
 ## Knobs
-`fadeTo` (shadow strength left at the tip), `blur` (penumbra radius),
+`fadeTo` (shadow strength left at the tip), `blur` (penumbra radius), `contact`, `contactSpread`,
+`contactBlur` (darkness, reach and edge softness of the contact shadows),
 `ambient`, `moon.color/dir/length/shadow`, `shadow` (strength inside a shadow), `levels`
 (flat bands for falloff and shadow edges), `maxShadow`. Per light: `radius`, `intensity`, `h`, `shadow`
 (strength scale), `maxShadow` (floor strips use short, weak shadows).
