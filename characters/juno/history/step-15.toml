@@ -5,7 +5,7 @@ rule_facing = "head"   # trim follows the body through the spinning attack
 # Ramps. Template tones map to slots: base, shade, light, blush, ink (fill ink).
 # A ramp without `ink` keeps the template's ink (outlines, eyes).
 [palette]
-skin    = { base = "#b07148", shade = "#7f4a2d", light = "#95593a", blush = "#a8653f" }
+skin    = { base = "#b07148", shade = "#7f4a2d", light = "#95593a", blush = "#b8624f" }
 stubble = { base = "#5e3c2c", shade = "#452a1f", light = "#80583f", ink = "#2b1a14" }
 hair    = { base = "#c92b72", shade = "#a02460", light = "#d23a80", deep = "#781d4a", ink = "#2a0c1c" }
 jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#131316" }
@@ -16,7 +16,7 @@ shoes   = { base = "#dcdcde", shade = "#aeaeb4", light = "#c8c8cc" }
 chrome  = { base = "#b2b6bc", shade = "#767a84", light = "#dfe2e6", ink = "#34383f" }
 fx      = { base = "#8ff8ff", shade = "#3cc4e6", light = "#c8fcff" }
 orange  = { base = "#f06a1e", shade = "#c24e14" }
-cyan    = { base = "#3ff0ff", shade = "#1aa6c4", light = "#c6fdff" }
+cyan    = { base = "#3ff0ff", shade = "#1aa6c4" }
 
 # Part/group -> ramp. Later lines override earlier ones.
 [parts]
@@ -54,13 +54,6 @@ anchor = "right"
 facings = ["down", "down_side", "down_side_l"]
 color = "orange"
 
-[[rules]]  # the collar standing up behind the neck in profile and from behind
-type = "stripe"
-part = "neck"
-anchor = "back"
-facings = ["side", "side_l", "up_side", "up_side_l"]
-color = "orange"
-
 [[rules]]  # jacket hem
 type = "edge"
 part = "torso"
@@ -70,7 +63,6 @@ color = "orange"
 
 [[rules]]  # open jacket: two orange zipper edges...
 type = "stripe"
-straight = true
 part = "torso"
 offset = -1
 facings = ["down"]
@@ -78,7 +70,6 @@ color = "orange.base"
 
 [[rules]]
 type = "stripe"
-straight = true
 part = "torso"
 offset = 1
 facings = ["down"]
@@ -86,7 +77,6 @@ color = "orange.base"
 
 [[rules]]  # ...over a black shirt
 type = "stripe"
-straight = true
 part = "torso"
 offset = 0
 facings = ["down"]
@@ -102,7 +92,6 @@ color = "skin.shade"
 
 [[rules]]  # 3/4 view: near zipper edge, shirt showing toward the front
 type = "stripe"
-straight = true
 part = "torso"
 offset = 0
 facings = ["down_side", "down_side_l"]
@@ -110,7 +99,6 @@ color = "orange.base"
 
 [[rules]]
 type = "stripe"
-straight = true
 part = "torso"
 offset = 1
 facings = ["down_side", "down_side_l"]
@@ -272,14 +260,6 @@ at = 0.75
 anchor = "back"
 color = "chrome.light"
 
-[[rules]]  # orange heel tab on the high-tops
-type = "stripe"
-part = "feet"
-anchor = "back"
-top = 1
-facings = ["side", "side_l", "down_side", "down_side_l"]
-color = "orange.base"
-
 [[rules]]  # orange soles
 type = "rows"
 part = "feet"
@@ -301,7 +281,6 @@ S = "skin.base"
 s = "skin.shade"
 v = "cyan.base"
 V = "cyan.shade"
-g = "cyan.light"    # glint on the visor lens
 x = "#1b2230"       # visor frame
 o = "#120d14"       # outline (ear sticking out of the head silhouette)
 "-" = "clear"
@@ -319,9 +298,9 @@ down = """
 ....uUuUDDbbbbDbbbk.
 ....UuUu..DbbbbHbbbk
 ....uUuU....DbbHbkk.
-...o.UxxxxxxxDbHbbk.
-..oSu.gvvvvvvxDHbk..
-..os...sssssskbHbk..
+...oxxxxxxxxxDbHbbk.
+..oSxvvvvvvvvxDHbk..
+..osssssssssskbHbk..
 ...o........kbHkk...
 .............kbk....
 ..............k.....
@@ -336,8 +315,8 @@ down_side = """
 ...uUuUuDDbbbbDbbk.
 ...UuUuU..DbbbbHbbk
 ...uUuUu....DbbHbk.
-...Uuu.xxxxxxDbHbbk
-..oSu..gvvvvvxDHbk.
+...UuuxxxxxxxDbHbbk
+..oSu.xvvvvvvxDHbk.
 ..osS..sssssskbHbk.
 ...o.......kbHkk...
 ............kbk....
@@ -353,8 +332,8 @@ side = """
 ...UwwwUuDDDDbbbbk
 ...uUuwuUu...DHbbk
 ...UuUwwu.....DHbk
-...uU....xxxxxDHbk
-...U.u...vvvvgDHbk
+...uU.xxxxxxxxDHbk
+...U.u.vvvvvvvDHbk
 ...u.....sssskDHbk
 ............kbHk..
 ............kbHk..
@@ -366,66 +345,66 @@ up_side = """
 .......kkkkk.......
 ....kkkbbbbbkk.....
 ...kbbbbbiibbbk....
-..kbbbbbbDbbbbk....
-.kbbbDbbDbbDUuUk...
-kbbbDbbDbbDuwwUk...
-.kbDbbDbbDuUuwuk...
-kbbbbDbbbDUuUwwk...
-.kHbDbbbbDuUuUuk...
-.kHDbbbDDu.....vV..
-..kHHbbbDuU........
-..kHHbbbbk.........
-...kHHbkk..........
-...kHHk............
+..kbbbDbbbbbDDk....
+.kbbbbbDbbbDUuUk...
+kbbbDbbbDbDuwwUk...
+.kbbbDbbbDuUuwuk...
+kbbbbbDbbDUuUwwk...
+.kbbHbbDbDuUuUuk...
+.kbbHbbDDu.....vV..
+..kbHHbbDuU........
+..kbbHHbDk.........
+...kbHHkk..........
+...kbHk............
 ....kk.............
 """
 up = """
 ....................
 ........kkkkk.......
 ......kkbbbbbkk.....
-....kkbbbiibbbbk....
-...kbbDbbbDbbDuUk...
-..kbbDbbbDbbDuUuUk..
-.kbbDbbbDbbbDUwwuk..
-..kDbbbDbbDDuUuwuk..
-.kbbbbDbbbDUuUuwwk..
-..kHbDbbbbDuUuUuUk..
-..kHDbbbbDDuUuUu....
-..kHHbbbbbDuUuU.....
-...kHHbbbbk.........
-...kHHbbk...........
-....kHHk............
+....kkbbbiibbbDk....
+...kbbbDbbbbbDuUk...
+..kbbbbbDbbbDuUuUk..
+.kbbDbbbbDbbDUwwuk..
+..kbbbDbbbDDuUuwuk..
+.kbbbbbDbbDUuUuwwk..
+..kbbHbbDbDuUuUuUk..
+..kbbbHbbDDuUuUu....
+..kbbbHHbbDuUuU.....
+...kbbHHbDk.........
+...kbbHHk...........
+....kbHk............
 .....k..............
 """
 down_side_l = """
 ...................
 .......kkkkk.......
 .....kkbbbbbkk.....
-....kbbbiibbbbkk...
-...kUbDbbibbbDbbk..
-...kuUDbbbbbDbbbbkk
+....kbbbiibbbbk....
+...kUbDbbibbbDbk...
+...kuUDbbbbbDbbbk..
 ...uUuDDbbbbDbbbbk.
-...Uu...DDbbbDHbbbk
+...Uu...DDbbbDHbbk.
 ...u.......DbbDHbk.
-.....xxxxxx.DbbHbbk
-....xgvvvvv..DbHbk.
-.....ssssss.kbbHbk.
-...........kbHkk...
-............kbk....
-.............k.....
+...xxxxxxxxxDbbHbk.
+....xvvvvvvx.DbHbk.
+....sssssssskbbHbk.
+...........kbHbk...
+...........kbHk....
+............kk.....
 """
 side_l = """
 ..................
 ......kkkkkk......
-....kkbbbbbbkkk...
-...kbbbbbiibbbbk..
-..kbDbbbbibbDbbbk.
-..kbbDDbbbbDbbbbbk
+....kkbbbbbbkk....
+...kbbbbbiibbbk...
+..kbDbbbbibbDbbk..
+..kbbDDbbbbDbbbbk.
 .kbbk..DDbbbDbbbk.
-.kbk.....DbbbDHbbk
+.kbk.....DbbbDHbk.
 ..k.......DbbDHbk.
-....xxxxx..DbbHbbk
-....gvvvv..DbDHbk.
+...xxxxxxxxDbbHbk.
+..Vvvvvvvv.DbDHbk.
 ....ssssskbbDHbk..
 ..........kbHHbk..
 ..........kbHbk...
@@ -437,16 +416,16 @@ up_side_l = """
 .......kkkkk......
 .....kkbbbbbkk....
 ....kbbbiibbbbk...
-...kbbbbbDbbbbbk..
-..kbbDbbDbbbDbUk..
-..kbDbbDbbbbDuUuk.
-.kbDbbDbbbbDuUuUk.
-.kbbbDbbbbbDUuUuk.
-.kHbDbbbbbbDuUuUk.
-VvbDbbbbbbDuUuUuk.
-.kHHbbbbbDUuUu....
-.kHHbbbbbk........
-..kHHbbbk.........
+...kbDbbbbbDbbbk..
+..kbbbDbbbbbDbUk..
+..kbbbbDbbbbDuUuk.
+.kbbDbbbDbbDuUuUk.
+.kbbbDbbbDbDUuUuk.
+.kbbbbDbbDbDuUuUk.
+VvbHbbbDbbDuUuUuk.
+.kbHbbbDbDUuUu....
+.kbHHbbDbk........
+..kbHHbDk.........
 ...kkHk...........
 .....k............
 """

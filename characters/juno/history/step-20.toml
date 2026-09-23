@@ -5,7 +5,7 @@ rule_facing = "head"   # trim follows the body through the spinning attack
 # Ramps. Template tones map to slots: base, shade, light, blush, ink (fill ink).
 # A ramp without `ink` keeps the template's ink (outlines, eyes).
 [palette]
-skin    = { base = "#b07148", shade = "#7f4a2d", light = "#95593a", blush = "#a8653f" }
+skin    = { base = "#b07148", shade = "#7f4a2d", light = "#95593a", blush = "#b8624f" }
 stubble = { base = "#5e3c2c", shade = "#452a1f", light = "#80583f", ink = "#2b1a14" }
 hair    = { base = "#c92b72", shade = "#a02460", light = "#d23a80", deep = "#781d4a", ink = "#2a0c1c" }
 jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#131316" }
@@ -70,7 +70,6 @@ color = "orange"
 
 [[rules]]  # open jacket: two orange zipper edges...
 type = "stripe"
-straight = true
 part = "torso"
 offset = -1
 facings = ["down"]
@@ -78,7 +77,6 @@ color = "orange.base"
 
 [[rules]]
 type = "stripe"
-straight = true
 part = "torso"
 offset = 1
 facings = ["down"]
@@ -86,7 +84,6 @@ color = "orange.base"
 
 [[rules]]  # ...over a black shirt
 type = "stripe"
-straight = true
 part = "torso"
 offset = 0
 facings = ["down"]
@@ -102,7 +99,6 @@ color = "skin.shade"
 
 [[rules]]  # 3/4 view: near zipper edge, shirt showing toward the front
 type = "stripe"
-straight = true
 part = "torso"
 offset = 0
 facings = ["down_side", "down_side_l"]
@@ -110,7 +106,6 @@ color = "orange.base"
 
 [[rules]]
 type = "stripe"
-straight = true
 part = "torso"
 offset = 1
 facings = ["down_side", "down_side_l"]
@@ -319,9 +314,9 @@ down = """
 ....uUuUDDbbbbDbbbk.
 ....UuUu..DbbbbHbbbk
 ....uUuU....DbbHbkk.
-...o.UxxxxxxxDbHbbk.
-..oSu.gvvvvvvxDHbk..
-..os...sssssskbHbk..
+...oxxxxxxxxxDbHbbk.
+..oSxgvvvvvvvxDHbk..
+..osssssssssskbHbk..
 ...o........kbHkk...
 .............kbk....
 ..............k.....
@@ -336,8 +331,8 @@ down_side = """
 ...uUuUuDDbbbbDbbk.
 ...UuUuU..DbbbbHbbk
 ...uUuUu....DbbHbk.
-...Uuu.xxxxxxDbHbbk
-..oSu..gvvvvvxDHbk.
+...UuuxxxxxxxDbHbbk
+..oSu.xgvvvvvxDHbk.
 ..osS..sssssskbHbk.
 ...o.......kbHkk...
 ............kbk....
@@ -353,8 +348,8 @@ side = """
 ...UwwwUuDDDDbbbbk
 ...uUuwuUu...DHbbk
 ...UuUwwu.....DHbk
-...uU....xxxxxDHbk
-...U.u...vvvvgDHbk
+...uU.xxxxxxxxDHbk
+...U.u.vvvvvvgDHbk
 ...u.....sssskDHbk
 ............kbHk..
 ............kbHk..
@@ -407,9 +402,9 @@ down_side_l = """
 ...uUuDDbbbbDbbbbk.
 ...Uu...DDbbbDHbbbk
 ...u.......DbbDHbk.
-.....xxxxxx.DbbHbbk
-....xgvvvvv..DbHbk.
-.....ssssss.kbbHbk.
+...xxxxxxxxxDbbHbbk
+....xgvvvvvx.DbHbk.
+....sssssssskbbHbk.
 ...........kbHkk...
 ............kbk....
 .............k.....
@@ -424,8 +419,8 @@ side_l = """
 .kbbk..DDbbbDbbbk.
 .kbk.....DbbbDHbbk
 ..k.......DbbDHbk.
-....xxxxx..DbbHbbk
-....gvvvv..DbDHbk.
+...xxxxxxxxDbbHbbk
+..Vgvvvvvv.DbDHbk.
 ....ssssskbbDHbk..
 ..........kbHHbk..
 ..........kbHbk...

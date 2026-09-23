@@ -32,6 +32,10 @@ preview name *anims:
 heads name:
     uv run python -m chargen heads {{name}}
 
+# Pixel mockup (snapped to its grid) above the render, per view + head close-ups -> build/preview/NAME_compare.png
+compare name:
+    uv run python -m chargen compare {{name}}
+
 # ---------------------------------------------------------------- template labels
 
 # Validate the per-frame body-part label files (all, or the given frame numbers)

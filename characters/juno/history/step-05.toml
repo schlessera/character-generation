@@ -1,22 +1,20 @@
 # Juno "Static" Okafor: rooftop data courier. Concept art: concept/
 name = "Juno"
-rule_facing = "head"   # trim follows the body through the spinning attack
 
 # Ramps. Template tones map to slots: base, shade, light, blush, ink (fill ink).
 # A ramp without `ink` keeps the template's ink (outlines, eyes).
 [palette]
-skin    = { base = "#b07148", shade = "#7f4a2d", light = "#95593a", blush = "#a8653f" }
-stubble = { base = "#5e3c2c", shade = "#452a1f", light = "#80583f", ink = "#2b1a14" }
-hair    = { base = "#c92b72", shade = "#a02460", light = "#d23a80", deep = "#781d4a", ink = "#2a0c1c" }
-jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#131316" }
-pants   = { base = "#2e2d34", shade = "#1d1c22", light = "#26252b", ink = "#0e0d12" }
-logo    = { base = "#9a9aa2" }
+skin    = { base = "#b07148", shade = "#7f4a2d", light = "#95593a", blush = "#b8624f" }
+stubble = { base = "#5e3c2c", shade = "#452a1f", light = "#6e4a36", ink = "#2b1a14" }
+hair    = { base = "#d8307c", shade = "#a8225f", light = "#f25a9e", deep = "#7c1a4a", ink = "#3c0f2a" }
+jacket  = { base = "#3b3946", shade = "#24232c", light = "#302e3a", ink = "#141318" }
+pants   = { base = "#2c2a33", shade = "#1c1b21", light = "#24222a", ink = "#0e0d12" }
 shirt   = { base = "#16151b", shade = "#101014" }
-shoes   = { base = "#dcdcde", shade = "#aeaeb4", light = "#c8c8cc" }
-chrome  = { base = "#b2b6bc", shade = "#767a84", light = "#dfe2e6", ink = "#34383f" }
+shoes   = { base = "#f1f2f4", shade = "#b7bcc6", light = "#d5d9df" }
+chrome  = { base = "#c3ccd6", shade = "#7c8796", light = "#eef3f8", ink = "#3a4250" }
 fx      = { base = "#8ff8ff", shade = "#3cc4e6", light = "#c8fcff" }
-orange  = { base = "#f06a1e", shade = "#c24e14" }
-cyan    = { base = "#3ff0ff", shade = "#1aa6c4", light = "#c6fdff" }
+orange  = { base = "#ff7a1a", shade = "#d9560a" }
+cyan    = { base = "#3ff0ff", shade = "#1aa6c4" }
 
 # Part/group -> ramp. Later lines override earlier ones.
 [parts]
@@ -31,7 +29,6 @@ fx = "fx"
 
 [outline]
 color = "#120d14"
-keep = "kSs"        # head-grid chars that stay as drawn on the silhouette: hair outline, ear
 
 # Procedural details from label geometry. color: "#hex", "ramp" (tone-relative) or "ramp.slot".
 [[rules]]  # high collar
@@ -54,13 +51,6 @@ anchor = "right"
 facings = ["down", "down_side", "down_side_l"]
 color = "orange"
 
-[[rules]]  # the collar standing up behind the neck in profile and from behind
-type = "stripe"
-part = "neck"
-anchor = "back"
-facings = ["side", "side_l", "up_side", "up_side_l"]
-color = "orange"
-
 [[rules]]  # jacket hem
 type = "edge"
 part = "torso"
@@ -70,7 +60,6 @@ color = "orange"
 
 [[rules]]  # open jacket: two orange zipper edges...
 type = "stripe"
-straight = true
 part = "torso"
 offset = -1
 facings = ["down"]
@@ -78,7 +67,6 @@ color = "orange.base"
 
 [[rules]]
 type = "stripe"
-straight = true
 part = "torso"
 offset = 1
 facings = ["down"]
@@ -86,7 +74,6 @@ color = "orange.base"
 
 [[rules]]  # ...over a black shirt
 type = "stripe"
-straight = true
 part = "torso"
 offset = 0
 facings = ["down"]
@@ -102,7 +89,6 @@ color = "skin.shade"
 
 [[rules]]  # 3/4 view: near zipper edge, shirt showing toward the front
 type = "stripe"
-straight = true
 part = "torso"
 offset = 0
 facings = ["down_side", "down_side_l"]
@@ -110,7 +96,6 @@ color = "orange.base"
 
 [[rules]]
 type = "stripe"
-straight = true
 part = "torso"
 offset = 1
 facings = ["down_side", "down_side_l"]
@@ -130,33 +115,6 @@ part = "torso"
 top = 3
 facings = ["up"]
 color = "orange"
-
-[[rules]]  # chest logo (the "static" kanji patch), a light mark on her left chest
-type = "band"
-part = "torso"
-at = 0.35
-anchor = "center"
-offset = 2
-facings = ["down"]
-color = "logo"
-
-[[rules]]  # back print: the grey chevron patch between the shoulders
-type = "band"
-part = "torso"
-at = 0.45
-anchor = "center"
-offset = -1
-facings = ["up"]
-color = "logo"
-
-[[rules]]
-type = "band"
-part = "torso"
-at = 0.55
-anchor = "center"
-offset = 0
-facings = ["up"]
-color = "logo"
 
 [[rules]]  # sleeve cuff
 type = "edge"
@@ -208,78 +166,6 @@ at = 1.0
 anchor = "center"
 color = "cyan.base"
 
-[[rules]]  # cargo pockets on the outer thighs
-type = "band"
-part = "leg_r"
-at = 0.3
-anchor = "left"
-offset = 1
-facings = ["down"]
-color = "pants.light"
-
-[[rules]]
-type = "band"
-part = "leg_l"
-at = 0.3
-anchor = "right"
-offset = -1
-facings = ["down"]
-color = "pants.light"
-
-[[rules]]
-type = "band"
-part = "leg_r"
-at = 0.3
-anchor = "right"
-offset = -1
-facings = ["up"]
-color = "pants.light"
-
-[[rules]]
-type = "band"
-part = "leg_l"
-at = 0.3
-anchor = "left"
-offset = 1
-facings = ["up"]
-color = "pants.light"
-
-[[rules]]  # jogger cuffs gathered above the sneakers
-type = "edge"
-part = "legs"
-touching = "feet"
-sides = ["down"]
-color = "pants.shade"
-
-[[rules]]  # cyber-hand: a dark gap between the articulated fingers
-type = "rows"
-part = "hand_r"
-from = "bottom"
-n = 1
-color = "chrome.shade"
-
-[[rules]]
-type = "band"
-part = "hand_r"
-at = 1.0
-anchor = "center"
-color = "chrome.ink"
-
-[[rules]]  # polished forearm plate catching the light on its outer edge
-type = "band"
-part = "arm_r"
-at = 0.75
-anchor = "back"
-color = "chrome.light"
-
-[[rules]]  # orange heel tab on the high-tops
-type = "stripe"
-part = "feet"
-anchor = "back"
-top = 1
-facings = ["side", "side_l", "down_side", "down_side_l"]
-color = "orange.base"
-
 [[rules]]  # orange soles
 type = "rows"
 part = "feet"
@@ -296,14 +182,11 @@ i = "hair.light"
 k = "hair.ink"
 u = "stubble.base"
 U = "stubble.shade" # stubble texture: u/U checker reads as buzzed hair
-w = "stubble.light" # the circuit pattern shaved into the undercut
 S = "skin.base"
 s = "skin.shade"
 v = "cyan.base"
 V = "cyan.shade"
-g = "cyan.light"    # glint on the visor lens
 x = "#1b2230"       # visor frame
-o = "#120d14"       # outline (ear sticking out of the head silhouette)
 "-" = "clear"
 
 # Head grids: head template padded by 3 px, '.' = unchanged. Print aligned with
@@ -315,14 +198,14 @@ down = """
 .....kkbbbbbbkk.....
 ....kUbiibbbbbbkk...
 ....kuDbbibbDbbbbk..
-....ouUDbbbbbDbbbbkk
+....UuUDbbbbbDbbbbkk
 ....uUuUDDbbbbDbbbk.
 ....UuUu..DbbbbHbbbk
 ....uUuU....DbbHbkk.
-...o.UxxxxxxxDbHbbk.
-..oSu.gvvvvvvxDHbk..
-..os...sssssskbHbk..
-...o........kbHkk...
+....xxxxxxxxxDbHbbk.
+...vvvvvvvvvvvDHbk..
+....ssssssssskbHbk..
+............kbHkk...
 .............kbk....
 ..............k.....
 """
@@ -332,14 +215,14 @@ down_side = """
 .....kkbbbbbkk.....
 ....kUbiibbbbbkk...
 ...kuUDbbibbDbbbk..
-...ouUuDbbbbbDbbbkk
+...UuUuDbbbbbDbbbkk
 ...uUuUuDDbbbbDbbk.
 ...UuUuU..DbbbbHbbk
 ...uUuUu....DbbHbk.
-...Uuu.xxxxxxDbHbbk
-..oSu..gvvvvvxDHbk.
-..osS..sssssskbHbk.
-...o.......kbHkk...
+...UuuxxxxxxxDbHbbk
+...Su.vvvvvvvvDHbk.
+...Ss..sssssskbHbk.
+...........kbHkk...
 ............kbk....
 .............k.....
 """
@@ -350,11 +233,11 @@ side = """
 ...kbbiibbbbbbbk..
 ...kDDDbbibbbbbbk.
 ...uUuUDDbbbbbbbbk
-...UwwwUuDDDDbbbbk
-...uUuwuUu...DHbbk
-...UuUwwu.....DHbk
-...uU....xxxxxDHbk
-...U.u...vvvvgDHbk
+...UuUuUuDDDDbbbbk
+...uUuUuUu...DHbbk
+...UuUuUu.....DHbk
+...uU.xxxxxxxxDHbk
+...U.u.vvvvvvvDHbk
 ...u.....sssskDHbk
 ............kbHk..
 ............kbHk..
@@ -366,66 +249,66 @@ up_side = """
 .......kkkkk.......
 ....kkkbbbbbkk.....
 ...kbbbbbiibbbk....
-..kbbbbbbDbbbbk....
-.kbbbDbbDbbDUuUk...
-kbbbDbbDbbDuwwUk...
-.kbDbbDbbDuUuwuk...
-kbbbbDbbbDUuUwwk...
-.kHbDbbbbDuUuUuk...
-.kHDbbbDDu.....vV..
-..kHHbbbDuU........
-..kHHbbbbk.........
-...kHHbkk..........
-...kHHk............
+..kbbbDbbbbbDDk....
+.kbbbbbDbbbDUuUk...
+kbbbDbbbDbDuUuUk...
+.kbbbDbbbDuUuUuk...
+kbbbbbDbbDUuUuUk...
+.kbbHbbDbDuUuUuk...
+.kbbHbbDDu.....vV..
+..kbHHbbDuU........
+..kbbHHbDk.........
+...kbHHkk..........
+...kbHk............
 ....kk.............
 """
 up = """
 ....................
 ........kkkkk.......
 ......kkbbbbbkk.....
-....kkbbbiibbbbk....
-...kbbDbbbDbbDuUk...
-..kbbDbbbDbbDuUuUk..
-.kbbDbbbDbbbDUwwuk..
-..kDbbbDbbDDuUuwuk..
-.kbbbbDbbbDUuUuwwk..
-..kHbDbbbbDuUuUuUk..
-..kHDbbbbDDuUuUu....
-..kHHbbbbbDuUuU.....
-...kHHbbbbk.........
-...kHHbbk...........
-....kHHk............
+....kkbbbiibbbDk....
+...kbbbDbbbbbDuUk...
+..kbbbbbDbbbDuUuUk..
+.kbbDbbbbDbbDUuUuk..
+..kbbbDbbbDDuUuUuk..
+.kbbbbbDbbDUuUuUuk..
+..kbbHbbDbDuUuUuUk..
+..kbbbHbbDDuUuUu....
+..kbbbHHbbDuUuU.....
+...kbbHHbDk.........
+...kbbHHk...........
+....kbHk............
 .....k..............
 """
 down_side_l = """
 ...................
 .......kkkkk.......
 .....kkbbbbbkk.....
-....kbbbiibbbbkk...
-...kUbDbbibbbDbbk..
-...kuUDbbbbbDbbbbkk
+....kbbbiibbbbk....
+...kUbDbbibbbDbk...
+...kuUDbbbbbDbbbk..
 ...uUuDDbbbbDbbbbk.
-...Uu...DDbbbDHbbbk
+...Uu...DDbbbDHbbk.
 ...u.......DbbDHbk.
-.....xxxxxx.DbbHbbk
-....xgvvvvv..DbHbk.
-.....ssssss.kbbHbk.
-...........kbHkk...
-............kbk....
-.............k.....
+..xxxxxxxxxxDbbHbk.
+.Vvvvvvvvvvv.DbHbk.
+....sssssssskbbHbk.
+...........kbHbk...
+...........kbHk....
+............kk.....
 """
 side_l = """
 ..................
 ......kkkkkk......
-....kkbbbbbbkkk...
-...kbbbbbiibbbbk..
-..kbDbbbbibbDbbbk.
-..kbbDDbbbbDbbbbbk
+....kkbbbbbbkk....
+...kbbbbbiibbbk...
+..kbDbbbbibbDbbk..
+..kbbDDbbbbDbbbbk.
 .kbbk..DDbbbDbbbk.
-.kbk.....DbbbDHbbk
+.kbk.....DbbbDHbk.
 ..k.......DbbDHbk.
-....xxxxx..DbbHbbk
-....gvvvv..DbDHbk.
+...xxxxxxxxDbbHbk.
+..Vvvvvvvv.DbDHbk.
 ....ssssskbbDHbk..
 ..........kbHHbk..
 ..........kbHbk...
@@ -437,16 +320,16 @@ up_side_l = """
 .......kkkkk......
 .....kkbbbbbkk....
 ....kbbbiibbbbk...
-...kbbbbbDbbbbbk..
-..kbbDbbDbbbDbUk..
-..kbDbbDbbbbDuUuk.
-.kbDbbDbbbbDuUuUk.
-.kbbbDbbbbbDUuUuk.
-.kHbDbbbbbbDuUuUk.
-VvbDbbbbbbDuUuUuk.
-.kHHbbbbbDUuUu....
-.kHHbbbbbk........
-..kHHbbbk.........
+...kbDbbbbbDbbbk..
+..kbbbDbbbbbDbUk..
+..kbbbbDbbbbDuUuk.
+.kbbDbbbDbbDuUuUk.
+.kbbbDbbbDbDUuUuk.
+.kbbbbDbbDbDuUuUk.
+VvbHbbbDbbDuUuUuk.
+.kbHbbbDbDUuUu....
+.kbHHbbDbk........
+..kbHHbDk.........
 ...kkHk...........
 .....k............
 """

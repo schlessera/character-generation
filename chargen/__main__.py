@@ -4,6 +4,7 @@
   python -m chargen preview NAME         contact sheet (all anims x facings) + head-grid sheet in build/preview/
   python -m chargen heads NAME           print head grids aligned with the head templates
   python -m chargen labels               label contact sheet for review in build/preview/labels.png
+  python -m chargen compare NAME         pixel mockup vs render, per view, in build/preview/
 """
 from __future__ import annotations
 
@@ -105,6 +106,36 @@ def cmd_labels(anims=()):
     print(out)
 
 
+def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0):
+    """Mockup (snapped to its pixel grid) above the render: whole figures, then head close-ups."""
+    from .mockup import MOCKUP_FACINGS, extract, place, similarity
+    tpl = template()
+    r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
+    src = Path(mockup) if mockup else CHARS / name / "concept" / f"{name}-pixel-mockup.png"
+    frames = build_frames(tpl)
+    cell, gap = 32 * 12, 16
+    sprites = extract(src)
+    scores = []
+    sheet = Image.new("RGBA", (gap + len(sprites) * (cell + gap), gap + 4 * (cell + gap)), (60, 62, 80, 255))
+    for i, (sprite, facing) in enumerate(zip(sprites, MOCKUP_FACINGS)):
+        rend = render_frame(r, frames[anim][facing][frame])
+        scores.append(similarity(sprite, rend))
+        heads = []
+        for im in (sprite, rend):  # top 16 rows around the figure's center column
+            ys = np.where(im[..., 3].any(1))[0]
+            xs = np.where(im[..., 3].any(0))[0]
+            cx = (xs[0] + xs[-1]) // 2
+            heads.append(Image.fromarray(im).crop((cx - 8, ys[0], cx + 8, ys[0] + 16)))
+        cells = [Image.fromarray(place(sprite, rend)), Image.fromarray(rend)] + heads
+        for j, im in enumerate(cells):
+            sheet.alpha_composite(im.resize((cell, cell), Image.NEAREST), (gap + i * (cell + gap), gap + j * (cell + gap)))
+    out = BUILD / "preview" / f"{name}_compare.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(out)
+    print(out)
+    print("similarity " + "  ".join(f"{f}={v:.3f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.3f}")
+
+
 def main():
     ap = argparse.ArgumentParser(prog="chargen")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -112,6 +143,7 @@ def main():
     p = sub.add_parser("preview"); p.add_argument("name"); p.add_argument("anims", nargs="*")
     h = sub.add_parser("heads"); h.add_argument("name")
     lb = sub.add_parser("labels"); lb.add_argument("anims", nargs="*")
+    c = sub.add_parser("compare"); c.add_argument("name"); c.add_argument("--mockup"); c.add_argument("--recipe")
     a = ap.parse_args()
     if a.cmd == "build":
         cmd_build(a.names)
@@ -119,6 +151,8 @@ def main():
         cmd_preview(a.name, a.anims)
     elif a.cmd == "heads":
         cmd_heads(a.name)
+    elif a.cmd == "compare":
+        cmd_compare(a.name, a.mockup, a.recipe)
     else:
         cmd_labels(a.anims)
 

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
@@ -173,7 +173,10 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
             if t == TONE_IDS["ink"] and "ink" not in r.ramps[ramp]:
                 continue  # keep template ink (outlines, eyes) unless the ramp defines one
             rgba[y, x, :3] = ramp_slot(r.ramps[ramp], t)
-    # 2. rules
+    # 2. rules. With `rule_facing = "head"` they follow the tracked head's facing, so
+    #    trim turns with the body in spinning poses (the attack) instead of staying put.
+    if r.data.get("rule_facing") == "head" and f.head:
+        f = replace(f, facing=f.head[0])
     for rule in r.rules:
         if "facings" in rule and f.facing not in rule["facings"]:
             continue
@@ -182,12 +185,14 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
             c = r.color(rule["color"], f.tones[y, x])
             rgba[y, x] = (*c, 255) if c else (0, 0, 0, 0)
     # 3. head overlays
+    painted = np.full((H, W), ".", "<U1")
     if f.head and r.grids:
-        _apply_head(r, f, rgba)
-    # 4. outline: ink pixels that touch transparency (the silhouette edge)
+        painted = _apply_head(r, f, rgba)
+    # 4. outline: ink pixels that touch transparency (the silhouette edge);
+    #    head-grid pixels painted with a legend char listed in `keep` stay as drawn
     if "color" in r.outline:
         a = rgba[..., 3] > 0
-        edge = ink & a & ~_erode(a)
+        edge = ink & a & ~_erode(a) & ~np.isin(painted, list(r.outline.get("keep", "")))
         rgba[edge, :3] = hex_rgb(r.outline["color"])
     return rgba
 
@@ -223,28 +228,56 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
             out[sel] = part[sel]
         return out
     if kind == "stripe":
-        # a vertical line through the part's per-row center, shifted by `offset`
+        # a vertical line through the part's per-row center (or `anchor` = "left"/"right"
+        # or "front"/"back" edge), shifted by `offset` (mirrored on left facings, like the
+        # frame itself); `top` limits it to the part's first n rows
         out = np.zeros_like(part)
-        for y in np.where(part.any(axis=1))[0]:
+        anchor = rule.get("anchor", "center")
+        if anchor in ("front", "back"):  # the facing's front edge; left facings are mirrored
+            anchor = "left" if (anchor == "front") == f.facing.endswith("_l") else "right"
+        rows = np.where(part.any(axis=1))[0][:rule.get("top")]
+
+        def base_x(y):
             xs = np.where(part[y])[0]
-            x = int(round((xs[0] + xs[-1]) / 2)) + rule.get("offset", 0)
-            if part[y, x]:
+            return {"left": xs[0], "right": xs[-1]}.get(anchor, int(round((xs[0] + xs[-1]) / 2)))
+        # `straight`: one column for the whole part (the median), so a zipper stays a
+        # straight line on twisted poses instead of zig-zagging row by row
+        fixed = int(np.median([base_x(y) for y in rows])) if rule.get("straight") and len(rows) else None
+        for y in rows:
+            base = fixed if fixed is not None else base_x(y)
+            x = base + rule.get("offset", 0) * (-1 if f.facing.endswith("_l") else 1)
+            if 0 <= x < part.shape[1] and part[y, x]:
                 out[y, x] = True
+        return out
+    if kind == "band":
+        # one row at fraction `at` (0 = top, 1 = bottom) of the part's vertical extent;
+        # with `anchor` only one pixel of that row (placed like a stripe)
+        ys = np.where(part.any(axis=1))[0]
+        out = np.zeros_like(part)
+        if len(ys):
+            y = ys[0] + int(round(rule.get("at", 0.5) * (ys[-1] - ys[0])))
+            if "anchor" in rule:
+                row = np.zeros_like(part)
+                row[y] = part[y]
+                return _rule_mask({**rule, "type": "stripe", "top": None}, f) & row
+            out[y] = part[y]
         return out
     if kind == "all":
         return part
     raise ValueError(f"unknown rule type {kind}")
 
 
-def _apply_head(r: Recipe, f: Frame, rgba: np.ndarray) -> None:
+def _apply_head(r: Recipe, f: Frame, rgba: np.ndarray) -> np.ndarray:
+    """Paint the facing's head grid; returns the grid char painted at each pixel ('.' = none)."""
     facing, hx, hy, _hw = f.head
     grid = r.grids.get(facing)
     if grid is None and facing.endswith("_l") and facing[:-2] in r.grids:
         grid = r.grids[facing[:-2]][:, ::-1]
         # mirrored grid must stay aligned to the mirrored head template width
-    if grid is None:
-        return
     H, W = f.tones.shape
+    painted = np.full((H, W), ".", "<U1")
+    if grid is None:
+        return painted
     allowed = np.isin(f.labels, ["H", "N", "."])
     for gy, gx in zip(*np.where(grid != ".")):
         y, x = hy + gy - HEAD_PAD, hx + gx - HEAD_PAD
@@ -253,6 +286,8 @@ def _apply_head(r: Recipe, f: Frame, rgba: np.ndarray) -> None:
         ref = r.legend[grid[gy, gx]]
         c = r.color(ref, f.tones[y, x])
         rgba[y, x] = (*c, 255) if c else (0, 0, 0, 0)
+        painted[y, x] = grid[gy, gx]
+    return painted
 
 
 # ---------------------------------------------------------------- export
