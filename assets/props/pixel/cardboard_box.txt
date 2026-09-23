@@ -1,0 +1,12 @@
+# cardboard_box 12x11
+.##########.
+#fcccEEcccc#
+#ccccEEcccc#
+#ccccEEcccc#
+#BBBBEEBBBb#
+#BBBBeeBBBb#
+#BffBBBBBBb#
+#BBBBBBBBBb#
+#BBBBBBBBBb#
+#bbbbbbbbbb#
+.##########.

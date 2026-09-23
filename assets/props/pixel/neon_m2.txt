@@ -1,0 +1,17 @@
+# neon_m2 16x16
+aAAAAAAAAAAAAAAA
+AssSSSSSSSSSssss
+Asssssssssssssss
+Asssssssssssssss
+ASssssssssssssss
+ASssssssssssssss
+mmmmmmmKKmmmmmmm
+nnnnnnngGnnnnnnn
+MMMMMMMggMMMMMMM
+mmmmmmmKKmmmmmmm
+AAAAAAAkkAAAAAAA
+Asssssssssssssss
+Assssssssssssmss
+Asssssssssssssss
+Asssssssssssssss
+Asssssssssssssss

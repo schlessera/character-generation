@@ -1,0 +1,21 @@
+# drone_pad 32x20
+################################
+#oooooooooooZxxxxxxZooooooooooo#
+#oppppppppppppppppppppppppppppR#
+#opSnQSSSSSSSffffffSSSSSSSnQSsR#
+#opSQqSSSSSffSSSSSSEESSSSSQqSsR#
+#opSSSSSSSfSSSSfESSSSESSSSSSSsR#
+#ZpSSSSSSfSSSSSfESSSSSESSSSSSsz#
+#xpSSSSSSfSSffffEEEESSESSSSSSsZ#
+#ZpSSSSSSESSSSSfESSSSSESSSSSSsz#
+#opSSSSSSSESSSSfESSSSESSSSSSSsR#
+#opSnQSSSSSEESSSSSSEESSSSSnQSsR#
+#opSQqSSSSSSSEEEEEESSSSSSSQqSsR#
+#opsssssssssssssssssssssssssssR#
+#oRRRRRRRRRRzZZZZZZzRRRRRRRRRRR#
+#gggggggggggggggggggggggggggggg#
+#KKKKKKkkKKkkKKkkKKkkKKkkKKyOKK#
+#kkkkkkkkkkkkkkkkkkkkkkkkkkkkkk#
+##gggg####################gggg##
+..#Gg#....................#Gg#..
+..####....................####..

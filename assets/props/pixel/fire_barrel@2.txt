@@ -1,0 +1,25 @@
+# fire_barrel 13x24
+...y...#.....
+...#..#O#....
+..#O#.#OO#...
+..#OO#OOyO#..
+..#OO#OyyO#..
+...#OOyyYOO#.
+...#OyyYYyO#.
+..#OOyYYYyO#.
+..#OyyYYYyO#.
+.##oOyyYYyRR#
+#ookyyYYykRr#
+#okkOyyyOkkr#
+#RoooooRRRRr#
+#KGGggggKKKk#
+#KGgggggKKKk#
+#RooRRRRRRrr#
+#rrrrrrrrrrr#
+#KGggRgggKKk#
+#KGgRRggKKKk#
+#RooRRRRRRrr#
+#rrrrrrrrrrr#
+#KGgggggKKrk#
+.#kkkkkkkkk#.
+..#########..

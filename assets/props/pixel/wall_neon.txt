@@ -1,0 +1,17 @@
+# wall_neon 16x16
+GGGGGGGGGGGGGGGg
+gggggggggggggggK
+gggggggggggggggK
+kkkkkkkkkkkkkkkk
+sssssssssssssssk
+SSSSssSSSSSSsSSA
+SSSSsSSSSSSSsSSA
+SKKKKKKKKKKKKKSA
+SKzZZZZZZZZZzKSA
+SKZxxxxxxxxxZKSA
+SKKKKKKKKKKKKKSA
+SSzzzzzzzzzzzSSA
+ssstststststsssA
+AAAAAAAAAAAAAAAA
+aaaaaaaaaaaaaaaA
+################

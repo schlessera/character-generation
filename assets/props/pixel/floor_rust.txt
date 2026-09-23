@@ -1,0 +1,17 @@
+# floor_rust 16x16
+aAAAAAAAAAAAAAAA
+AssSSSSSSSSSssss
+Asssssssssssssss
+Asssssssssssssss
+ASsssssrrrssssss
+ASssrrrRRRrrssrs
+ASsrRRRRoRRRrsss
+ASssrrRRRRrrsrss
+ASssssrrrrssssss
+ASssssssrsssssss
+Assssssrssssssss
+Asssssssssssssss
+Asssssssssssssss
+Asssssssssssssss
+Asssssssssssssss
+Asssssssssssssss

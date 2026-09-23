@@ -1,0 +1,17 @@
+# potted_plant 12x16
+..o......o..
+...R....R...
+.o.R...R..o.
+..R.R.RR.R..
+...RR.R.R...
+....RRRR....
+.....RR.....
+..########..
+.#LLLLLLLl#.
+.#LkbRbbkl#.
+.#LLLLLLLl#.
+.#llllllll#.
+..#LLLLll#..
+..#LLLLll#..
+..#LLLlll#..
+...######...

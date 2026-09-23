@@ -1,0 +1,67 @@
+name: Build, test & deploy demo
+
+# Builds every sprite sheet and the props atlas from source (template, labels, recipes,
+# hand-drawn pixel files), runs the headless browser smoke test, and publishes web/ to
+# GitHub Pages on pushes to main.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - uses: extractions/setup-just@v4
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          uv run playwright install --with-deps chromium
+
+      - name: Build sprite sheets and props atlas
+        run: just build
+
+      - name: Smoke test (headless Chromium)
+        env:
+          CI: "true"
+        run: uv run python tools/smoke.py
+
+      - name: Upload smoke screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-screenshots
+          path: build/smoke/
+
+      - uses: actions/configure-pages@v6
+        if: github.event_name != 'pull_request'
+
+      - uses: actions/upload-pages-artifact@v5
+        if: github.event_name != 'pull_request'
+        with:
+          path: web
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

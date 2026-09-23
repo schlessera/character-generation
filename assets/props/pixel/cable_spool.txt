@@ -1,0 +1,17 @@
+# cable_spool 16x16
+................
+........####....
+....####KKKK#...
+...#GGGKKgggK#..
+..#GGggGOoOogK#.
+.#GGggggOoOoKK#.
+#GGgggggKOoOgK#.
+#GGgggggKRoRgK#.
+#GggggggKRrRgK#.
+#GggKkggKrRrgK#.
+#GggkkggKrrrKK#.
+#GggggggKkkK##..
+#gggggggKr##....
+.#KggggK##r####.
+.#gKKKKK#.#rRRQ#
+..######...####.

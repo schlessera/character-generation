@@ -1,0 +1,17 @@
+# wall_cap 16x16
+kKKKKKKKKKKKKKKK
+KgGGGGGGGGGGGggg
+KGgggggggggggggg
+KGgggggggggggggg
+KGgggggggggggggg
+KGggggKggggggggg
+KGgggggggggggggg
+KGgggggggggggggg
+KGgggggggggggggg
+Kggggggggggggggg
+KggggggggggKKggg
+Kggggggggggggggg
+KgggGggggggggggg
+Kggggggggggggggg
+Kggggggggggggggg
+Kggggggggggggggg

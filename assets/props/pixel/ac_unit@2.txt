@@ -1,0 +1,19 @@
+# ac_unit 22x18
+.##################...
+#wwwwwwwwwwwwwwwwwE#..
+#ffffffffffEEEEEEfE#..
+#ffffffffffwwwwwwfE#..
+#fEEEEEEEEEEEEEEEEE#..
+#wwwwwwwwwwwwwwwwwE#..
+#fEEeeeeeEEEEEEEEoe#..
+#fEeKKKKKeEEfffffRe##.
+#feKKKKgKKfEeeeeeRehh#
+#feKgKgKKKfEfffffre#G#
+#feKKghgKKfEeeeeeEe#g#
+#feKKKgKgKfEfffffEehg#
+#feKKgKKKKfEeeeeeEeGg#
+#fEfKKKKKfEEfffffEeGg#
+#fEEfffffEEEEEEEEEeGg#
+#eeRReeeeeeeeReeeee##.
+.#KK###########KK##...
+..##...........##.....

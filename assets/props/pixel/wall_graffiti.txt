@@ -1,0 +1,17 @@
+# wall_graffiti 16x16
+GGGGGGGGGGGGGGGg
+gggggggggggggggK
+gggggggggggggggK
+kkkkkkkkkkkkkkkk
+sssssssssssssssk
+SSSSsMSSSSSnsSSA
+SSSMMmSMSSMMsSSA
+SSMSsMSMSMSSMSSA
+SSMMsMSMMMmSMmSA
+SSSmSMnMSMSSMSSA
+SSSSSmSmSSmmsSSA
+SSSSSSSSSSSSSSSA
+sssssssssssssssA
+AAAAAAAAAAAAAAAA
+aaaaaaaaaaaaaaaA
+################

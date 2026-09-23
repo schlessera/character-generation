@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chargen Playground</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0a10; color: #cfd3e6; font: 13px/1.4 ui-monospace, monospace; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; background: #111; }
+  #help { opacity: .75; text-align: center; }
+  kbd { background: #23222c; border: 1px solid #3a3946; border-radius: 3px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="help">
+  <kbd>WASD</kbd>/<kbd>arrows</kbd> move · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>J</kbd> attack · <kbd>E</kbd> interact ·
+  <kbd>C</kbd> next character · <kbd>V</kbd> animation gallery · <kbd>R</kbd> rotate · <kbd>L</kbd> lighting · <kbd>F</kbd> flyover
+</div>
+<script type="module" src="engine.js"></script>
+</body>
+</html>

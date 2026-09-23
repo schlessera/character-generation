@@ -1,0 +1,17 @@
+# floor_hazard 16x16
+aAAAAAAAAAAAAAAA
+AssSSSSSSSSSssss
+Asssssssssssssss
+Asssssssssssssss
+aAAAAAAAAAAAAAAA
+kkkJJJJkkjkJJJJk
+kkjjJJkkkkJJJJkk
+kJJJJkkkkJJJJskk
+JJJJkkkkJJJJkkkj
+JJJkkkkJJJjkkkkJ
+JJkkkkssJJkkkkJJ
+aAAAAAAAAAAAAAAA
+Asssssssssssssss
+Asssssssssssssss
+Asssssssssssssss
+Asssssssssssssss

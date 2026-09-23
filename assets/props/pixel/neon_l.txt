@@ -1,0 +1,17 @@
+# neon_l 16x16
+aAAAAAAAAAAAAAAA
+AssSSSSSSSSSssss
+Asssssssssssssss
+Asssssssssssssss
+ASssssssssssssss
+Asssssssssssssss
+AKKKmmmmmmmmmmmm
+AKghnnnnnnnnnnnn
+AKgGMMMMMMMMMMMM
+AKKKmmmmmmmmmmmm
+AkAAAAAAAAAAAAAA
+Asssssssssssssss
+Asssssssmsssssss
+Asssssssssssssss
+Asssssssssssssss
+Asssssssssssssss

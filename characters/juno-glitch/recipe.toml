@@ -1,0 +1,12 @@
+# Colorway variant: everything from Juno, new palette. A variant is only the diff.
+extends = "juno"
+name = "Juno (Glitch)"
+
+[palette]
+hair   = { base = "#9dff3a", shade = "#4fb21c", light = "#e2ff9e", ink = "#153a0a" }
+jacket = { base = "#3a2a55", shade = "#271c3b", light = "#312447", ink = "#150e22" }
+orange = { base = "#ff3fd2", shade = "#b8209a" }
+cyan   = { base = "#ffe93f", shade = "#c4a51a" }
+fx     = { base = "#e2ff9e", shade = "#9dff3a", light = "#f6ffd9" }
+skin   = { base = "#e0b089", shade = "#b07f5c", light = "#c8946e", blush = "#e09a86" }
+stubble = { base = "#a8785a", shade = "#8e6247", light = "#8e6247", ink = "#3a2618" }

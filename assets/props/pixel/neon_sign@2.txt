@@ -1,0 +1,23 @@
+# neon_sign@2 30x22
+..###########################.
+.#GGGGGGGGGGGGGGGGGGGGGGGGGG#.
+#ggggggggggggggggggggggggggk#.
+#gkkkkkkkkkkkkkkkkkkkkkkkKkk#.
+#gkMMnnnnnnMMMMMMMMMMMMMkKkk#.
+#gkMkkkkkkkkkkkkkkkkkkkMkKkk#.
+#gknkkzkkkmMMmMMmkkkzkkMkKkk#.
+#gknkzZzkmMnnMMMMmkzZzkMkKkk#.
+#gknzZxZzkmMMMMMmkkkzkkMkKkk#.
+#gkMkzZzkkkmMMMmkkkkkkkMkKkk#.
+#gkMkkzkkkkkmMmkkkkkzkkMkKkk#.
+#gkMkkkkkkkkkkkkkkkkkkkMkKkk#.
+#gkMMMMMMMMMMMMMMMMMMMMMkKkk#.
+#gkkkkkkkkkkkkkkkkkkkkkkkKkk#.
+#gkkkkkkkkkkkkkkkkkkkkkkkKk#..
+####gGg###########gGg######...
+....#G#...........#G#.........
+....#G#...........#G#...######
+....#G#...........#G#...#gggg#
+..##KKK##.......##KKK#O.#KOKk#
+..#GgggK#.......#GgggKOO#KKKk#
+..#######.......#######.######

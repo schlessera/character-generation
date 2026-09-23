@@ -1,0 +1,13 @@
+# trash_bag 13x12
+..##.....##..
+..#g#...#K#..
+...#gK#KK#...
+....#OOO#....
+...##KgK##...
+..#gGgKKKk#..
+.#gGKKKKKKk#.
+#KgKKKkKKKkk#
+#KgKKKKkKkkk#
+#KKKKKKKkkkk#
+.#kKKKKkkkk#.
+..#########..

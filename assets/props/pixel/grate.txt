@@ -1,0 +1,17 @@
+# grate 16x16
+ggKKggKKggKKggKK
+KkkkKkkkKkkkKkkk
+KaaaKaaaKaaaKaaa
+KaaaKaaaKaaaKaaa
+ggKKggKKggKKggKK
+KkkkKkkkKkkkKkkk
+KaaaKaaaKaaaKaaa
+KaaaKaaaKaaaKaaa
+ggKKggKKggKKggKK
+KkkkKkkkKkkkKkkk
+KaaaKaaaKaaaKaaa
+KaaaKaaaKaaaKaaa
+ggKKggKKggKKggKK
+KkkkKkkkKkkkKkkk
+KaaaKaaaKaaaKaaa
+KaaaKaaaKaaaKaaa

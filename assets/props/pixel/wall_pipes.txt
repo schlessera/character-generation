@@ -1,0 +1,17 @@
+# wall_pipes 16x16
+GGGGGGGGGGGGGGGg
+gggggggggggggggK
+gggggggggggggggK
+kkkkkkkkkkkkkkkk
+sssssssssssssssk
+SSSSssSSSSSSsSSA
+SSKKsSSSSSSSKKSA
+SKgGhhhhhhhhGgKA
+SKgGGGGGRGGGGgKA
+SKgggggrRggggKKA
+SKKKKKKKKKKKKKKA
+SSkkSSSSSSSSkkSA
+sssssssssssssssA
+AAAAAAAAAAAAAAAA
+aaaaaaaaaaaaaaaA
+################

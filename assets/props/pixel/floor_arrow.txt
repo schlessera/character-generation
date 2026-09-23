@@ -1,0 +1,17 @@
+# floor_arrow 16x16
+aAAAAAAAAAAAAAAA
+AssSSSSSSSSSssss
+Asssssshhsssssss
+Assssshhhhssssss
+ASssshhhGhhsssss
+ASsshGhshhhhssss
+ASshhhshhshGhsss
+ASssssshhsssssss
+ASssssshGsssssss
+ASssssshhsssssss
+AssssssGhsssssss
+Asssssshhsssssss
+AsssssshGsssssss
+AssssssGGsssssss
+Asssssssssssssss
+Asssssssssssssss

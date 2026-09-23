@@ -1,0 +1,21 @@
+# table 28x20
+...................cc.......
+................###c........
+################wyyw######c#
+#ffffffffffffff#WWWw#ffffcf#
+#fEEbbbbbbbbEEE#QQQq#EEEcEE#
+#EEbcBiiiiBcbEE#WWwh#####EE#
+#EEbciyQyyicbEEE#####wyyw#E#
+#EEbciyyyQicbEEEEEEE#WWWw#E#
+#EEbcBiiiiBcbEEEEEEE#QQQq#E#
+#EEbBBBBBBBBbEEEEEEE#WWwh#E#
+#EEEbbbbbbbbEEEeeEEEE####EE#
+#EEEEEEEEEEEEEEEEEEEEEEEEEE#
+#eeeeeeeeeeeeeeeeeeeeeeeeee#
+############################
+.#h#....................#G#.
+.#h#....................#G#.
+.#h#....................#G#.
+.#h#....................#G#.
+.#h#....................#G#.
+.###....................###.

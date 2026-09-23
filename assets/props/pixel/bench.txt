@@ -1,0 +1,19 @@
+# bench 30x18
+.#.########################.#.
+#w#uuuuuuutuuuuuuuutuuuuuuu#h#
+#h#TTToTTTtTTTTTTTTtTTTTTTT#G#
+#h#TTTTTTTtTTTTTTTTtTTTTTTT#G#
+#h#tttttttttttttttttttttttt#G#
+#h#TTTTTTTtTTTTTTTTtTTRTTTT#G#
+#h#tttttttttttttttttttttttt#G#
+#h##########################G#
+#h#uuuuuuuTuuuuuuuuTuuuuuuu#G#
+#h#uuuuuuuTuuuoouuuTuuuuuuu#G#
+#h#TTTTTTTTTTTTTTTTTTTTTTTT#G#
+#h#uuuuuuuTuuuuuuuuTuuuuuuu#G#
+#h#tttttttttttttttttttttttt#G#
+#h##########################G#
+#h#........................#G#
+#h#........................#G#
+#h#........................#G#
+###........................###

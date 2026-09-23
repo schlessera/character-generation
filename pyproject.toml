@@ -1,0 +1,14 @@
+[project]
+name = "chargen"
+version = "0.1.0"
+description = "AI-directed pixel-art character and prop generation from an animated template, with a small browser playground"
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.5.3",
+    "pillow>=12.3.0",
+]
+
+[dependency-groups]
+dev = [
+    "playwright>=1.63.0",
+]

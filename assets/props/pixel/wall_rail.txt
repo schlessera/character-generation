@@ -1,0 +1,17 @@
+# wall_rail 16x16
+kKKKKKKKKKKKKKKK
+KgGGGGGGGGGGGggg
+wwwwwwwwwwwwwwww
+hhhhhhhhhhhhhhhh
+kkkkkkhGkkkkkkkk
+KGgggghGgggggggg
+KGgggghGgggggggg
+GGGGGGhGGGGGGGGG
+kkkkkkhGkkkkkkkk
+KggggghGgggggggg
+KggggghGgggggggg
+KggggKGGKggggggg
+KgggggKKkggggggg
+Kggggggggggggggg
+Kggggggggggggggg
+Kggggggggggggggg

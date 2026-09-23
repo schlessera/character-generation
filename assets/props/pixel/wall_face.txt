@@ -1,0 +1,17 @@
+# wall_face 16x16
+GGGGGGGGGGGGGGGg
+gggggggggggggggK
+gggggggggggggggK
+kkkkkkkkkkkkkkkk
+sssssssssssssssk
+SSSSssSSSSSSsSSA
+SSSSsSSSSSSSsSSA
+SSSSsSSSpSSSsSSA
+SSSSsSSSSSSSsSSA
+SSSSSSSSSSSSsSSA
+SSSSSSSSSSSSsSSA
+SSSSSSSSSSSSSSSA
+sssssssAsssssssA
+AAAAAAAAAAAAAAAA
+aaaaaaaaaaaaaaaA
+################

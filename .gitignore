@@ -1,0 +1,10 @@
+# generated
+build/
+web/data/
+__pycache__/
+.venv/
+test-results/
+
+# local downloads (the template is vendored extracted under vendor/)
+*.zip
+*:Zone.Identifier

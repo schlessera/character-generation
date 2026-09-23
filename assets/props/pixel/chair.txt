@@ -1,0 +1,17 @@
+# chair 12x16
+..########..
+.#wwwwwwww#.
+.#whwhwhwh#.
+.#whwhwhwh#.
+.#wwwwwwwh#.
+##wwwwwwwh##
+#W#WWWWWW#W#
+#w#WWWWWW#h#
+#wWWWWWWWWh#
+#whhhhhhhhG#
+.#w#G##G#h#.
+.#w#G##G#h#.
+.#w##..##h#.
+#w#......#h#
+#w#......#h#
+###......###
