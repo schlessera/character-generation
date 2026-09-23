@@ -201,6 +201,93 @@ def facings_figure():
     save(out, "juno-facings.png")
 
 
+def _snapshots():
+    """(step, recipe) for every saved iteration step (characters/juno/history/step-NN.toml)."""
+    steps = sorted((ROOT / "characters/juno/history").glob("step-*.toml"))
+    return [(int(p.stem.split("-")[1]), Recipe(p)) for p in steps]
+
+
+def iteration_figures():
+    """Pixel mockup, then the recipe after every saved iteration step, left to right."""
+    from chargen.mockup import MOCKUP_FACINGS, extract, place, similarity
+    sprites = extract(ROOT / "characters/juno/concept/juno-pixel-mockup.png")
+    snaps = _snapshots()
+    cols = [("pixel mockup", None)] + [(f"step {n}", rec) for n, rec in snaps]
+
+    def view(rec, sprite, facing):
+        im = idle(juno, facing)
+        return place(sprite, im) if rec is None else idle(rec, facing)
+
+    # full figures: one row per view
+    s, lw = 4, 20
+    cw = 32 * s
+    out = Image.new("RGBA", (lw + len(cols) * cw, 30 + len(sprites) * cw), BG)
+    d = ImageDraw.Draw(out)
+    for c, (label, rec) in enumerate(cols):
+        d.text((lw + c * cw + (cw - d.textlength(label, font=FS)) / 2, 10), label, font=FS,
+               fill=TEXT if rec is None or c == len(cols) - 1 else DIM)
+        for r, (sprite, facing) in enumerate(zip(sprites, MOCKUP_FACINGS)):
+            out.alpha_composite(up(view(rec, sprite, facing), s), (lw + c * cw, 30 + r * cw))
+    save(out, "juno-iteration.png")
+
+    # head close-ups: front, profile and back, where most of the iterating happened
+    s, hw = 6, 22
+    cw = hw * s + 8
+    out = Image.new("RGBA", (lw + len(cols) * cw, 30 + 3 * (16 * s + 8)), BG)
+    d = ImageDraw.Draw(out)
+    for c, (label, rec) in enumerate(cols):
+        d.text((lw + c * cw + (cw - d.textlength(label, font=FS)) / 2, 10), label, font=FS,
+               fill=TEXT if rec is None or c == len(cols) - 1 else DIM)
+        for r, i in enumerate((0, 2, 4)):
+            im = sprites[i] if rec is None else idle(rec, MOCKUP_FACINGS[i])
+            ys = np.where(im[..., 3].any(1))[0]
+            xs = np.where(im[..., 3].any(0))[0]
+            cx = (xs[0] + xs[-1]) // 2
+            head = Image.fromarray(im).crop((cx - hw // 2, ys[0], cx + hw // 2, ys[0] + 16))
+            out.alpha_composite(up(head, s), (lw + c * cw + 4, 30 + r * (16 * s + 8)))
+    save(out, "juno-iteration-heads.png")
+
+    # similarity to the mockup per saved step
+    scores = []
+    for n, rec in snaps:
+        v = [similarity(sp, idle(rec, f)) for sp, f in zip(sprites, MOCKUP_FACINGS)]
+        scores.append((n, float(np.mean(v)), min(v), max(v)))
+    similarity_chart(scores)
+
+
+def similarity_chart(scores):
+    """Line chart: mean similarity to the mockup (band = worst..best view) per saved step."""
+    W, H = 720, 300
+    L, R, T, B = 56, 44, 44, 40
+    out = Image.new("RGBA", (W, H), BG)
+    d = ImageDraw.Draw(out)
+    d.text((L, 12), "Similarity to the pixel mockup (mean of 5 views, band = worst to best view)", font=FS, fill=TEXT)
+    n_max = max(n for n, *_ in scores) or 1
+    lo_v = np.floor(min(lo for *_, lo, _ in scores) * 20) / 20
+    hi_v = np.ceil(max(hi for *_, hi in scores) * 20) / 20
+    X = lambda n: L + (W - L - R) * n / n_max
+    Y = lambda v: T + (H - T - B) * (hi_v - v) / (hi_v - lo_v)
+    grid, ink, series = (52, 51, 68, 255), DIM, (216, 48, 124, 255)
+    v = lo_v
+    while v <= hi_v + 1e-9:
+        d.line([(L, Y(v)), (W - R, Y(v))], fill=grid, width=1)
+        d.text((8, Y(v) - 7), f"{v:.2f}", font=FS, fill=ink)
+        v += 0.05
+    for n, *_ in scores:
+        d.text((X(n) - d.textlength(str(n), font=FS) / 2, H - B + 8), str(n), font=FS, fill=ink)
+    d.text((W - R - d.textlength("iteration step", font=FS), H - 18), "iteration step", font=FS, fill=ink)
+    band = [(X(n), Y(hi)) for n, _, _, hi in scores] + [(X(n), Y(lo)) for n, _, lo, _ in reversed(scores)]
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(layer).polygon(band, fill=(216, 48, 124, 50))
+    out.alpha_composite(layer)
+    pts = [(X(n), Y(m)) for n, m, *_ in scores]
+    d.line(pts, fill=series, width=2)
+    for (x, y), (n, m, *_) in zip(pts, scores):
+        d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=series, outline=BG, width=2)
+        d.text((x - 14, y - 22), f"{m:.3f}", font=FS, fill=TEXT)
+    save(out, "juno-similarity.png")
+
+
 def variants_figure():
     s = 6
     items = [("template", None), ("Juno", juno), ("Juno (Glitch)", glitch)]
@@ -418,6 +505,7 @@ if __name__ == "__main__":
     label_figure()
     label_sheet()
     facings_figure()
+    iteration_figures()
     variants_figure()
     walk_gif()
     anims_gif()
