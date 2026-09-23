@@ -94,6 +94,10 @@ class Recipe:
         self.legend = head.get("legend", {})
         self.grids = {f: _parse_grid(g) for f, g in head.get("grids", {}).items()}
 
+    def emissive_colors(self) -> set[tuple[int, int, int]]:
+        """Every color of the ramps listed in `emissive` (they glow in the dark)."""
+        return {tuple(c) for name in self.data.get("emissive", []) for c in self.ramps[name].values()}
+
     def color(self, ref: str, tone: int) -> tuple[int, int, int] | None:
         """'#rrggbb' fixed color, 'ramp' tone-relative, 'ramp.slot' fixed slot, 'ink' keeps outline."""
         if ref.startswith("#"):
@@ -315,6 +319,16 @@ def export(tpl: Template, recipe: Recipe | None, out_dir: Path) -> Path:
         meta["anims"].setdefault(anim, {})[facing] = entry
     out_dir.mkdir(parents=True, exist_ok=True)
     Image.fromarray(sheet).save(out_dir / "sheet.png")
+    glow = recipe.emissive_colors() if recipe else set()
+    if glow:  # self-lit pixels (e.g. the visor): the game draws these unlit on top
+        rgb = sheet[..., :3].reshape(-1, 3).astype(np.int64)
+        mask = np.isin(rgb[:, 0] * 65536 + rgb[:, 1] * 256 + rgb[:, 2],
+                       [r * 65536 + g * 256 + b for r, g, b in glow]).reshape(sheet.shape[:2])
+        em = sheet.copy()
+        em[~(mask & (sheet[..., 3] > 0))] = 0
+        Image.fromarray(em).save(out_dir / "sheet_emissive.png")
+        meta["emissive"] = {"sheet": "sheet_emissive.png", "strength": recipe.data.get("emissive_strength", 1.0),
+                            "light": recipe.data.get("light")}
     (out_dir / "sheet.json").write_text(json.dumps(meta, indent=1))
     return out_dir
 

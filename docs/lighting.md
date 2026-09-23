@@ -117,3 +117,10 @@ Initial bake: median 92 → 84 ms over three loads each. Darkness changes: media
 2.3 ms over 18 changes each (ranges 42–53 → 1.4–9.1 ms, excluding the unchanged debounce).
 Timings vary with host load and browser warmup. All four saved benchmark references match
 exactly (`--compare`, max difference 0); they were not regenerated.
+
+## Character glow
+A recipe can list ramps under `emissive` (Juno: `cyan`). The build writes `sheet_emissive.png` next to
+the sheet with only those pixels (the visor lens, the cyber-arm's joints); the game draws them over the
+lit character with `emissive_strength` opacity (0.5: halfway between lit and full brightness), in the
+same occlusion-tracking emissive layer as the props. A recipe `light` ({color, radius, intensity}) adds a
+small moving point light at the character, without shadows, through the moving-light path.

@@ -87,15 +87,19 @@ try:
             L.lightMap(g, 0, 0, 400, 240, 'lit', 0, x => { x.drawImage(L.ao, 0, 0); L.dynamicShadow(x, hero, 0, 0, 0); });
             return { total_occlusion: total, real_frame: minBelow() }; }""")
         checks.append(("shadow_floor_is_ambient", floor["total_occlusion"] >= -1 and floor["real_frame"] >= -1, floor))
-        # flyover: light must enter and leave smoothly (zero at spawn/exit, peak mid-screen)
+        # flyover: light must enter and leave smoothly (zero at spawn/exit, peak mid-screen),
+        # measured on top of the moving lights already there (the character's own glow)
         page.evaluate("window.__game.autoFly(false); window.__game.clearFlyers()")
+        page.wait_for_timeout(200)
+        energy_js = """() => { const L = window.__game.lighting(); if (!L._dl) return 0;
+            let s = 0; for (const v of L._dl.accRaw) s += v; return Math.round(s); }"""
+        base = page.evaluate(energy_js)
         page.keyboard.press("f")
         series = []
         for k in range(90):
             page.wait_for_timeout(50)
-            series.append(page.evaluate("""() => { const L = window.__game.lighting(), f = window.__game.flyer();
-                if (!f || !L._dl) return [f ? f.x : null, 0];
-                let s = 0; for (const v of L._dl.accRaw) s += v; return [f.x, Math.round(s)]; }"""))
+            x = page.evaluate("window.__game.flyer()?.x ?? null")
+            series.append([x, page.evaluate(energy_js) - base if x is not None else 0])
             if k in (30, 40, 50):
                 page.screenshot(path=str(OUT / f"flyover_{k}.png"))
         energy = [e for _, e in series]

@@ -20,7 +20,13 @@ async function loadCharacter(name) {
   const img = new Image();
   img.src = BASE + name + "/sheet.png?" + Date.now();
   await img.decode();
-  return { name, meta, img };
+  let glow = null;  // self-lit pixels (visor, cyber-arm joints), drawn unlit on top
+  if (meta.emissive) {
+    glow = new Image();
+    glow.src = BASE + name + "/" + meta.emissive.sheet + "?" + Date.now();
+    await glow.decode();
+  }
+  return { name, meta, img, glow };
 }
 
 // ------------------------------------------------------------------ level
@@ -248,6 +254,13 @@ function updateFlyers(dt) {
   for (const f of flyers) f.x += f.dir * FLYOVER.speed * dt / 1000;
   flyers = flyers.filter(f => (f.x - f.endX) * f.dir <= 0);
 }
+// The character's own glow (visor, cyber-arm): a small soft light that moves with her.
+function heroLight(c) {
+  const L = c.meta.emissive?.light;
+  if (!L) return [];
+  return [{ type: "point", x: hero.x, y: hero.y - 1, h: 20, radius: L.radius ?? 24, color: L.color,
+            intensity: L.intensity ?? 0.35, shadows: false }];
+}
 function flyerLights() {
   const F = FLYOVER, h = F.height, out = [];
   for (const { x, y, dir, car } of flyers) {
@@ -434,7 +447,7 @@ function draw(fixedT) {
       x0: Math.round(hero.x - fw / 2), y0: Math.round(hero.y - fh + 1), w: fw, h: fh,
       m: alphaMask(c.img, hf.x, hf.y, fw, fh), groundY: Math.round(hero.y) - 1,
     };
-    const fl = flyerLights();
+    const fl = flyerLights().concat(heroLight(c));
     dyn = fl.length ? lighting.dynamicLights(fl, [...lighting.occluders, ...lighting.walls, heroOcc], camX, camY, VIEW_W, VIEW_H) : null;
     lighting.lightMap(lmctx, camX, camY, VIEW_W, VIEW_H, "lit", now, g => {
       g.drawImage(lighting.ao, -camX, -camY);
@@ -459,6 +472,11 @@ function draw(fixedT) {
     ectx.globalCompositeOperation = "destination-out";
     drawSprite(c, hf, hero.x - camX, hero.y - camY, ectx);
     ectx.globalCompositeOperation = "source-over";
+    if (c.glow) {  // partly self-lit: blends between her lit colors and full brightness
+      ectx.globalAlpha = c.meta.emissive.strength ?? 1;
+      drawSprite({ ...c, img: c.glow }, hf, hero.x - camX, hero.y - camY, ectx);
+      ectx.globalAlpha = 1;
+    }
   };
   let heroDrawn = false;
   for (const p of props.slice().sort((a, b) => a.y - b.y)) {

@@ -457,8 +457,10 @@ gradients. The band edges are dithered, but with a static blue-noise map anchore
 ordered pattern, so they read as fine, even grain rather than a grid of dots, and the grain stays put when the camera
 moves. That matters most on a dark night (the `-`/`+` keys), where hard bands would show as rings around every
 light. Neon and fire pixels are drawn at full brightness on top of the lit scene, so they
-really glow. And shadows only ever remove direct light, so no pile-up of overlapping shadows can get darker than the
-night itself.
+really glow. Juno glows a little too: her recipe marks the cyan ramp as emissive, so the build writes a second sheet
+with just the visor lens and the cyber-arm's joints, which the game draws half self-lit over her, and she carries a
+small cyan light that pools on the roof around her feet. And shadows only ever remove direct light, so no pile-up of
+overlapping shadows can get darker than the night itself.
 
 <table>
 <tr>

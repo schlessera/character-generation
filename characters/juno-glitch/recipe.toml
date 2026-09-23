@@ -1,6 +1,7 @@
 # Colorway variant: everything from Juno, new palette. A variant is only the diff.
 extends = "juno"
 name = "Juno (Glitch)"
+light = { color = "#ffe93f" }   # her visor glows yellow
 
 [palette]
 hair   = { base = "#9dff3a", shade = "#4fb21c", light = "#e2ff9e", deep = "#2f7a12", ink = "#153a0a" }
