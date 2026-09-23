@@ -11,7 +11,7 @@ directing (and drawing) every pixel.**
 
 <br><br>
 
-<a href="https://schlessera.github.io/semantic-sprite-skinning/"><img src="docs/images/hero.gif" alt="Juno walking across the rooftop while flying cars pass overhead" width="800"></a>
+<a href="https://schlessera.github.io/semantic-sprite-skinning/"><img src="docs/images/hero.gif" alt="Juno walks up to the fire barrel, kicks and walks back while flying cars pass overhead (a seamless loop)" width="800"></a>
 
 <sub>Runs in the browser, nothing to install.<br>
 <kbd>WASD</kbd> / arrows move · <kbd>Shift</kbd> run · <kbd>Space</kbd> jump · <kbd>J</kbd> attack · <kbd>E</kbd> interact<br>

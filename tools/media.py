@@ -77,8 +77,13 @@ def caption_row(items: list[tuple[str, Image.Image]], gap: int = 18, pad: int = 
 
 def gif(frames: list[Image.Image], name: str, ms: int | list[int]) -> None:
     rgb = [f.convert("RGB") for f in frames]
-    # one shared adaptive palette keeps colors stable across frames (no flicker)
-    pal = rgb[0].quantize(colors=255, method=Image.Quantize.MEDIANCUT)
+    # one shared adaptive palette keeps colors stable across frames (no flicker); built from
+    # a strip of sampled frames so colors that only appear later (a passing car) are in it
+    sample = rgb[::max(1, len(rgb) // 12)]
+    strip = Image.new("RGB", (sample[0].width, sample[0].height * len(sample)))
+    for i, f in enumerate(sample):
+        strip.paste(f, (0, i * f.height))
+    pal = strip.quantize(colors=255, method=Image.Quantize.MEDIANCUT)
     q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in rgb]
     q[0].save(OUT / name, save_all=True, append_images=q[1:], duration=ms, loop=0, optimize=True)
     print("wrote", name)
@@ -477,27 +482,74 @@ def captures():
             save(up(grab(), 2), "flyover.png")
             pg.evaluate("window.__game.clearFlyers(); window.__game.pause(false)")
 
-            # hero gif: Juno walks through the lit roof while cars fly over
-            place(120, 132, "walk", "side")
-            pg.evaluate("window.__game.setFlyers([{x: -160, y: 175, dir: 1, car: 'flycar_red', endX: 900, t0: 0},"
-                        "{x: 640, y: 95, dir: -1, car: 'flycar_taxi', endX: -400, t0: 0}])")
-            shots = []
-            keys = [("d", 1600), ("s", 500), ("d", 900), ("w", 700)]
-            for key, dur in keys:
-                pg.keyboard.down(key)
-                t_end = time.time() + dur / 1000
-                while time.time() < t_end:
-                    shots.append(grab())
-                    pg.wait_for_timeout(70)
-                pg.keyboard.up(key)
-            pg.keyboard.press("j")
-            for _ in range(8):
-                shots.append(grab())
-                pg.wait_for_timeout(70)
-            gif([up(s_, 2) for s_ in shots], "hero.gif", 95)
+            # hero gif: a seamless loop, stepped at a fixed 100 ms so it is identical on every
+            # run. Juno walks up to the fire barrel (its light throws her shadow), kicks, walks
+            # back and idles until she is exactly where the loop started; two cars pass, each
+            # entering and leaving beyond the lights' reach inside the loop.
+            hero_loop(pg, grab)
             b.close()
     finally:
         srv.terminate()
+
+
+HERO_DT = 100           # ms per GIF frame and simulation step (all sprite frames are multiples)
+HERO_START = (200, 140)
+HERO_ROUTE = [          # (held key or None, steps); "j" presses attack once, then idles
+    (None, 6), ("d", 14), ("w", 12), (None, 4), ("j", 9), (None, 6), ("a", 14), ("s", 12),
+]
+HERO_CARS = {           # step -> car (x in map px; start and end beyond the lights' reach)
+    4: {"x": -420, "y": 175, "dir": 1, "car": "flycar_red", "endX": 920},
+    34: {"x": 870, "y": 100, "dir": -1, "car": "flycar_taxi", "endX": -470},
+}
+
+
+def hero_loop(pg, grab):
+    """Two passes: the first finds the loop length, the second renders it with every prop
+    animation fitted to a whole number of cycles (engine `loopMs`), so there is no seam."""
+    n = _hero_pass(pg, None)
+    pg.evaluate(f"window.__game.loopMs({n * HERO_DT})")
+    shots = _hero_pass(pg, grab)
+    pg.evaluate("window.__game.loopMs(0)")
+    gif([up(s_, 2) for s_ in shots[:-1]], "hero.gif", HERO_DT)
+    diff = np.abs(np.asarray(shots[0], int) - np.asarray(shots[-1], int)).max()
+    print(f"hero loop: {len(shots) - 1} frames, {(len(shots) - 1) * HERO_DT} ms, seam difference {diff}")
+    pg.evaluate("window.__game.pause(false)")
+
+
+def _hero_pass(pg, grab):
+    """Returns the frame count (grab=None) or the frames plus the loop-end frame for a seam check."""
+    g = "window.__game"
+    pg.evaluate(f"(() => {{ const g = {g}; g.pause(true); g.clearFlyers(); g.keys.clear();"
+                f" Object.assign(g.hero, {{x: {HERO_START[0]}, y: {HERO_START[1]}, anim: 'idle', facing: 'down',"
+                f" frame: 0, t: 0}}); }})()")
+    state = lambda: pg.evaluate(f"(() => {{ const h = {g}.hero; return [h.x, h.y, h.anim, h.facing, h.frame, h.t,"
+                                f" {g}.flyers().length]; }})()")
+    start = state()
+    plan = [k if i == 0 or k != "j" else None for k, n in HERO_ROUTE for i in range(n)]
+    shots, step = [], 0
+    while True:
+        if step >= len(plan) and state() == start:
+            break
+        assert step < 400, "hero loop never returned to its start state"
+        if grab:
+            pg.evaluate(f"{g}.draw({step * HERO_DT})")
+            shots.append(grab())
+        key = plan[step] if step < len(plan) else None
+        if step in HERO_CARS:
+            car = json.dumps({**HERO_CARS[step], "t0": step * HERO_DT})
+            pg.evaluate(f"{g}.flyers().push({car})")
+        pg.evaluate(f"(() => {{ const g = {g}; g.keys.clear();"
+                    + (f" if ('{key}' === 'j') g.press('j'); else g.keys.add('{key}');" if key else "")
+                    + f" g.update({HERO_DT}); }})()")
+        step += 1
+        if step == len(plan):  # the route must return exactly (a blocked step would drift)
+            x, y = state()[:2]
+            assert abs(x - start[0]) < 1e-6 and abs(y - start[1]) < 1e-6, f"route ends at {x},{y}"
+            pg.evaluate(f"Object.assign({g}.hero, {{x: {start[0]}, y: {start[1]}}})")  # float drift
+    if not grab:
+        return step
+    pg.evaluate(f"{g}.draw({step * HERO_DT})")  # the state the loop wraps into: must equal frame 0
+    return shots + [grab()]
 
 
 if __name__ == "__main__":
