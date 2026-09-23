@@ -309,8 +309,7 @@ function flyerShadowSprite(car, dir, s, f) {
   shCtx.restore();
   shCtx.filter = "none";
   shCtx.globalCompositeOperation = "source-in";
-  const g = Math.round(255 * (1 - 0.78 * LIGHTING.moon.shadow / 0.8));  // default 0.8 -> #383838
-  shCtx.fillStyle = `rgb(${g},${g},${g})`; shCtx.fillRect(0, 0, shC.width, shC.height);
+  shCtx.fillStyle = "#383838"; shCtx.fillRect(0, 0, shC.width, shC.height);
   shCtx.globalCompositeOperation = "destination-over";
   shCtx.fillStyle = "#fff"; shCtx.fillRect(0, 0, shC.width, shC.height);
   shCtx.globalCompositeOperation = "source-over";
@@ -325,8 +324,8 @@ function update(dt) {
   if (hit("c")) { ci = (ci + 1) % chars.length; }
   if (hit("v")) gallery = !gallery;
   if (hit("l")) lightingOn = !lightingOn;
-  if (hit("-")) setShadowScale(shadowScale - 0.1);
-  if (hit("=") || hit("+")) setShadowScale(shadowScale + 0.1);
+  if (hit("-")) setDarkness(darkness - 0.1);
+  if (hit("=") || hit("+")) setDarkness(darkness + 0.1);
   const busy = ONE_SHOT.has(hero.anim) && hero.anim !== "jump";
   if (!busy) {
     if (hit(" ")) play("jump");
@@ -488,20 +487,25 @@ function draw(fixedT) {
   for (const fl of flyers.slice().sort((a, b) => a.y - b.y)) drawFlyer(fl, camX, camY, now, lit);
   if (hud) {
     ctx.fillStyle = "#cfd3e6"; ctx.font = "8px monospace";
-    ctx.fillText(`${c.meta.name}  ${hero.anim}/${hero.facing}  f${hero.frame}  light:${lightingOn ? "on" : "off"} [L]  shadow:${Math.round(shadowScale * 100)}% [-/+]`, 4, 10);
+    ctx.fillText(`${c.meta.name}  ${hero.anim}/${hero.facing}  f${hero.frame}  light:${lightingOn ? "on" : "off"} [L]  dark:${Math.round(darkness * 100)}% [-/+]`, 4, 10);
   }
 }
 
-// Shadow darkness (keys - and +): one multiplier over the cast, moon and contact shadow
-// strengths. They are baked into the light maps, so a change re-bakes them (~0.1 s).
-const SHADOW_BASE = { cast: LIGHTING.shadow, moon: LIGHTING.moon.shadow, contact: LIGHTING.contact };
-let shadowScale = 1, rebake = 0;
-function setShadowScale(v) {
-  shadowScale = Math.round(Math.max(0, Math.min(1.5, v)) * 10) / 10;
-  LIGHTING.shadow = Math.min(1, SHADOW_BASE.cast * shadowScale);
-  LIGHTING.moon.shadow = Math.min(1, SHADOW_BASE.moon * shadowScale);
-  LIGHTING.contact = Math.min(1, SHADOW_BASE.contact * shadowScale);
-  carShadows.clear();
+// Scene darkness (keys - and +, 0-100%): dims the ambient light, the moon and the light
+// on flying cars; neon, fire, lamps and headlights keep their strength, so at 100% the roof
+// is dark except for pools of light. The moon is baked, so a change re-bakes (~0.1 s).
+const LIGHT_BASE = { ambient: LIGHTING.ambient, moon: LIGHTING.moon.color, car: LIGHTING.carLight };
+const DARKEST = 0.12;  // share of ambient/moon light left at 100% darkness
+let darkness = 0, rebake = 0;
+const dimHex = (hex, k) => "#" + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * k)
+  .toString(16).padStart(2, "0")).join("");
+function setDarkness(v) {
+  darkness = Math.round(Math.max(0, Math.min(1, v)) * 10) / 10;
+  const k = 1 - (1 - DARKEST) * darkness;
+  LIGHTING.ambient = dimHex(LIGHT_BASE.ambient, k);
+  LIGHTING.moon.color = dimHex(LIGHT_BASE.moon, k);
+  LIGHTING.carLight = dimHex(LIGHT_BASE.car, Math.max(0.3, k));
+  carSprites.clear();
   clearTimeout(rebake);
   rebake = setTimeout(buildLighting, 60);
 }
@@ -525,6 +529,6 @@ function loop(now) {
     draw: t => draw(t), setFlyers: list => { flyers = list; }, pause: v => { paused = v; },
     // deterministic capture (README media): advance the simulation by a fixed step, press a key once
     update: dt => update(dt), press: k => pressed.add(k), loopMs: ms => { loopMs = ms; },
-    hud: v => { hud = v; }, shadowScale: v => (v === undefined ? shadowScale : setShadowScale(v)), setCharacter: name => { ci = Math.max(0, chars.findIndex(c => c.name === name)); } };  // debugging / automated checks
+    hud: v => { hud = v; }, darkness: v => (v === undefined ? darkness : setDarkness(v)), setCharacter: name => { ci = Math.max(0, chars.findIndex(c => c.name === name)); } };  // debugging / automated checks
   requestAnimationFrame(loop);
 })();

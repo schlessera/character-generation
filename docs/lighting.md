@@ -30,8 +30,7 @@ Implementation: `web/lighting.js` (algorithm notes at the top), wired in `web/en
 
 ## Knobs
 `fadeTo` (shadow strength left at the tip), `blur` (penumbra radius), `contact`, `contactSpread`,
-`contactBlur` (darkness, reach and edge softness of the contact shadows; the `-`/`+` keys scale the
-cast, moon and contact darkness together in 10% steps and re-bake the light maps),
+`contactBlur` (darkness, reach and edge softness of the contact shadows),
 `ambient`, `moon.color/dir/length/shadow`, `shadow` (strength inside a shadow), `levels`
 (flat bands for falloff and shadow edges), `maxShadow`. Per light: `radius`, `intensity`, `h`, `shadow`
 (strength scale), `maxShadow` (floor strips use short, weak shadows).
@@ -70,3 +69,9 @@ Car sprites (moon/ambient tint and emissive pixels) and their blurred moon silho
 prepared at load for each model, animation frame, and direction, including unlit sprites
 for the lighting toggle. Per-frame draws reuse these canvases at the current position;
 headlight shadows still respond to the scene every frame.
+
+## Scene darkness
+The `-`/`+` keys set the night's darkness in 10% steps (0% is the default look). They dim the
+ambient light, the moon and the light on flying cars toward 12% of their strength; neon, fire,
+lamps and car headlights keep full strength, so a fully dark roof is lit only by its own lights.
+The moon is baked into the light maps, so each step re-bakes them (about 0.1 s).
