@@ -1,9 +1,9 @@
 # drain_grate 12x8
 .##########.
-#hGGGGGGGGg#
+#hGGGGGgGGg#
 #GkgkgkgkgK#
-#GkgkgkgkgK#
-#GkgkgkgkgK#
-#RkgkgkgkgK#
-#gKKKKKrKKK#
+#GkgkRkgkgK#
+#GkgkRkgRgK#
+#PkRkrkgrgK#
+#PPKKCKrKCK#
 .##########.

@@ -6,8 +6,8 @@
 .....Zz.....
 ....z..z....
 ..##zZZz##..
-.#hGGxxGGG#.
-.#GGzZZzGG#.
-.#gggggggK#.
-.#gOgZgkgK#.
-..########..
+.#hhGxxGhG#.
+.#GGzZZzgG#.
+.#gGgkgkgK#.
+.#COgZgkCK#R
+..########.r

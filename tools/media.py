@@ -392,6 +392,31 @@ def props_sheet():
     print("wrote props-sheet.png")
 
 
+TEXTURE_PASS_REV = "454eb44"  # the props just before the texture-and-wear pass
+TEXTURE_PASS = ["vending_machine", "dumpster", "water_tank", "crates", "bench", "fire_barrel",
+                "neon_sign", "trash_bag", "cardboard_box", "flycar_parked"]
+
+
+def texture_pass_figure():
+    """The same props before and after the texture-and-wear pass (before = git TEXTURE_PASS_REV)."""
+    from chargen.pixeltool import _grid_at
+    s, gap = 4, 6
+    befores = [to_rgba(_grid_at(n, TEXTURE_PASS_REV)) for n in TEXTURE_PASS]
+    afters = [to_rgba(read(n)) for n in TEXTURE_PASS]
+    W = sum(b.shape[1] for b in befores) + gap * (len(befores) - 1)
+    H = max(b.shape[0] for b in befores)
+    out = Image.new("RGBA", ((W + 2 * gap) * s + 150, (2 * H + 3 * gap) * s), BG)
+    d = ImageDraw.Draw(out)
+    for r, (label, ims) in enumerate([("before", befores), ("after", afters)]):
+        y = (gap + r * (H + gap)) * s
+        d.text((12, y + H * s // 2 - 8), label, font=F, fill=TEXT)
+        x = 150 + gap * s
+        for im in ims:
+            out.alpha_composite(up(im, s), (x, y + (H - im.shape[0]) * s))
+            x += (im.shape[1] + gap) * s
+    save(out, "props-texture-pass.png")
+
+
 def props_gif():
     """Animated props, shown in their own light: frames cycle at their real timings (approx)."""
     names = ["fire_barrel", "neon_sign", "vending_machine", "ac_unit", "antenna_mast", "holo_projector", "drone_pad", "mushroom_planter"]
@@ -565,6 +590,7 @@ if __name__ == "__main__":
     resample_vs_drawn()
     grid_attempt()
     props_sheet()
+    texture_pass_figure()
     props_gif()
     cars_figure()
     captures()

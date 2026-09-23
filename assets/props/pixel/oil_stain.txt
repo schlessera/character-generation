@@ -1,9 +1,9 @@
 # oil_stain 14x8
-....aakkaa....
-..akk####kka..
-.ak##K#####ka.
-ak##Kzzm####ka
-.k##########k.
-..ak#######ka.
-....akk##kka..
+.....aakka....
+..aakk####ka..
+.ak##K#####kka
+ak#Kzzm#####ka
+.k#####V####ka
+..ak########Fa
+....akk##FkCa.
 ......aa...a..

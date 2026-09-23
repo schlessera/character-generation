@@ -369,13 +369,26 @@ flowchart LR
 
 A rough automatic draft (the middle column above) served only as a starting hint. Parallel agents then redrew all 34
 props and 24 floor and wall tiles following a written style guide ([`docs/pixel-art.md`](docs/pixel-art.md): a 3/4
-top-down view, light from the top left, two to four shades per material, a one-pixel outline, no noise). Every agent
+top-down view, light from the top left, two to four shades per material, a one-pixel outline). Every agent
 checked its sprites at 12× and next to Juno at game scale, and checked the floor tiles in a random mix to catch seams.
 
 <p align="center"><img src="docs/images/props-sheet.png" alt="All props and tiles" width="820"></p>
 
+That first set was clean but too perfect: flat fills, crisp symmetric shapes, nothing that looked used. A second pass
+added texture and wear. The style guide gained a "Texture and wear" section modeled on how Juno herself is detailed:
+her hair has strand lines, her shaved side is a two-shade checker, her cyber-arm has plate seams. So the props got the
+same kind of deliberate texture, not noise. Metal gets seams, rivets, scratches and dents, rust runs *down* from
+bolts, wood gets grain, cardboard gets tape and creases, grime gathers where things meet the roof, and nothing stays
+perfectly symmetric. Five colors were added to the palette for it (grime, soot, moss, cool steel and a magenta neon
+spill). Seven agents took one group each (metal, furniture, glowing props, litter, cars, floor, walls) and ran the
+same render, look and fix loop. The floor needed one more round in the lit scene: the moss read as bright green specks
+and a repair patch repeated too visibly across the grid, so both were toned down.
+
+<p align="center"><img src="docs/images/props-texture-pass.png" alt="Props before and after the texture and wear pass" width="820"></p>
+
 Animations use the same format: each extra frame is a copy of the sprite that changes only the pixels that move, so
-the outline never wobbles.
+the outline never wobbles. That also made the texture pass easy for animated props: `pixeltool rebase` repaints every
+frame from the textured first frame and carries over only each frame's own moving pixels.
 
 <p align="center"><img src="docs/images/prop-anims.gif" alt="Animated props" width="420"></p>
 

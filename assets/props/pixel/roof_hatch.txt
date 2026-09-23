@@ -1,15 +1,15 @@
 # roof_hatch 20x14
 .##################.
-#oooooooooooooooooR#
+#oooRoooooooooRRooR#
 #oKKKKKKKKKKKKKKKKr#
-#oKwGGGGGGGGGGGGwgr#
-#oKGggggggggggggggR#
-#oKGgggggKhhhhKgggR#
-#oKGgRgggggKKKKgggR#
-#oKGggggggggggggRgR#
-#oKwgggggggggggggwR#
-#oRRRRRRRRRRRRRRRRr#
-#JJkkJJkkJJkkJJkkJr#
-#JkkJJkkJJkkJJkkJJr#
-#rrrrrrrrrrrrrrrrrr#
+#oKwGGGGGGGgGGGGKgr#
+#oKGUUUgggggggggRgR#
+#oKGUUgggKhhhGKgrgR#
+#RKGUggGgggKKKKgggR#
+#oKGggggGggggRRggCR#
+#oKwggggggggggrCChR#
+#oRRRrRRRRRRoRRRRRr#
+#JJkkJJkkjJkkJJkkjr#
+#JkkJJkkjJkkJJkkCjr#
+#rrrrrrrrrrrrrrCCrr#
 .##################.

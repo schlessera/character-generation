@@ -1,12 +1,12 @@
 # floor_f 16x16
 aAAAAAAAAAAAAAAA
-AsssSSSSSSSSSsss
-Asssssssssssssss
+AAAsSSSSSSSSSsss
+AAssssssssssssss
 ASssssssssssssss
-ASssssssssSsssss
-ASsssssssSpSssss
-ASssssssssSsssss
 ASssssssssssssss
+ASssssssssUsssss
+ASssssssssAsssss
+ASssssssssCsssss
 Asssssssssssssss
 Asssssssssssssss
 Asssssssssssssss

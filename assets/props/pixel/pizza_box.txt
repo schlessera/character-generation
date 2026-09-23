@@ -1,12 +1,12 @@
 # pizza_box 14x11
 .############.
-#BBBBBBbBBBBB#
-#bbbbbbbbbbbb#
-#cccccccccccB#
+#BBBBBBbBBbbB#
+#bbbqqbbbbbbb#
+#cccccccBBccB#
 #cbbiiiiiibbB#
 #cbiJyJJQJibB#
 #cbiJQJJJyibB#
-#cbiJJyQJbbbB#
+#cbiJJyQJbbiB#
 #cbbiiibbbbbB#
-#BBBBBBBBBBBB#
-.############.
+#BBBbBBBBBcB##
+.###########..

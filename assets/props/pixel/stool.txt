@@ -1,11 +1,11 @@
 # stool 9x10
-..#####..
-.#QQQQQ#.
-#QQQQQQQ#
+..####...
+.#OOQQ##.
+#OQQQQFQ#
 #QQQkQQQ#
-#qqqqqqq#
+#qqqqQqq#
 .#Q#k#q#.
 .#Q###q#.
 #Q#...#q#
-#Q#...#q#
+#C#...#C#
 ##.....##

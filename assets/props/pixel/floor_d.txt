@@ -1,16 +1,16 @@
 # floor_d 16x16
 aAAAAAAAAAAAAAAA
-AssSSSSSSSSSssss
-Asssssssssssssss
-AsssssssssssSsss
+AssSSSSSSSSSsAss
+AssssssssssssAss
+AsssssssssssSsAs
 ASssssssssssssss
-ASssssssssssssss
-ASsssssAAAssssss
-ASsssAAAAAAAAsss
-ASssAAAAAAAAAAss
-ASsssAAAAAAAAsss
-AssssssAAAAsAsss
-Asssssssssssssss
+ASssssssAAssssss
+ASssssAAAAAsssss
+ASsssAAAaAAAssss
+ASssAAAaaAAAAsss
+ASsAAAAaAAAsAsss
+AssAAAAAAsssssss
+AssAAAAsssssssss
 Asssssssssssssss
 Asssssssssssssss
 Asssssssssssssss

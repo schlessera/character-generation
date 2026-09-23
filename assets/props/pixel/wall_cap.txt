@@ -1,17 +1,17 @@
 # wall_cap 16x16
 kKKKKKKKKKKKKKKK
-KgGGGGGGGGGGGggg
+KgGGGGGhhGGgKggg
 KGgggggggggggggg
 KGgggggggggggggg
 KGgggggggggggggg
 KGggggKggggggggg
+KGgggggggggCCggg
+KGggggggggggCggg
 KGgggggggggggggg
-KGgggggggggggggg
-KGgggggggggggggg
 Kggggggggggggggg
-KggggggggggKKggg
+KKKgggggggggKggg
+KgKKgggggggggggg
+KggggKgggggggggg
 Kggggggggggggggg
-KgggGggggggggggg
-Kggggggggggggggg
-Kggggggggggggggg
-Kggggggggggggggg
+KgPPgggggggggPgg
+KgggggggggggPPgg
