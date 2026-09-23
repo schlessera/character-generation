@@ -310,12 +310,25 @@ def export(tpl: Template, recipe: Recipe | None, out_dir: Path) -> Path:
     sheet = np.zeros((len(rows) * tpl.h, cols * tpl.w, 4), np.uint8)
     meta = {"name": recipe.name if recipe else "template", "frame_w": tpl.w, "frame_h": tpl.h,
             "facings": FACINGS, "anims": {}}
+    light = (recipe.data.get("light") or {}) if recipe else {}
+    anchor = part_codes(light["anchor"]) if "anchor" in light else None
+    strong = {}  # emissive strength per part (emissive_parts), else emissive_strength
+    if recipe:
+        for part, v in recipe.data.get("emissive_parts", {}).items():
+            strong[part_codes(part)] = v
+    labels = np.full(sheet.shape[:2], ".", "<U1")
     for ri, (anim, facing, fr) in enumerate(rows):
         entry = []
         for ci, f in enumerate(fr):
             px = render_frame(recipe, f) if recipe else _identity(tpl, f)
             sheet[ri * tpl.h:(ri + 1) * tpl.h, ci * tpl.w:(ci + 1) * tpl.w] = px
-            entry.append({"x": ci * tpl.w, "y": ri * tpl.h, "ms": f.duration})
+            labels[ri * tpl.h:(ri + 1) * tpl.h, ci * tpl.w:(ci + 1) * tpl.w] = f.labels
+            e = {"x": ci * tpl.w, "y": ri * tpl.h, "ms": f.duration}
+            if anchor:  # where the light sits in this frame: the anchor part's centroid
+                ys, xs = np.where(np.isin(f.labels, list(anchor)) & (f.tones > 0))
+                if len(xs):
+                    e["light"] = [round(float(xs.mean()), 1), round(float(ys.mean()), 1)]
+            entry.append(e)
         meta["anims"].setdefault(anim, {})[facing] = entry
     out_dir.mkdir(parents=True, exist_ok=True)
     Image.fromarray(sheet).save(out_dir / "sheet.png")
@@ -326,9 +339,13 @@ def export(tpl: Template, recipe: Recipe | None, out_dir: Path) -> Path:
                        [r * 65536 + g * 256 + b for r, g, b in glow]).reshape(sheet.shape[:2])
         em = sheet.copy()
         em[~(mask & (sheet[..., 3] > 0))] = 0
+        # alpha = how self-lit: emissive_strength, overridden per body part by emissive_parts
+        alpha = np.full(sheet.shape[:2], recipe.data.get("emissive_strength", 1.0))
+        for codes, v in strong.items():
+            alpha[np.isin(labels, list(codes))] = v
+        em[..., 3] = np.where(em[..., 3] > 0, np.round(alpha * 255), 0).astype(np.uint8)
         Image.fromarray(em).save(out_dir / "sheet_emissive.png")
-        meta["emissive"] = {"sheet": "sheet_emissive.png", "strength": recipe.data.get("emissive_strength", 1.0),
-                            "light": recipe.data.get("light")}
+        meta["emissive"] = {"sheet": "sheet_emissive.png", "light": light or None}
     (out_dir / "sheet.json").write_text(json.dumps(meta, indent=1))
     return out_dir
 

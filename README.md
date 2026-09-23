@@ -458,8 +458,8 @@ ordered pattern, so they read as fine, even grain rather than a grid of dots, an
 moves. That matters most on a dark night (the `-`/`+` keys), where hard bands would show as rings around every
 light. Neon and fire pixels are drawn at full brightness on top of the lit scene, so they
 really glow. Juno glows a little too: her recipe marks the cyan ramp as emissive, so the build writes a second sheet
-with just the visor lens and the cyber-arm's joints, which the game draws half self-lit over her, and she carries a
-small cyan light that pools on the roof around her feet. And shadows only ever remove direct light, so no pile-up of
+with just the visor lens (drawn half self-lit) and the cyber-arm's joints (fully self-lit), and a faint cyan light
+pools on the roof under her cyber-arm, following it as she turns. And shadows only ever remove direct light, so no pile-up of
 overlapping shadows can get darker than the night itself.
 
 <table>

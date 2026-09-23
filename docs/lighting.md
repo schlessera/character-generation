@@ -120,7 +120,9 @@ exactly (`--compare`, max difference 0); they were not regenerated.
 
 ## Character glow
 A recipe can list ramps under `emissive` (Juno: `cyan`). The build writes `sheet_emissive.png` next to
-the sheet with only those pixels (the visor lens, the cyber-arm's joints); the game draws them over the
-lit character with `emissive_strength` opacity (0.5: halfway between lit and full brightness), in the
-same occlusion-tracking emissive layer as the props. A recipe `light` ({color, radius, intensity}) adds a
-small moving point light at the character, without shadows, through the moving-light path.
+the sheet with only those pixels (the visor lens, the cyber-arm's joints); their alpha is how self-lit
+they are, `emissive_strength` (Juno: 0.5, halfway between lit and full brightness) overridden per body
+part by `emissive_parts` (her cyber-arm: 1.0). The game draws them over the lit character in the same
+occlusion-tracking emissive layer as the props. A recipe `light` ({color, radius, intensity, anchor}) adds
+a small moving point light without shadows; with `anchor` the build stores that part's centroid per
+frame, so the light sits on the ground under it (Juno's cyber-arm) and shifts as she turns.
