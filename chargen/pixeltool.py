@@ -5,6 +5,9 @@
   python -m chargen.pixeltool render NAME... [-o out.png]
       reference art | sprite at 12x | sprite next to the character at 4x (true game scale)
   python -m chargen.pixeltool check [NAME...]  size / palette validation
+  python -m chargen.pixeltool rebase NAME... [--ref REV]
+      after repainting frame 0 of an animated prop: rebuild frames 1.. as the new frame 0
+      plus each frame's own changes (where it differed from frame 0 at git REV, default HEAD)
 
 Files: assets/props/pixel/NAME.txt. Line 1: "# NAME WxH", then H rows of W chars.
 """
@@ -191,10 +194,11 @@ def render(names: list[str], out: Path) -> Path:
 
 def main():
     ap = argparse.ArgumentParser(prog="pixeltool")
-    ap.add_argument("cmd", choices=["draft", "render", "check", "floor", "frames", "anim"])
+    ap.add_argument("cmd", choices=["draft", "render", "check", "floor", "frames", "anim", "rebase"])
     ap.add_argument("names", nargs="*")
     ap.add_argument("-o", "--out")
     ap.add_argument("--force", action="store_true", help="draft: overwrite existing files")
+    ap.add_argument("--ref", default="HEAD", help="rebase: git revision holding the old frames")
     a = ap.parse_args()
     names = a.names or sorted(manifest()[0])
     if a.cmd == "draft":
@@ -216,12 +220,41 @@ def main():
                     continue
                 p.write_text((PIX / f"{n}.txt").read_text().replace(f"# {n} ", f"# {f} ", 1))
                 print(p)
+    elif a.cmd == "rebase":
+        for n in a.names:
+            for p in rebase(n, a.ref):
+                print(p)
     elif a.cmd == "anim":
         print(render_anim(names, Path(a.out) if a.out else PREVIEW / f"{names[0]}_anim.png"))
     elif a.cmd == "floor":
         print(floor(a.names, Path(a.out) if a.out else PREVIEW / "floor.png"))
     else:
         print(render(names, Path(a.out) if a.out else PREVIEW / f"{names[0]}.png"))
+
+
+def _grid_at(name: str, rev: str) -> np.ndarray:
+    import subprocess
+    rel = (PIX / f"{name}.txt").relative_to(ROOT)
+    text = subprocess.run(["git", "show", f"{rev}:{rel}"], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    rows = [l for l in text.splitlines() if l and not l.startswith("# ")]
+    return np.array([list(r) for r in rows], "<U1")
+
+
+def rebase(name: str, rev: str = "HEAD") -> list[Path]:
+    """Frames k>0 = the current frame 0, plus the pixels where frame k differed from frame 0
+    at `rev`. Repaint frame 0 freely (texture, wear), then rebase to carry the motion over."""
+    new0 = read(name)
+    old0 = _grid_at(name, rev)
+    out = []
+    for f in frame_names(name)[1:]:
+        oldk = _grid_at(f, rev)
+        moved = oldk != old0
+        grid = np.where(moved, oldk, new0)
+        p = PIX / f"{f}.txt"
+        header = p.read_text().splitlines()[0]
+        p.write_text(header + "\n" + "\n".join("".join(r) for r in grid) + "\n")
+        out.append(p)
+    return out
 
 
 def render_anim(names: list[str], out: Path) -> Path:

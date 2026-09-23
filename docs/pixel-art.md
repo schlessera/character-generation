@@ -17,8 +17,8 @@ target size as real pixel art: decide what each pixel is.
   darkest. 2-4 shades per material, taken in order from one palette ramp.
 - `#` outline, 1 px, around the whole silhouette. Inside the object use the darkest shade of
   the material (or `k`/`K`) for internal lines, not `#` everywhere.
-- Clean shapes: no single-pixel noise, no random speckles, no dithering except a few
-  deliberate pixels (rust spots, stains). Every pixel has a reason.
+- Clean shapes: no single-pixel noise, no random speckles, no dither fields. Every pixel has a
+  reason; texture and wear are added on top of the clean shape (see below).
 - Silhouette first: at 1x the object must be recognizable from its shape and 2-3 color masses.
 - Neon/emissive parts: dark ramp color around, neon color for the tube, hot color for the
   brightest core pixels (magenta `m M n`, cyan `z Z x`, fire `O y Y`).
@@ -26,6 +26,32 @@ target size as real pixel art: decide what each pixel is.
   no outline where a soft edge reads better (puddles, stains).
 - Tiles (16x16, opaque, no `.`): must tile seamlessly with themselves and with the other floor
   tiles. Keep floor tiles low contrast (floor ramp `a A s S p`) so props and characters read on top.
+
+## Texture and wear
+
+Clean shapes are the base, not the finish. A finished prop looks used: it has the same kind of
+deliberate texture the character has (hair strands drawn as darker lines, a buzzed side drawn as
+a two-shade checker, plate seams on the cyber-arm, jagged tips instead of a smooth outline).
+Texture is placed, not sprinkled:
+
+- **Material first.** Each material gets its own texture, in its own ramp: metal gets panel
+  seams, rivets (one light pixel over one dark), scratches (a short light diagonal) and dents;
+  rust runs *down* from bolts, seams and edges in 1 px streaks; wood gets grain as broken darker
+  dashes along the plank and the odd knot; cardboard gets tape, creases and a stamp; fabric and
+  plastic get fold lines and scuffs; concrete gets hairline cracks (a 1 px zigzag one shade
+  darker) and chipped edges.
+- **Wear follows physics.** Grime (`C`, `F`) gathers where the object meets the roof, in corners
+  and under overhangs. Top-left edges catch the light: a 1 px highlight line, broken where the
+  edge is chipped. Moss (`P`) only where water sits.
+- **Break the symmetry a little.** A dented corner, a lid slightly ajar, a sticker half peeled,
+  a bent rung, one pixel missing from a silhouette edge. Nothing mirrored pixel for pixel.
+- **Clusters, not noise.** Texture comes in short lines and 2-3 px clusters that follow the
+  form. No uniform speckle and no dither fields. Roughly 10-25% of an object's interior pixels
+  carry texture; the object must still read at 1x from its silhouette and 2-3 color masses.
+- **Light from the scene.** Metal faces toward the upper-left may take cool steel (`U`); edges
+  next to neon may catch a few neon-spill pixels (`V`, or `z` for cyan). Sparingly.
+- **Animated props:** texture frame 0, then `pixeltool rebase NAME` rebuilds the other frames
+  from it, carrying over only the pixels each frame moves. Check the result with `pixeltool anim`.
 
 ## Tools (from the repo root)
 

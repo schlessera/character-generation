@@ -48,3 +48,9 @@ i = "#e0905a"    # pizza/crust
 1 = "#123c4a"    # car paint dark   (placeholder ramp: recolored per variant)
 2 = "#1f6e80"    # car paint mid
 3 = "#46b4c4"    # car paint light
+# wear & texture (see docs/pixel-art.md, "Texture and wear")
+C = "#4a3a34"    # grime (dirt, water stains, run-off below bolts and seams)
+F = "#1d1820"    # soot (burn marks, deep grime in corners)
+P = "#4f5a3c"    # moss / lichen on concrete and wet corners
+U = "#3a4658"    # cool steel (metal faces turned toward the moon)
+V = "#7a3a6c"    # neon spill (magenta light caught on edges near neon)
