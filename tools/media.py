@@ -683,6 +683,15 @@ def hero_overlay(size: tuple[int, int]) -> Image.Image:
     halo.putalpha(halo_a.point(lambda v: v * 0.85))
     out.alpha_composite(halo, (16 - pad + 2, 12 - pad + 3))
     out.alpha_composite(title, (16, 12))
+    # handle bottom left, with the same soft halo as the title
+    hf = _font(22, False)
+    tag = Image.new("RGBA", (int(hf.getlength("@schlessera")) + 2 * pad, 30 + 2 * pad), (0, 0, 0, 0))
+    ImageDraw.Draw(tag).text((pad, pad), "@schlessera", font=hf, fill=(214, 216, 230, 255))
+    tag_halo = tag.getchannel("A").filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.GaussianBlur(7))
+    shade = Image.new("RGBA", tag.size, (6, 4, 10, 0))
+    shade.putalpha(tag_halo.point(lambda v: min(255, int(v * 1.4))))
+    out.alpha_composite(shade, (16 - pad + 1, H - 30 - 14 - pad + 2))
+    out.alpha_composite(tag, (16 - pad, H - 30 - 14 - pad))
     bust = Image.open(ROOT / "characters/juno/concept/juno-bust.png").convert("RGBA")
     bust = bust.crop(bust.getbbox())
     h = H * 3 // 5
