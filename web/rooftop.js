@@ -78,6 +78,7 @@ export const LIGHTING = {
   shadow: 0.88,     // fraction of a light removed inside its shadow
   levels: 20,       // flat-shaded bands for light falloff and shadow edges
   dither: 1,        // blue-noise dithering of the band edges (0 = hard bands, 1 = full)
+  darkness: 0.4,    // the night's darkness at startup (0-1, the -/+ keys change it in 10% steps)
   maxShadow: 60,    // px, caps shadows from low lights
   carLight: "#8a92b8",  // light on things above the roof (the flying car): moon + ambient
   fadeTo: 0.15,     // shadow strength left at the far tip (1 = no fade)

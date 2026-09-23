@@ -71,7 +71,7 @@ for the lighting toggle. Per-frame draws reuse these canvases at the current pos
 headlight shadows still respond to the scene every frame.
 
 ## Scene darkness
-The `-`/`+` keys set the night's darkness in 10% steps (0% is the default look). They dim the
+The `-`/`+` keys set the night's darkness in 10% steps (`darkness`, 40% at startup). They dim the
 ambient light, the moon and the light on flying cars toward 12% of their strength; neon, fire,
 lamps and car headlights keep full strength, so a fully dark roof is lit only by its own lights.
 The moon is baked into the light maps, so each step re-bakes them (about 0.1 s).

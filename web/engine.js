@@ -503,7 +503,7 @@ function draw(fixedT) {
   }
 }
 
-// Scene darkness (keys - and +, 0-100%): dims the ambient light, the moon and the light
+// Scene darkness (keys - and +, 0-100%, default LIGHTING.darkness): dims the ambient light, the moon and the light
 // on flying cars; neon, fire, lamps and headlights keep their strength, so at 100% the roof
 // is dark except for pools of light. The moon is baked, so a change re-bakes (~0.1 s).
 const LIGHT_BASE = { ambient: LIGHTING.ambient, moon: LIGHTING.moon.color, car: LIGHTING.carLight };
@@ -511,16 +511,18 @@ const DARKEST = 0.12;  // share of ambient/moon light left at 100% darkness
 let darkness = 0, rebake = 0;
 const dimHex = (hex, k) => "#" + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * k)
   .toString(16).padStart(2, "0")).join("");
-function setDarkness(v) {
+function setDarkness(v, rebakeLights = true) {
   darkness = Math.round(Math.max(0, Math.min(1, v)) * 10) / 10;
   const k = 1 - (1 - DARKEST) * darkness;
   LIGHTING.ambient = dimHex(LIGHT_BASE.ambient, k);
   LIGHTING.moon.color = dimHex(LIGHT_BASE.moon, k);
   LIGHTING.carLight = dimHex(LIGHT_BASE.car, Math.max(0.3, k));
   carSprites.clear();
+  if (!rebakeLights) return;
   clearTimeout(rebake);
   rebake = setTimeout(buildLighting, 60);
 }
+setDarkness(LIGHTING.darkness ?? 0, false);  // startup default; the first bake uses it
 
 let last = performance.now(), paused = false;
 function loop(now) {
