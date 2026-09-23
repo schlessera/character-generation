@@ -70,7 +70,7 @@ flowchart LR
 | 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
 | 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
 | 5 | [Closing the gap](#5--closing-the-gap) | 25 rounds of the agent comparing its render to the mockup, and where it stopped paying off |
-| 6 | [Debugging in plain text](#6--debugging-in-plain-text) | Two bugs, tracked down with a query and fixed with a few characters |
+| 6 | [Debugging in plain text](#6--debugging-in-plain-text) | Bugs tracked down with a query and fixed with a few characters |
 | 7 | [Variations for free](#7--variations-for-free) | A new colorway is a ten-line file |
 | 8 | [The AI picks up the pencil](#8--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
 | 9 | [From sources to sprites](#9--from-sources-to-sprites) | The build that assembles everything |
@@ -455,6 +455,23 @@ The first version of that swap script split the rows at the wrong `|` and change
 zero changed lines before anything was rebuilt, which is the same safety net that makes every other edit reviewable.
 
 <p align="center"><img src="docs/images/debug-arms.png" alt="The four frames of the walk to the north-east, before and after the label fix" width="700"></p>
+
+That figure caught a follow-up bug. In its first version, the "after" frame seemed to have no cyber-arm at all. The
+labels were right now, but the template draws a far arm swinging behind the body entirely in outline ink, so the
+chrome material had no lit or shaded pixels to work with and the arm rendered as a dark smudge. The same query
+approach answered "how often does that happen?": 26 frames draw the cyber-arm entirely in ink, mostly far arms in the
+run and in the spinning attack. The fix was a new rule option instead of 26 hand edits. `only_if_ink` applies a rule
+only in frames where the part has no lit or shaded pixels, and two rules in the recipe use it to paint the arm's inner
+pixels in chrome and add one glowing joint:
+
+```toml
+[[rules]]  # a far cyber-arm the template draws as a dark silhouette still reads as chrome
+type = "all"
+part = "arm_r+hand_r"
+ink = true
+only_if_ink = true
+color = "chrome.shade"
+```
 
 ### Why this works so well with an agent
 

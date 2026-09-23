@@ -209,6 +209,10 @@ def _erode(a: np.ndarray) -> np.ndarray:
 def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
     lab, tones = f.labels, f.tones
     part = np.isin(lab, list(part_codes(rule["part"])))
+    # `only_if_ink`: only in frames where the template draws the part entirely in ink (a far
+    # limb swinging behind the body is a dark silhouette), e.g. to keep the material readable
+    if rule.get("only_if_ink") and (part & (tones != TONE_IDS["ink"])).any():
+        return np.zeros_like(part)
     if not rule.get("ink", False):
         part &= tones != TONE_IDS["ink"]
     kind = rule["type"]

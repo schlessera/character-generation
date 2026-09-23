@@ -285,6 +285,22 @@ top = 1
 facings = ["side", "side_l", "down_side", "down_side_l"]
 color = "orange.base"
 
+[[rules]]  # a far cyber-arm the template draws as a dark silhouette still reads as chrome
+type = "all"
+part = "arm_r+hand_r"
+ink = true
+only_if_ink = true
+color = "chrome.shade"
+
+[[rules]]
+type = "band"
+part = "arm_r"
+at = 0.5
+anchor = "center"
+ink = true
+only_if_ink = true
+color = "cyan.base"
+
 [[rules]]  # orange soles
 type = "rows"
 part = "feet"
