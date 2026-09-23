@@ -45,6 +45,8 @@ pixel template itself, and it is *semantic*: every pixel of every frame knows wh
 is then a short recipe that says what each body part is made of, and the generator skins it onto every frame the
 template's artist animated.
 
+<p align="center"><img src="docs/images/semantic-sprite-skinning.gif" alt="Juno walking and turning while she goes from the bare template to labeled body parts, shaded labels, the first recipe and the final recipe" width="360"></p>
+
 The finished demo is fun, but the more interesting part is how the problem got broken down:
 
 ```mermaid

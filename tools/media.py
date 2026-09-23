@@ -293,6 +293,79 @@ def similarity_chart(scores):
     save(out, "juno-similarity.png")
 
 
+SSS_STAGES = [("template", "the animated template"), ("labels", "every pixel labeled"),
+              ("shaded", "labels, with the template's shading"), ("first", "the first recipe"),
+              ("final", "the recipe after 25 steps")]
+SSS_ROTATION = ["down", "down_side", "side", "up_side", "up", "up_side_l", "side_l", "down_side_l"]
+
+
+def _font(size: int, bold: bool = True):
+    for f in [f"/usr/share/fonts/truetype/noto/NotoSans-ExtraCondensed{'Bold' if bold else ''}.ttf",
+              "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]:
+        if Path(f).exists():
+            return ImageFont.truetype(f, size)
+    return ImageFont.load_default()
+
+
+def _stage_px(stage: str, f, first) -> np.ndarray:
+    """One walk frame as a pipeline stage: template tones, flat labels, shaded labels, or a recipe."""
+    if stage == "template":
+        return _tones(f)
+    if stage in ("labels", "shaded"):
+        out = np.zeros(f.tones.shape + (4,), np.uint8)
+        base = np.array(TONE[1], float)
+        for code, col in LABEL_COLORS.items():
+            if code == ".":
+                continue
+            m = (f.labels == code) & (f.tones > 0)
+            for t in range(1, 5):
+                k = np.array(TONE[t], float) / base if stage == "shaded" else np.ones(3)
+                sel = m & (f.tones == t)
+                out[sel] = (*np.clip(np.array(col) * k, 0, 255).astype(np.uint8), 255)
+        out[f.tones == 5] = (18, 13, 20, 255)  # keep the template's ink outline
+        return out
+    return render_frame(first if stage == "first" else juno, f)
+
+
+def semantic_gif():
+    """Template -> labels -> shaded labels -> first recipe -> final recipe, while Juno walks and
+    turns through all eight facings; plays forward, then backward, then loops."""
+    first = Recipe(ROOT / "characters/juno/history/step-00.toml")
+    W, H, s, per_stage, per_facing, wipe = 480, 480, 10, 16, 4, 4
+    title_f, caption_f, handle_f = _font(46), _font(20, False), _font(20, False)
+    fwd = []
+    for k in range(len(SSS_STAGES) * per_stage):
+        facing = SSS_ROTATION[(k // per_facing) % len(SSS_ROTATION)]
+        walk = frames["walk"][facing]
+        f = walk[k % len(walk)]
+        si, j = divmod(k, per_stage)
+        px = _stage_px(SSS_STAGES[si][0], f, first)
+        caption = SSS_STAGES[si][1]
+        if si + 1 < len(SSS_STAGES) and j >= per_stage - wipe:  # wipe to the next stage, left to right
+            nxt = _stage_px(SSS_STAGES[si + 1][0], f, first)
+            edge = round((j - (per_stage - wipe) + 1) / (wipe + 1) * 32)
+            px = px.copy()
+            px[:, :edge] = nxt[:, :edge]
+        im = Image.new("RGBA", (W, H), BG)
+        d = ImageDraw.Draw(im)
+        # title: "Semantic Sprite " white, "Skinning" magenta
+        a, b = "Semantic Sprite ", "Skinning"
+        wa, wb = d.textlength(a, font=title_f), d.textlength(b, font=title_f)
+        x0 = (W - wa - wb) / 2
+        d.text((x0, 18), a, font=title_f, fill=(236, 238, 246))
+        d.text((x0 + wa, 18), b, font=title_f, fill=(255, 63, 164))
+        # ground shadow + sprite
+        cx, top = W // 2, 88
+        d.ellipse([cx - 60, top + 31 * s - 14, cx + 60, top + 31 * s + 8], fill=(14, 13, 20))
+        im.alpha_composite(up(px, s), (cx - 16 * s, top))
+        tw = d.textlength(caption, font=caption_f)
+        d.text(((W - tw) / 2, top + 32 * s + 10), caption, font=caption_f, fill=DIM)
+        hw = d.textlength("@schlessera", font=handle_f)
+        d.text((W - hw - 14, H - 32), "@schlessera", font=handle_f, fill=(150, 152, 175))
+        fwd.append(im)
+    gif(fwd + fwd[-2:0:-1], "semantic-sprite-skinning.gif", 100)
+
+
 def variants_figure():
     s = 6
     items = [("template", None), ("Juno", juno), ("Juno (Glitch)", glitch)]
@@ -635,6 +708,7 @@ if __name__ == "__main__":
     label_sheet()
     facings_figure()
     iteration_figures()
+    semantic_gif()
     variants_figure()
     walk_gif()
     anims_gif()
