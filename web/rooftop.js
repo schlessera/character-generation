@@ -20,7 +20,7 @@ export const LEGEND = {
 };
 // Big 32x32 slabs: this share of the aligned 2x2 blocks of plain floor ('.') become one slab.
 // Each set is four tiles NAME_tl NAME_tr NAME_bl NAME_br with joints only on the outer edge.
-export const SLABS = { chance: 0.15, sets: ["slab_a", "slab_b", "slab_c"] };
+export const SLABS = { chance: 0.2, sets: ["slab_a", "slab_b", "slab_c"] };
 export const SOLID_TILES = new Set(["C", "W", "G", "N", "P", "R"]);
 
 export const MAP = [
