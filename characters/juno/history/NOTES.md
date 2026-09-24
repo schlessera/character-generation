@@ -121,3 +121,16 @@ handled, and most diagonal and side angles look broken."
 | 82 | all README media regenerated | 0.873 |
 | 83–85 | final pass; snapshot | 0.873 |
 
+## Sixth run (steps 86–90): a dark jacket only
+
+"There are light elements coming through on the coat in angled and back views that are not in the
+mockups. The mockups have a dark jacket only."
+
+| step | change | similarity |
+|---|---|---|
+| 86 | the back chevron and its 3/4 half removed (grey `logo` bands) | 0.874 |
+| 87 | the chest mark removed too: the mockup's jacket has no print from any angle | 0.874 |
+| 88 | the `logo` ramp goes with them | 0.874 |
+| 89 | torsos of all eight facings checked: jacket, orange trim and the cyber-arm only | 0.874 |
+| 90 | snapshot, README media regenerated | 0.874 |
+
