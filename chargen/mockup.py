@@ -966,3 +966,17 @@ def sweep(recipe, sprites, frames, facings, n: int = 20, parts=None, workers: in
         out.append(f"{mean:+8.4f} {lim:+10.4f}  {','.join(pos) or '-':38} {rule['type']} {desc}"
                    + (f"   ! whole part in {','.join(cov)}" if cov else ""))
     return out
+
+
+_FIT: dict = {}
+
+
+def _fit_view_init(recipe, frames, frame, sprites, facings, chars):
+    _FIT.update(recipe=recipe, frames=frames, frame=frame, sprites=sprites, facings=facings, chars=chars)
+
+
+def _fit_view_one(facing):
+    """One view's grid trace, for a pool over the views (each takes 20-60 s alone)."""
+    from .character import render_frame
+    i = _FIT["facings"].index(facing)
+    return fit_grid(_FIT["recipe"], facing, _FIT["sprites"][i], _FIT["frames"][facing][_FIT["frame"]], render_frame, _FIT["chars"])

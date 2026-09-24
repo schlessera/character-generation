@@ -442,23 +442,27 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         print("\n".join(hot_spots(hot_views, hot)))
     if try_:
         from .character import load_toml
-        print(f"== try: rules from {try_} appended after the recipe's, per-view gain vs the recipe")
+        print(f"== try: rules from {try_} added to the recipe's (grow/shrink/shift before them, the rest after), per-view gain")
         extra_rules = load_toml(Path(try_)).get("rules", [])
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
         base = [similarity(sp, render_frame(r, fr)) for sp, fr in zip(sprites, idle)]
         rules0 = r.rules
         rows, limited = [], []
+        SIL = ("grow", "shrink", "shift")  # silhouette rules go first, so the recipe's trim sees their labels
+
+        def with_(cands):
+            return [c for c in cands if c.get("type") in SIL] + rules0 + [c for c in cands if c.get("type") not in SIL]
         for i, rule in enumerate(extra_rules):  # each rule alone, then all together
-            r.rules = rules0 + [rule]
+            r.rules = with_([rule])
             d = [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)]
             pos = [f for f, v in zip(MOCKUP_FACINGS, d) if v > 0.0005]
             rows.append((f"rule {i + 1}: {rule.get('type')} {rule.get('part')} {rule.get('color', '')}", d, pos))
             if pos:
                 limited.append({**rule, "facings": pos} if "facings" not in rule else rule)
         if len(extra_rules) > 1:
-            r.rules = rules0 + extra_rules
+            r.rules = with_(extra_rules)
             rows.append(("all together", [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)], []))
-            r.rules = rules0 + limited
+            r.rules = with_(limited)
             rows.append(("all, each limited to its gaining views", [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)], []))
         r.rules = rules0
         print(f"{'':44}" + "".join(f"{f:>12}" for f in MOCKUP_FACINGS) + f"{'mean':>10}{'if limited':>12}  gains in")
@@ -507,9 +511,11 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     if fit_grid:  # trace the mockup with the head grids; prints the grids; --apply writes those that gained
         from .mockup import fit_grid as _fit, grid_text
         views = [f for f in MOCKUP_FACINGS if f in r.grids] if "all" in fit_grid else list(fit_grid)
-        for facing in views:
-            i = MOCKUP_FACINGS.index(facing)
-            g, b, a = _fit(r, facing, sprites[i], frames[anim][facing][frame], render_frame, chars)
+        from multiprocessing import Pool
+        from .mockup import _fit_view_init, _fit_view_one
+        with Pool(min(8, len(views)), initializer=_fit_view_init, initargs=(r, frames[anim], frame, sprites, MOCKUP_FACINGS, chars)) as pool:
+            results = pool.map(_fit_view_one, views)
+        for facing, (g, b, a) in zip(views, results):
             print(f"fit-grid {facing}: {b:.4f} -> {a:.4f}")
             print(grid_text(g))
             if apply and a > b:
