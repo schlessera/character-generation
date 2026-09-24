@@ -708,6 +708,7 @@ def draft_grid(recipe, facing: str, placed: np.ndarray, frame, rows: int | None 
     head_rows = np.where((frame.labels == "H").any(1))[0]
     bottom = int(head_rows[-1]) + 1 if len(head_rows) else H  # hair may hang one row past the jaw
     allowed = (frame.labels == "H") | (np.isin(frame.labels, ["N", "."]) & (np.arange(H)[:, None] <= bottom))
+    far = []  # mockup cells with no legend colour within reach: a colour the palette lacks
     for gy in range(h):
         for gx in range(w):
             y, x = hy + gy - HEAD_PAD, hx + gx - HEAD_PAD
@@ -715,6 +716,9 @@ def draft_grid(recipe, facing: str, placed: np.ndarray, frame, rows: int | None 
                 continue
             d = _redmean(np.repeat(placed[y, x, :3][None], len(cols), 0).astype(float), cols)
             g[gy, gx] = keys[int(np.argmin(d))]
+            if d.min() > 60:
+                far.append(placed[y, x, :3])
+    draft_grid.far = far
     return g
 
 

@@ -1,7 +1,11 @@
 # Rule library: what each garment feature was, on two characters
 
-Every rule here held in all 248 frames of a finished character. Pick by the design's features,
-not by character: Juno (cropped bomber with an orange zipper, joggers, white high-tops, chrome
+Every rule here held in all 248 frames of a finished character, and its `facings` list is the
+answer one run found on one mockup: on the same mockup the next run's answer differed for a
+third of them (a forearm band gained in `up_side_l`, not `down_side_l`; the pocket rule lost
+in `down_side_l`). Take each rule as a candidate, score it as a variant across the views, and
+keep the facings where it gains and the picture agrees. Pick by the design's features, not by
+character: Juno (cropped bomber with an orange zipper, joggers, white high-tops, chrome
 RIGHT arm, magenta undercut, LED visor) and Nyx (open indigo coat to mid-thigh with lime piping,
 grey tee, olive cargos, black boots, chrome LEFT shin, platinum crop, goggles and a mask). Rule
 syntax: `chargen/character.py` (`_rule_mask`, `_grow`, `_shrink`). Rules run in order; later
@@ -40,6 +44,9 @@ type = "shrink"; part = "arms+hands"; sides = ["left"]; facings = ["up", "up_sid
 type = "shrink"; part = "arms+hands"; sides = ["right"]; facings = ["up", "up_side_l"]
 ```
 
+A grow placed before a straight stripe moves the stripe: the median column is taken over the
+widened part (Nyx's opening strip shifted by one column in 3/4 front with the far-shoulder grow
+first: -0.004; the picture was right with the grow first, and per-facing `offsets` settle it).
 Shrink erases the part's edge pixels on that side and inks the new silhouette. It cannot tell a
 one-sided feature from the body: shrinking the legs' front edge in profile erased Nyx's cyber-shin.
 Judge every silhouette change on `just crops NAME --box 17,31 --diff`.
@@ -60,8 +67,8 @@ type = "region"; part = "torso"; anchor = "left"; n = 1; facings = ["side"]; col
 ```toml
 [[rules]]  # a standing bomber collar, front and 3/4: the torso's straight top row (Juno)
 type = "rows"; part = "torso"; from = "top"; n = 1; facings = ["down", "down_side", "down_side_l"]; color = "trim"
-[[rules]]  # from behind the collar hides the neck (Juno trim; Nyx's coat collar in `jacket` from the side and behind)
-type = "all"; part = "neck"; ink = true; facings = ["up", "up_side", "up_side_l"]; color = "trim.base"
+[[rules]]  # from behind the collar hides the neck (Juno trim; Nyx's coat collar in `jacket` from the side and behind).
+type = "all"; part = "neck"; ink = true; facings = ["up", "up_side", "up_side_l"]; color = "trim.base"   # redundant when the drafted grids already paint the neck rows
 [[rules]]  # profile: the collar's back panel behind the neck (Juno)
 type = "region"; part = "neck"; anchor = "back"; n = 2; ink = true; facings = ["side", "side_l"]; color = "trim.base"
 [[rules]]  # profile: a coat's collar row plus piping down the front edge (Nyx; one pixel inside the edge)
@@ -95,7 +102,9 @@ type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; skip
 A straight stripe's column is the median over the whole part, so stacked stripes stay one strip.
 `offset` and `offsets` may be a table keyed by facing with `"*"` as the default (Nyx's strip sits
 one column further toward the far side in 3/4 front left: `offsets = { "*" = [-2, -1, 0, 1],
-down_side_l = [-1, 0, 1, 2] }`), so one rule set serves every facing.
+down_side_l = [-3, -2, -1, 0] }`), so one rule set serves every facing. The numbers read as in
+the right-facing frame; the mirror is applied after them, so "one column toward the far side"
+in an `_l` facing is each offset minus one.
 
 ## Hem
 
@@ -174,6 +183,10 @@ type = "rows"; part = "feet"; from = "bottom"; n = 1; facings = ["up_side_l"]; c
 
 ## Animation-only fixes
 
-`anims = ["idle", "walk", ...]` limits a rule to those animations. Profile trim (a cuff, piping, a
-hem) stacked into a hook in the attack's spinning frames on Nyx: exclude `attack` on those rules,
-or give the attack its own plainer set.
+`anims = ["idle", "walk", ...]` limits a rule to those animations. The general case: any rule
+whose part is a HAND or an ARM but which depicts the coat (pockets, a hem along the hand's
+bottom row, a skirt over the hand) is wrong wherever the arm swings — lime bars ran along the
+arm in the run and the attack on Nyx until the rule got `anims = ["idle", "walk", "rotate",
+"interact"]`. Profile trim (a cuff, piping, a hem) also stacked into a hook in the attack's
+spinning frames: exclude `attack` there too. Only idle is scored, so the score never sees it;
+`just preview NAME walk run jump attack` (file `NAME_walk_run_jump_attack.png`) does.

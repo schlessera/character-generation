@@ -353,6 +353,11 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
                 note = "cleaned; " if not skipped else f"cleaned without the {' and '.join(skipped)} pass ({full - best[0]:+.4f} with it); "
             print(f"== {facing}: drafted grid ({note}nearest legend colour per cell)")
             print(grid_text(g))
+            far = getattr(draft_grid, "far", [])
+            if len(far) >= 3:  # the nearest colour is a poor one: the palette lacks a colour the mockup paints here
+                med = np.median(np.array(far), 0).astype(int)
+                print(f"   {len(far)} cells have no legend colour within reach (median #{med[0]:02x}{med[1]:02x}{med[2]:02x}): "
+                      "a slot the palette lacks (a shadowed nape, a strap); add it and redraft this view")
             used_extra |= set("".join("".join(row) for row in g)) & set(extra)
             if apply:
                 apply_grid(r.path, facing, g)

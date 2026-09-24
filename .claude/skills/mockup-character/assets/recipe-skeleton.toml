@@ -37,6 +37,7 @@ glow    = { base = "#44e4e8", shade = "#1aa6c4", light = "#c6fdff" }            
 fx      = { base = "#8ff8ff", shade = "#3cc4e6", light = "#c8fcff" }                  # the attack's swing smears
 outline = { base = "#241a17" }                       # silhouette and the legend's `o`; read it from the mockup (warm brown on Juno, near black on Nyx)
 visor   = { base = "#1a191d", shade = "#3b3839" }    # eyewear rims; delete if the design has none
+# mask  = { base = "#444343", shade = "#3c3b3b" }     # a material this design has and the list lacks: add it (a mask, a coat, a tee)
 
 # Part/group -> ramp. LATER LINES WIN: groups first, specific parts after (a `neck` line before
 # `body` is silently overridden). `fx` unmapped renders the attack smears as blobs.

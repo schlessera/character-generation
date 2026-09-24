@@ -66,7 +66,8 @@ Other commands:
   `--recipe` variant (`17,31` torso, `24,32` feet, `4,20` head); `--diff` outlines every pixel a
   variant changes. The fastest way to judge a trim change from every angle.
 - `just preview NAME [anims…]` — contact sheet of every animation × facing (`build/preview/NAME.png`,
-  or `NAME_walk_run.png` when animations are given), plus 12× idle facings
+  or `NAME_<anims joined by _>.png` when animations are given, e.g. `NAME_walk_run_jump_attack.png`,
+  tall: crop it), plus 12× idle facings
   (`build/preview/NAME_facings.png`); crop and zoom the sheet to review, it is tall.
 - `just smoke` — builds the sheets and drives the playground headless.
 - `just media` — every README figure from source, including the iteration figure and similarity

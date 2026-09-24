@@ -72,9 +72,11 @@ the end. Human complaints outrank the score.
 
 `just compare NAME --draft-grid all --all-slots --clean --apply --quiet` (`--mirror-swap` only
 for a five-view mockup of a one-sided haircut). Then `just review NAME`: the heads row at 24×.
-Fix what you see by editing grid rows; `just heads NAME` shows the template alignment. Re-draft
-one view at a time later if its placement moved (after grows or shrinks), not all: the others
-come back equal or worse.
+Fix what you see by editing grid rows; `just heads NAME` shows the template alignment. `just
+step` says when a view's placement moved (after a grow, a shrink, a new head): re-draft THAT
+view then (`--draft-grid VIEW --all-slots --clean --apply`), not all — the others come back
+equal or worse, and a re-draft left for later cost run 2 seven steps of a +0.007 it had earned
+at step 5.
 
 ### Step 2 — silhouette and the garment, feature by feature (3–10 steps)
 
