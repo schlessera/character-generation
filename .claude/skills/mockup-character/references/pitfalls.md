@@ -13,6 +13,10 @@ Each one cost at least a step, some cost ten. Read before editing `[parts]`, gri
 - **Rules skip ink tones unless `ink = true`.** The template draws the jacket's bottom line, the
   torso's far edge in 3/4 and the front edge in profile as ink; a stripe or edge on those columns
   silently does nothing. Pass `ink = true` where the mockup paints there.
+- **`ink = true` with a tone-relative colour** (`color = "trim"`) on a ramp without an `ink` slot
+  used to paint template ink — the hem vanished off the front view in both replays and, it turned
+  out, in Juno. The generator now paints such pixels with the ramp's shade; a fixed slot
+  (`trim.base`) is still the explicit choice.
 - **`only_if_ink`** exists for frames where the template draws a far limb entirely as a silhouette.
 - **`[outline] color`** may name a ramp; give the legend's `o` the same ramp so colorways swap both.
 - Variants: always as a copy (`compare NAME --recipe tmp.toml`); a tone-relative colour like
@@ -33,6 +37,53 @@ Each one cost at least a step, some cost ten. Read before editing `[parts]`, gri
 - `--fit-grid` unrestricted paints visor grey on the neck rows (the grid reaches below the head)
   and erases the lens glint/tip. With `--chars` limited to hair and stubble tones it is honest,
   and by the end it found nothing: the text-view redraw is already the optimum.
+
+## Found by the replay (a fresh agent using this skill)
+
+- The skeleton shipped without the cyber-arm (ramp, part line, joint rules), without `fx` mapped
+  (attack smears rendered as dark blobs), without the stubble legend, and with `_l` twins in the
+  facings of one-sided rules (a chrome square on the bare jacket in 3/4-back-left). All fixed in
+  the skeleton; when adding a one-sided rule, name its facings without the mirror.
+- Palette work before grids: `--fit` put hair under the skin's median, `--optimize` proposed a red
+  face. Grids first, or `--hex` on body areas only.
+- A fit median on a part where the mockup alternates two colours (lit and dark jogger columns) is
+  neither colour; the `~` spread mark flags it, `--hex` shows it. This is general, not only the
+  cyber-arm's teal.
+- A whole-grid `--shift` moves the visor and ear with the hair; use `--chars kbHDi` and add hair.
+- The 3/4-back shoulder cap needs the torso's far-shoulder grow first (the playbook had assigned
+  that grow to the 3/4-front only); without it the cap lands inside the mockup's shoulder.
+- `--ceiling` moves with the palette; "done when within X of the ceiling" must use the final one.
+- Three decimals hide a 0.8997 as 0.900; `compare` prints four now.
+- The mockup extractor used to keep a neighbouring view's shoe row at the top of a view; it keeps
+  the main run of rows now.
+- Run 2 (revised skill): 0.9045 after the five drafted grids at step 5, 0.905 at step 10. Its
+  findings: the hem bug above, the visor-row sentence that read as an instruction to move rows, no
+  mirror helper for the left grids (drafted grids are wider than the side templates), text-view
+  letters that differed from the grid legend's. All addressed: `--draft-grid VIEW_l --mirror-swap`,
+  the text view now uses the legend's characters, the sentence says "check, don't move".
+
+- Run 3 (tooling round): goal reached at step 2 with one command; done at step 6. Its findings,
+  all tool defects: `--clean` wrote `.` over stray visor pixels (template skin showed as tan
+  dots — now the neighbours' majority), it kept `k` outline cells on the row below the jaw (they
+  chopped the collar into dashes — now dropped), `--mirror-swap` handled the profile and the 3/4
+  wrong (per-facing rules now, see the playbook's table), the text view reused `o`/`i` for two
+  colours (ramp letters now avoid the legend's), `lint` was silent on a recipe without grids, and
+  a patch had left the per-view tail of `compare` under the wrong `if` — `just selftest` exists
+  because of that one.
+
+- Run 4 (goal 1% below the ceiling, 10 steps to 2.39%): the honest ceiling. Its measurements:
+  a despeckled quantized mockup scores 0.9247, the 1% line; the body oracle (pixel copy of the
+  body) despeckled scores 0.9273. So 1% is tracing. What it found on the way, all in the skeleton
+  now: draft twice (placement moves with the grids); `up_side_l` is `up_side` unmirrored; the
+  profile zipper one pixel inside the front edge (on the edge the outline pass repaints it, and a
+  straight median column only exists near the hem); the far cuff limited to the sleeve's outer
+  end; square shoulders (`grow torso up`); per-part outline (`[outline] parts`, the joggers in
+  cool black); the forearm glint only where the arm is nearest; the collar's inner edges shadowed
+  for two rows in front; the near-arm seam continuing past the hand; and the metric rewards
+  dithering (single hem pixels flipped to jacket gain because the neighbours still match) — never
+  apply a per-pixel gain map. The attack's second frame had the back collar across the chest:
+  the head turns before the body, and `rule_facing = "head"` followed the head; `"body"` takes
+  front/back from the arms' order in the labels.
 
 ## Score reading
 

@@ -206,17 +206,21 @@ def facings_figure():
     save(out, "juno-facings.png")
 
 
-def _snapshots():
+ITERATION_STRIP = [0, 5, 10, 15, 20, 25, 40, 55, 70, 90, 110]  # the columns of the iteration figures
+
+
+def _snapshots(subset=None):
     """(step, recipe) for every saved iteration step (characters/juno/history/step-NN.toml)."""
-    steps = sorted((ROOT / "characters/juno/history").glob("step-*.toml"))
-    return [(int(p.stem.split("-")[1]), Recipe(p)) for p in steps]
+    steps = sorted((ROOT / "characters/juno/history").glob("step-*.toml"), key=lambda p: int(p.stem.split("-")[1]))
+    snaps = [(int(p.stem.split("-")[1]), Recipe(p)) for p in steps]
+    return [s for s in snaps if subset is None or s[0] in subset]
 
 
 def iteration_figures():
     """Pixel mockup, then the recipe after every saved iteration step, left to right."""
     from chargen.mockup import MOCKUP_FACINGS, extract, place, similarity
     sprites = extract(ROOT / "characters/juno/concept/juno-pixel-mockup.png")
-    snaps = _snapshots()
+    snaps = _snapshots(ITERATION_STRIP)
     cols = [("pixel mockup", None)] + [(f"step {n}", rec) for n, rec in snaps]
 
     def view(rec, sprite, facing):
@@ -252,9 +256,9 @@ def iteration_figures():
             out.alpha_composite(up(head, s), (lw + c * cw + 4, 30 + r * (16 * s + 8)))
     save(out, "juno-iteration-heads.png")
 
-    # similarity to the mockup per saved step
+    # similarity to the mockup per saved step (all snapshots)
     scores = []
-    for n, rec in snaps:
+    for n, rec in _snapshots():
         v = [similarity(sp, idle(rec, f)) for sp, f in zip(sprites, MOCKUP_FACINGS)]
         scores.append((n, float(np.mean(v)), min(v), max(v)))
     similarity_chart(scores)
@@ -291,6 +295,77 @@ def similarity_chart(scores):
         d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=series, outline=BG, width=2)
         d.text((x - 14, y - 22), f"{m:.3f}", font=FS, fill=TEXT)
     save(out, "juno-similarity.png")
+
+
+REPLICA_RUNS = [(1, "history-run1"), (2, "history-run2"), (3, "history-run3"), (4, "history-run4"), (5, "history-run5")]
+REPLICA_CEILING = 0.9342
+
+
+def _run_scores(folder):
+    rows = []
+    for line in (ROOT / "characters/replica" / folder / "NOTES.md").read_text().splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) == 3 and cells[0].isdigit() and cells[2]:
+            try:
+                rows.append((int(cells[0]), float(cells[2])))
+            except ValueError:
+                pass
+    return rows
+
+
+def replica_chart():
+    """One line per replay of the skill: similarity per step, with the palette ceiling and the
+    goal lines (percent below it). Each run started from the skeleton and the mockup alone."""
+    W, H = 880, 340
+    L, R, T, B = 56, 190, 44, 40
+    out = Image.new("RGBA", (W, H), BG)
+    d = ImageDraw.Draw(out)
+    d.text((L, 12), "Five replays of the skill by fresh agents: similarity per step (every run starts at 0.64, the skeleton)", font=FS, fill=TEXT)
+    runs = [(n, folder, _run_scores(folder)) for n, folder in REPLICA_RUNS]
+    n_max = max(st for _, _, r in runs for st, _ in r)
+    lo_v, hi_v = 0.85, 0.94
+    X = lambda n: L + (W - L - R) * n / n_max
+    Y = lambda v: T + (H - T - B) * (hi_v - v) / (hi_v - lo_v)
+    grid, ink = (52, 51, 68, 255), DIM
+    v = lo_v
+    while v <= hi_v + 1e-9:
+        d.line([(L, Y(v)), (W - R, Y(v))], fill=grid, width=1)
+        d.text((8, Y(v) - 7), f"{v:.2f}", font=FS, fill=ink)
+        v += 0.01
+    for n in range(0, n_max + 1, 2):
+        d.text((X(n) - 4, H - B + 8), str(n), font=FS, fill=ink)
+    d.text((W - R - d.textlength("step", font=FS), H - 18), "step", font=FS, fill=ink)
+    for label, v, col, dy in (("palette ceiling 0.934", REPLICA_CEILING, TEXT, -7), ("goal 1% = pixel tracing", REPLICA_CEILING * 0.99, (150, 150, 180, 255), -7),
+                              ("goal 3%", REPLICA_CEILING * 0.97, (255, 200, 80, 255), -14), ("goal 4%", REPLICA_CEILING * 0.96, (255, 160, 60, 255), 0)):
+        d.line([(L, Y(v)), (W - R, Y(v))], fill=col, width=1)
+        d.text((W - R + 6, Y(v) + dy), label, font=FS, fill=col)
+    palette = [(216, 48, 124, 255), (80, 180, 255, 255), (120, 220, 120, 255), (240, 120, 60, 255), (200, 140, 255, 255)]
+    names = {1: "run 1: skill v1 (0.90 at step 11)", 2: "run 2: v2, draft-grid (step 5)", 3: "run 3: v3, one command (step 2)",
+             4: "run 4: goal 1%, stopped at 2.4%", 5: "run 5: goal 3% (step 1)"}
+    for (n, folder, rows), col in zip(runs, palette):
+        pts = [(X(st), Y(sc)) for st, sc in rows if sc >= lo_v]
+        d.line(pts, fill=col, width=2)
+        for x, y in pts:
+            d.ellipse([x - 3, y - 3, x + 3, y + 3], fill=col)
+        d.text((L + 8, H - B - 16 * (6 - n) - 6), names[n], font=FS, fill=col)
+    save(out, "replica-runs.png")
+
+
+def replica_figure():
+    """Juno (110 hand-guided steps) above the replica (a fresh agent, the skill, six steps)."""
+    rows = [("Juno, 110 steps", juno), ("replica, 6 steps", Recipe(ROOT / "characters/replica/recipe.toml"))]
+    s, lw = 4, 130
+    cw = 32 * s
+    out = Image.new("RGBA", (lw + len(FACINGS) * cw, 30 + len(rows) * (32 * s + 10)), BG)
+    d = ImageDraw.Draw(out)
+    for c, fname in enumerate(FACINGS):
+        d.text((lw + c * cw + 8, 8), fname.replace("_side", "-side").replace("_l", " (left)"), font=FS, fill=DIM)
+    for r, (name, rec) in enumerate(rows):
+        y = 30 + r * (32 * s + 10)
+        d.text((12, y + 60), name, font=F, fill=TEXT)
+        for c, fname in enumerate(FACINGS):
+            out.alpha_composite(up(idle(rec, fname), s), (lw + c * cw, y))
+    save(out, "replica-vs-juno.png")
 
 
 SSS_STAGES = [("template", "the animated template"), ("labels", "every pixel labeled"),
@@ -823,6 +898,8 @@ if __name__ == "__main__":
     label_sheet()
     facings_figure()
     iteration_figures()
+    replica_chart()
+    replica_figure()
     semantic_gif()
     debugging_figures()
     variants_figure()

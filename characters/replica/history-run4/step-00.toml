@@ -12,8 +12,8 @@
 # Mirroring swaps the anatomical labels and the meaning of front/back. A rule for a ONE-SIDED
 # feature (the cyber-arm, the far sleeve, an ear) must name its facings explicitly and usually
 # must not include the `_l` twin; symmetric trim (collar, hem, zipper) can list both.
-name = "NAME"
-rule_facing = "body"    # trim follows the body through spinning poses: side from the tracked head, front/back from the arms
+name = "replica"
+rule_facing = "head"    # trim follows the tracked head through spinning poses
 emissive = ["glow"]     # ramps that stay lit in the dark (the lens, the arm's joints)
 emissive_strength = 0.5
 emissive_parts = { "arm_r+hand_r" = 1.0 }
@@ -52,7 +52,6 @@ fx = "fx"
 [outline]
 color = "outline"
 keep = "kSs"        # legend chars that keep their colour on the silhouette edge (hair outline, ear)
-parts = { legs = "pants.ink" }   # selective outlining: the joggers edged in a cool black, the rest warm
 
 # ---- silhouette first: `grow` changes the outline, later rules see the grown labels ----------
 # Only where `--widths` shows the mockup 2+ pixels wider, and with a name. A general bulk grow
@@ -73,20 +72,12 @@ n = 2
 facings = ["down_side"]
 color = "skin.base"
 
-[[rules]]  # 3/4 front: the far shoulder stands out above the far sleeve (the mockup is three wider there)
-type = "grow"
-part = "torso"
-sides = ["front"]
-n = 3
-facings = ["down_side"]
-color = "jacket.base"
-
-[[rules]]  # 3/4 back: two
+[[rules]]  # 3/4 front and back: the far shoulder stands out above the far sleeve
 type = "grow"
 part = "torso"
 sides = ["front"]
 n = 2
-facings = ["up_side"]
+facings = ["down_side", "up_side"]
 color = "jacket.base"
 
 [[rules]]  # 3/4 back: the far (cyber) arm one pixel out, and its shoulder cap over the jacket's edge
@@ -115,17 +106,11 @@ color = "chrome.base"
 
 [[rules]]
 type = "region"
-part = "arm_r+hand_r"   # the seam continues past the hand: it hangs off the hip
+part = "arm_r"
 anchor = "front"
 n = 1
 facings = ["down_side"]
 color = "jacket.shade"
-
-[[rules]]  # square bomber shoulders: the jacket's top row one above the mannequin's, in every facing
-type = "grow"
-part = "torso"
-sides = ["up"]
-color = "jacket.base"
 
 [[rules]]  # sneakers one pixel wider: both sides from the front and behind, toward the toes in 3/4,
 type = "grow"  # nothing in profile (the template's foot is already as long as a mockup's)
@@ -142,20 +127,12 @@ facings = ["down_side", "down_side_l", "up_side", "up_side_l"]
 color = "shoes.base"
 
 # ---- shading before trim, so the collar and hem paint over it -------------------------------
-
 [[rules]]  # 3/4: the flank turned away from the front, one column, one shade darker
 type = "region"
 part = "torso"
 anchor = "back"
 n = 1
 facings = ["down_side", "down_side_l"]
-color = "jacket.shade"
-
-[[rules]]  # the waistband's shadow: the jacket row above the hem, one shade darker (the hem paints the last row)
-type = "rows"
-part = "torso"
-from = "bottom"
-n = 2
 color = "jacket.shade"
 
 # ---- collar: straight rows (an edge against the neck follows the neck's U and bends) ---------
@@ -224,24 +201,6 @@ offset = 0
 facings = ["down"]
 color = "shirt"
 
-[[rules]]  # front: the collar's inner edges in shadow for two rows, so the neck shows in a V
-type = "stripe"
-straight = true
-part = "torso"
-offset = -1
-top = 2
-facings = ["down"]
-color = "outline.base"
-
-[[rules]]
-type = "stripe"
-straight = true
-part = "torso"
-offset = 1
-top = 2
-facings = ["down"]
-color = "outline.base"
-
 [[rules]]  # neck skin dipping into the collar
 type = "stripe"
 part = "torso"
@@ -276,11 +235,13 @@ ink = true
 facings = ["down_side", "down_side_l"]
 color = "trim.base"
 
-[[rules]]  # profile: one pixel inside the front edge, following the chest (on the edge column the
-type = "stripe"  # outline pass repaints it, and a straight median column only exists near the hem)
+[[rules]]  # profile: down the front edge column, which the template draws in ink
+type = "stripe"
 part = "torso"
 anchor = "front"
-offset = -1
+straight = true
+offset = 0
+ink = true
 facings = ["side", "side_l"]
 color = "trim.base"
 
@@ -291,13 +252,11 @@ part = "arm_l"
 touching = "hand_l"
 color = "trim.shade"
 
-[[rules]]  # 3/4 front: the far sleeve's cuff only at its outer end (across the grown sleeve it met
-type = "region"  # the zipper edge as a bar)
+[[rules]]  # crease at the elbow
+type = "band"
 part = "arm_l"
-anchor = "back"
-n = 2
-facings = ["down_side"]
-color = "jacket.base"
+at = 0.5
+color = "jacket.shade"
 
 # long sleeves: only the fingertips show. The inner side is named per facing because mirroring
 # swaps the anatomical labels (hand_l is the far hand in one 3/4 view, the near one in the other).
@@ -358,12 +317,11 @@ at = 1.0
 anchor = "center"
 color = "glow.base"
 
-[[rules]]  # polished forearm plate catching the light on its outer edge (the mockup shows the
-type = "band"  # glint only in 3/4 front, where the arm is nearest)
+[[rules]]  # polished forearm plate catching the light on its outer edge
+type = "band"
 part = "arm_r"
 at = 0.75
 anchor = "back"
-facings = ["down_side"]
 color = "chrome.light"
 
 [[rules]]  # the hand: a dark gap between the articulated fingers

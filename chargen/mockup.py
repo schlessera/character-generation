@@ -60,8 +60,24 @@ def extract(path) -> list[np.ndarray]:
         rgba = np.zeros(rgb.shape[:2] + (4,), np.uint8)
         rgba[..., :3] = rgb
         rgba[..., 3] = (np.abs(rgb.astype(int) - bg).sum(2) > 40) * 255
-        sprites.append(rgba)
+        sprites.append(_main_run(rgba))
     return sprites
+
+
+def _main_run(sprite: np.ndarray) -> np.ndarray:
+    """Keep the longest run of non-empty rows: a neighbouring figure's shoe or hair row can
+    land in the snapped cells of this one when the stack's gaps are tight."""
+    rows = sprite[..., 3].any(1)
+    best, cur, start = (0, 0), 0, 0
+    for i, v in enumerate(list(rows) + [False]):
+        if v:
+            cur = cur + 1 if cur else 1
+            start = i if cur == 1 else start
+            if cur > best[1] - best[0]:
+                best = (start, i + 1)
+        else:
+            cur = 0
+    return sprite[best[0]:best[1]]
 
 
 def place(sprite: np.ndarray, like: np.ndarray) -> np.ndarray:
@@ -185,7 +201,7 @@ def palette_letters(recipe) -> list[tuple[tuple[int, int, int], str]]:
     (base '', shade '-', light '+', deep '=', ink '#', blush '~'), plus the outline."""
     from .character import hex_rgb
     marks = {"base": "", "shade": "-", "light": "+", "deep": "=", "ink": "#", "blush": "~"}
-    used: dict[str, str] = {}
+    used: dict[str, str] = {ch.upper(): "legend" for ch in recipe.legend if ch != "-"}  # legend chars are taken
     out = []
     for name, ramp in recipe.ramps.items():
         key = next((c for c in name[0].upper() + name[1:] if c.upper() not in used), name[0])
@@ -196,9 +212,18 @@ def palette_letters(recipe) -> list[tuple[tuple[int, int, int], str]]:
         c = recipe.color(recipe.outline["color"], 1)
         if c not in {p for p, _ in out}:  # a hex outline; a ramp one is already listed
             out.append((c, "##"))
-    for ref in recipe.legend.values():  # fixed colors in the head legend
-        if ref.startswith("#"):
-            out.append((hex_rgb(ref), "x "))
+    # the head legend's characters win for the colours they reference, so the text view reads
+    # like a grid (and the drafted grid reads like the text view)
+    by_col = {}
+    for ch, ref in recipe.legend.items():
+        if ref == "clear":
+            continue
+        col = hex_rgb(ref) if ref.startswith("#") else recipe.color(ref, 1)
+        by_col.setdefault(col, ch)
+    out = [(c, (by_col[c] + " ") if c in by_col else l) for c, l in out]
+    for col, ch in by_col.items():
+        if col not in {p for p, _ in out}:
+            out.append((col, ch + " "))
     return out
 
 
@@ -227,13 +252,14 @@ def palette_fit(pairs: dict[tuple[int, int, int], list[np.ndarray]], pal) -> lis
     mean distance. Suggests palette moves; an edge color (outline) is unreliable because
     of one-pixel drift, so read it next to the text view."""
     names = {c: l.strip() for c, l in pal}
-    lines = ["render color         n   mockup median   dist"]
+    lines = ["render color         n   mockup median   dist  spread   (~ wide: the median is not a colour the mockup uses much; --hex before moving)"]
     for c, lst in sorted(pairs.items(), key=lambda kv: -len(kv[1])):
         a = np.array(lst)
         med = np.median(a, 0).astype(int)
-        d = _redmean(np.array(c)[None].repeat(len(a), 0), a).mean()
+        ds = _redmean(np.array(c)[None].repeat(len(a), 0), a)
+        spread = _redmean(np.repeat(med[None], len(a), 0).astype(float), a).std()
         lines.append(f"#{c[0]:02x}{c[1]:02x}{c[2]:02x} {names.get(tuple(c), '?'):14} {len(a):4d}   "
-                     f"#{med[0]:02x}{med[1]:02x}{med[2]:02x}        {d:4.0f}")
+                     f"#{med[0]:02x}{med[1]:02x}{med[2]:02x}        {ds.mean():4.0f}   {spread:4.0f} {'~' if spread > 60 else ''}")
     return lines
 
 
@@ -423,9 +449,11 @@ def split(mockup: np.ndarray, render: np.ndarray) -> tuple[float, float]:
     return float(sil), float(col)
 
 
-def shift_probe(recipe, facing: str, sprite: np.ndarray, frame, render) -> tuple[int, int, float]:
-    """The best whole-grid offset for a facing's head grid (dx, dy, gain). A consistent
-    direction across views means the hair wants more volume on that side."""
+def shift_probe(recipe, facing: str, sprite: np.ndarray, frame, render, chars: str | None = None) -> tuple[int, int, float]:
+    """The best one-pixel offset for a facing's head grid (dx, dy, gain), of the whole grid
+    or only of the cells in `chars` (e.g. the hair tones, leaving visor and ear in place).
+    A consistent direction across views means the hair wants more volume on that side;
+    act by adding hair on that side, not by moving the face."""
     g = recipe.grids[facing]
     base = similarity(sprite, render(recipe, frame))
     best = (0, 0, 0.0)
@@ -434,8 +462,12 @@ def shift_probe(recipe, facing: str, sprite: np.ndarray, frame, render) -> tuple
         for dx in (-1, 0, 1):
             if dx == dy == 0:
                 continue
-            sh = np.full_like(g, ".")
-            sh[max(0, dy):H + min(0, dy), max(0, dx):W + min(0, dx)] = g[max(0, -dy):H + min(0, -dy), max(0, -dx):W + min(0, -dx)]
+            src = g if chars is None else np.where(np.isin(g, list(chars)), g, ".")
+            keep = np.full_like(g, ".") if chars is None else np.where(np.isin(g, list(chars)), ".", g)
+            sh = keep.copy()
+            moved = src[max(0, -dy):H + min(0, -dy), max(0, -dx):W + min(0, -dx)]
+            dst = sh[max(0, dy):H + min(0, dy), max(0, dx):W + min(0, dx)]
+            dst[moved != "."] = moved[moved != "."]
             recipe.grids[facing] = sh
             gain = similarity(sprite, render(recipe, frame)) - base
             if gain > best[2]:
@@ -453,4 +485,266 @@ def fit_part(pairs_by_letter: dict[str, list], pal) -> list[str]:
         med = np.median(np.array([p for p, _ in v]), 0).astype(int)
         out.append(f"{k:6} {len(v):4d}  #{med[0]:02x}{med[1]:02x}{med[2]:02x}        {quantize(med, pal):>4}      "
                    f"{np.mean([c for _, c in v]):.2f}     {sum(c for _, c in v):.1f}")
+    return out
+
+
+STUBBLE_TO_HAIR = str.maketrans("uUw", "bHb")
+
+
+def near_side(frame) -> tuple[str, str]:
+    """Which of her arms is nearer the camera in this frame, and on which screen side the far
+    arm lies: ("L"|"R", "left"|"right"|"behind"). The template draws the near arm fuller; the
+    labels are anatomical (R = her right) even in mirrored frames, so this is the ground truth
+    the playbook's 3D reasoning had to guess at."""
+    on = frame.tones > 0
+    xr = np.where(np.isin(frame.labels, ["R", "r"]) & on)[1]
+    xl = np.where(np.isin(frame.labels, ["L", "l"]) & on)[1]
+    if not len(xr) or not len(xl):
+        return "R", "behind"
+    near, far = ("L", xr) if len(xl) > len(xr) else ("R", xl)
+    nx = xl.mean() if near == "L" else xr.mean()
+    d = far.mean() - nx
+    hidden = len(far) < 0.3 * max(len(xl), len(xr))  # the profile: the far arm is mostly behind the body (3/4: ~0.4)
+    return near, "behind" if hidden or abs(d) < 1.5 else ("right" if d > 0 else "left")
+
+
+def mirror_grid(recipe, facing: str, frame, head_tones: np.ndarray, swap: bool = False,
+                shaved: str = "R") -> tuple[np.ndarray, str] | tuple[None, str]:
+    """A left-facing grid drafted from its right-facing twin, mirrored about the head
+    template's padded width (a drafted grid is wider than the template, so reversing the rows
+    as strings misaligns). A mirror image swaps her left and right; with `swap` a one-sided
+    cut (shaved side = `shaved`, her right by default) is put back on her own side using the
+    frame's labels: the mane covers the near side, the shaved side shows as a two-column strip
+    at the far edge (none in profile), hair does not overhang the far edge, the lens keeps its
+    dark caps, and the ear moves with the shaved side. Returns (grid, what was done)."""
+    from .character import HEAD_PAD
+    base = facing[:-2]
+    g = recipe.grids.get(base)
+    if g is None:
+        return None, "no twin"
+    w = head_tones.shape[1] + 2 * HEAD_PAD
+    out = np.full_like(g, ".")
+    for x in range(min(w, g.shape[1])):
+        out[:, x] = g[:, w - 1 - x]
+    if not swap:
+        return out, "mirrored"
+    near, far_side = near_side(frame)
+    head = np.pad(head_tones > 0, HEAD_PAD)[:, ::-1]  # the mirrored head silhouette
+    H, W = out.shape
+    stub_rows = {int(y) for y in np.where(np.isin(g, list("uUw")).any(1))[0]}
+    # the ear: outline cells drawn by the grid, and skin cells outside the head silhouette
+    inside = np.zeros_like(out, dtype=bool)
+    hh, hw = min(head.shape[0], H), min(head.shape[1], W)
+    inside[:hh, :hw] = head[:hh, :hw]
+    ear = (out == "o") | (np.isin(out, list("Ss")) & ~inside)
+    out = np.vectorize(lambda ch: ch.translate(STUBBLE_TO_HAIR))(out)
+    done = f"mirrored about the head; near arm is her {'left' if near == 'L' else 'right'}, far side {far_side}"
+    if near != shaved:  # the mane is nearest: shaved side = a far strip, no far overhang, no ear
+        out[ear] = "b"  # the ear sat on the shaved side; the mane covers it now (cleared below if past the edge)
+        cols_all = np.where(inside.any(0))[0]
+        glo, ghi = (cols_all[0], cols_all[-1]) if len(cols_all) else (0, W - 1)
+        for y in range(H):
+            xs = np.where(inside[y])[0]
+            lo, hi = (xs[0], xs[-1]) if len(xs) else (glo, ghi)
+            for x in range(W):  # hair drawn past the far edge belonged to the mane on the other side
+                past = (far_side == "left" and x < lo) or (far_side == "right" and x > hi)
+                if past and out[y, x] in "bHDik":
+                    out[y, x] = "."
+            if far_side != "behind" and y in stub_rows and len(xs):
+                cols = (lo, lo + 1) if far_side == "left" else (hi - 1, hi)
+                for x in cols:
+                    if 0 <= x < W and out[y, x] in "bHDi":
+                        out[y, x] = "u" if (x + y) % 2 else "U"
+        done += "; mane near, shaved strip at the far edge" if far_side != "behind" else "; all mane (profile)"
+    for y in range(H):  # the lens keeps a dark cap at both ends
+        vs = np.where(out[y] == "v")[0]
+        if len(vs) >= 3:
+            for x in (vs[0] - 1, vs[-1] + 1):
+                if 0 <= x < W and out[y, x] not in ".v":
+                    out[y, x] = "x"
+    return out, done
+
+
+def draft_grid(recipe, facing: str, placed: np.ndarray, frame, rows: int | None = None,
+               chars: str | None = None) -> np.ndarray:
+    """A head grid drafted from the mockup: every grid cell that lands on the head, the neck
+    or beside them takes the legend character whose colour is nearest to the mockup pixel
+    under it; cells over the mockup's background stay '.'. `rows` limits the grid's height
+    (the hair may hang below the head; the collar should not become hair), `chars` limits
+    the candidates. This is what redrawing a grid from `--text` amounts to, without the
+    transcription; hand-clean it afterwards (isolated speckles, the lens ends, the ear)."""
+    from .character import HEAD_PAD
+    _, hx, hy, _ = frame.head
+    legend = {k: recipe.color(v, 1) for k, v in recipe.legend.items()
+              if v != "clear" and (chars is None or k in chars)}
+    keys = list(legend)
+    cols = np.array([legend[k] for k in keys], float)
+    ref = recipe.grids.get(facing)
+    h = ref.shape[0] if ref is not None else 16
+    w = ref.shape[1] if ref is not None else 20
+    if rows:
+        h = min(h, rows)
+    g = np.full((h, w), ".", "<U1")
+    H, W = frame.tones.shape
+    head_rows = np.where((frame.labels == "H").any(1))[0]
+    bottom = int(head_rows[-1]) + 1 if len(head_rows) else H  # hair may hang one row past the jaw
+    allowed = (frame.labels == "H") | (np.isin(frame.labels, ["N", "."]) & (np.arange(H)[:, None] <= bottom))
+    for gy in range(h):
+        for gx in range(w):
+            y, x = hy + gy - HEAD_PAD, hx + gx - HEAD_PAD
+            if not (0 <= y < H and 0 <= x < W) or not allowed[y, x] or not placed[y, x, 3]:
+                continue
+            d = _redmean(np.repeat(placed[y, x, :3][None], len(cols), 0).astype(float), cols)
+            g[gy, gx] = keys[int(np.argmin(d))]
+    return g
+
+
+def hex_box(placed: np.ndarray, y0: int, y1: int, x0: int, x1: int) -> list[str]:
+    """Raw mockup hex per pixel for a box (frame rows y0..y1-1, cols x0..x1-1): the truth
+    behind the palette letters where several dark ramps sit a few RGB steps apart."""
+    out = [f"   cols {x0}..{x1 - 1}"]
+    for y in range(y0, min(y1, placed.shape[0])):
+        out.append(f"{y:2d} " + " ".join(f"{p[0]:02x}{p[1]:02x}{p[2]:02x}" if p[3] else "------" for p in placed[y, x0:x1]))
+    return out
+
+
+# ---------------------------------------------------------------- drafts: clean and apply
+
+HAIR = "kbHDi"
+
+
+def clean_grid(g: np.ndarray, legend: dict, hair: str = HAIR, stubble: str = "uUw") -> np.ndarray:
+    """The mechanical part of cleaning a drafted grid: visor characters outside the lens rows
+    (a dark plum pixel is nearest to the rim greys), lone speckles inside the hair or stubble
+    (a cell unlike all its neighbours takes their majority), and the last row keeps hair
+    characters only (it is the row below the jaw: hanging tips yes, collar no)."""
+    g = g.copy()
+    vis = [ch for ch, ref in legend.items() if ref.startswith("visor")]  # not the lens: a lone `v` may be the tip past the face
+    lens_rows = {y for y in range(g.shape[0]) if sum(ch == "v" for ch in g[y]) >= 3}
+    keep_rows = lens_rows | {y + 1 for y in lens_rows} | {y - 1 for y in lens_rows}  # the rims sit beside the lens
+    tex = set(hair + stubble)
+    H, W = g.shape
+
+    def majority(y, x):
+        nb = [g[yy, xx] for yy, xx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)) if 0 <= yy < H and 0 <= xx < W]
+        nb = [c for c in nb if c in tex]
+        return max(set(nb), key=nb.count) if nb else "."
+
+    for y in range(H):
+        if y in keep_rows:
+            continue
+        for x in range(W):
+            if g[y, x] in vis:  # a stray visor colour inside the hair: what surrounds it, never '.'
+                g[y, x] = majority(y, x)  # ('.' would show the template's skin as a tan dot)
+    for y in range(H):
+        for x in range(W):
+            if g[y, x] not in tex:
+                continue
+            nb = [g[yy, xx] for yy, xx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)) if 0 <= yy < H and 0 <= xx < W]
+            nb = [c for c in nb if c in tex]
+            if len(nb) >= 3 and g[y, x] not in nb:
+                top = max(set(nb), key=nb.count)
+                if nb.count(top) >= 3:
+                    g[y, x] = top
+    last = H - 1
+    while last > 0 and (g[last] == ".").all():
+        last -= 1
+    for x in range(W):  # the row below the jaw: hanging hair tips only, and not their outline
+        if g[last, x] != "." and g[last, x] not in hair.replace("k", ""):  # (k cells chop the collar into dashes)
+            g[last, x] = "."
+    return g
+
+
+def apply_grid(recipe_path, facing: str, g: np.ndarray) -> None:
+    """Write a grid into the recipe file: replace the facing's block under [head.grids], or
+    append one. Only the grid text moves; the rest of the file is untouched."""
+    text = recipe_path.read_text()
+    block = f'{facing} = """\n' + grid_text(g) + '\n"""'
+    start = text.find(f"\n{facing} = \"\"\"")
+    if start >= 0:
+        end = text.index('"""', start + len(facing) + 6) + 3
+        text = text[:start + 1] + block + text[end:]
+    else:
+        if "[head.grids]" not in text:
+            text = text.rstrip("\n") + "\n\n[head.grids]\n"
+        text = text.rstrip("\n") + "\n" + block + "\n"
+    recipe_path.write_text(text)
+
+
+def hot_spots(views, n: int = 20) -> list[str]:
+    """The n costliest pixels over all views: view, row, col, what the mockup and the render
+    show there (palette letters) and the cost. `views` = [(facing, placed, rend, cr, cm, pal)]."""
+    rows = []
+    for facing, placed, rend, cr, cm, pal in views:
+        tot = cr + cm
+        for y, x in zip(*np.where(tot > 0)):
+            m = quantize(placed[y, x, :3], pal) if placed[y, x, 3] else "--"
+            r_ = quantize(rend[y, x, :3], pal) if rend[y, x, 3] else "--"
+            rows.append((float(tot[y, x]), facing, int(y), int(x), m, r_))
+    rows.sort(reverse=True)
+    out = [f"{'cost':>5} {'view':10} {'row':>3} {'col':>3}  mockup  render"]
+    for c, f, y, x, m, r_ in rows[:n]:
+        out.append(f"{c:5.2f} {f:10} {y:3d} {x:3d}  {m:6}  {r_}")
+    return out
+
+
+def init_palette(views, tone_ids: dict) -> list[str]:
+    """Per body part and template tone, the median mockup colour under the render's pixels
+    (before any head grid exists the body parts are reliable, the head is not). Emits the
+    lines a [palette] block needs. `views` = [(facing, placed, labels, tones)]."""
+    from .labels import PARTS
+    groups = {"skin (hand_l)": "l", "torso": "T", "arm_l": "L", "arm_r+hand_r": "Rr", "legs": "PQ", "feet": "pq", "neck": "N"}
+    names = {v: k for k, v in tone_ids.items()}
+    out = [f"{'part':14} {'tone':6} {'n':>4}  median   spread"]
+    for label, codes in groups.items():
+        for tone in ("base", "shade", "light", "ink"):
+            px = []
+            for facing, placed, labels, tones in views:
+                m = np.isin(labels, list(codes)) & (tones == tone_ids[tone]) & (placed[..., 3] > 0)
+                px += list(placed[m, :3])
+            if len(px) < 4:
+                continue
+            a = np.array(px, float)
+            med = np.median(a, 0).astype(int)
+            spread = _redmean(np.repeat(med[None].astype(float), len(a), 0), a).std()
+            out.append(f"{label:14} {tone:6} {len(px):4d}  #{med[0]:02x}{med[1]:02x}{med[2]:02x}  {spread:5.0f}{' ~' if spread > 80 else ''}")
+    out.append("(~ = wide: two populations, or trim on that part's tone (caps on the feet, glow on the arm): read --hex on a box; the head needs its grids first)")
+    return out
+
+
+def oracle(views, pal, groups=None) -> list[str]:
+    """Where the remaining gap lives: for each body-part group, copy the mockup's pixels
+    (quantized to the palette) over the render on that part's mask and score again. The gain
+    is what a pixel-perfect version of that part would be worth; the rest is the metric's
+    tolerance and the mockup's noise. `views` = [(facing, sprite, placed, rend, labels)]."""
+    groups = groups or {"head": "H", "torso+arms": "TRLrl", "legs+feet": "PQpq", "body": "NTRLrlPQpq"}
+    out = [f"{'part':12} {'gain':>8}   (mean over views; the whole-body figure is the most any rule set could add)"]
+    for name, codes in groups.items():
+        gains = []
+        for facing, sprite, placed, rend, labels in views:
+            base = similarity(sprite, rend)
+            q = quantized(placed, pal)
+            r2 = rend.copy()
+            m = np.isin(labels, list(codes)) & (q[..., 3] > 0)
+            r2[m] = q[m]
+            gains.append(similarity(sprite, r2) - base)
+        out.append(f"{name:12} {np.mean(gains):+8.4f}")
+    return out
+
+
+def ablate(recipe, sprites, renders_for) -> list[str]:
+    """Drop each rule in turn and score: a rule that scores better removed is a detail this
+    mockup lacks (confirm with --hex before deleting; the score alone is not a reason)."""
+    base = float(np.mean([similarity(sp, im) for sp, im in zip(sprites, renders_for(recipe))]))
+    rows = []
+    rules = recipe.rules
+    for i, rule in enumerate(rules):
+        recipe.rules = rules[:i] + rules[i + 1:]
+        s = float(np.mean([similarity(sp, im) for sp, im in zip(sprites, renders_for(recipe))]))
+        rows.append((s - base, i + 1, rule.get("type"), rule.get("part"), rule.get("color", ""), rule.get("facings", "")))
+    recipe.rules = rules
+    rows.sort(reverse=True)
+    out = [f"{'without':>8}  rule  (gain when removed; base {base:.4f})"]
+    for d, i, t, p, c, f in rows:
+        out.append(f"{d:+8.4f}  {i:3d}  {t} {p} {c} {f if f else ''}")
     return out

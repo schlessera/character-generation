@@ -70,7 +70,7 @@ def cmd_preview(name, anims):
     print(out / f"{name}_facings.png")
 
 
-def cmd_crops(name, recipes_, box):
+def cmd_crops(name, recipes_, box, diff=False):
     """Rows of the eight idle facings cropped to `box` (y0,y1 in frame rows) at 16x, one row
     per recipe: the current one first, then any --recipe variants. For judging a change
     to the jacket or the shoes across every angle at once."""
@@ -83,11 +83,20 @@ def cmd_crops(name, recipes_, box):
     from PIL import ImageDraw
     out = Image.new("RGBA", (len(FACINGS) * cw, len(paths) * ch), (60, 62, 80, 255))
     d = ImageDraw.Draw(out)
+    base = {}
     for j, p in enumerate(paths):
         r = Recipe(p)
         for i, f in enumerate(FACINGS):
-            im = Image.fromarray(render_frame(r, frames["idle"][f][0])).crop((6, y0, 6 + w, y1)).resize((w * s, h * s), Image.NEAREST)
+            px = render_frame(r, frames["idle"][f][0])
+            im = Image.fromarray(px).crop((6, y0, 6 + w, y1)).resize((w * s, h * s), Image.NEAREST)
             out.alpha_composite(im, (i * cw, j * ch))
+            if j == 0:
+                base[f] = px
+            elif diff:  # outline every pixel that differs from the current recipe
+                dm = (px != base[f]).any(-1)
+                for y, x in zip(*np.where(dm[y0:y1, 6:6 + w])):
+                    d.rectangle([i * cw + x * s, j * ch + y * s, i * cw + (x + 1) * s - 1, j * ch + (y + 1) * s - 1],
+                                outline=(255, 64, 200, 255), width=2)
         d.text((4, j * ch + 2), p.stem if j else "current", fill=(255, 255, 255, 255))
     dest = BUILD / "preview" / f"{name}_crops.png"
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -95,9 +104,102 @@ def cmd_crops(name, recipes_, box):
     print(dest)
 
 
+def cmd_lint(name):
+    """Static checks for the mistakes that cost iteration steps (see chargen/lint.py)."""
+    from .lint import lint
+    findings = lint(CHARS / name / "recipe.toml", template())
+    for level, msg in findings:
+        print(f"{level:5} {msg}")
+    print(f"{len(findings)} finding(s)" if findings else "clean")
+    return 1 if any(l == "error" for l, _ in findings) else 0
+
+
+def cmd_review(name):
+    """One image to look at after a change: the eight idle facings at 12x, torso and feet crops,
+    the turn-around, and walk, run, jump and attack in the angled views -> build/preview/NAME_review.png."""
+    tpl = template()
+    r = Recipe(CHARS / name / "recipe.toml")
+    frames = build_frames(tpl)
+    from PIL import ImageDraw
+    rows = []
+    s = 12
+    row = Image.new("RGBA", (len(FACINGS) * (24 * s + 6), 28 * s + 14), (60, 62, 80, 255))
+    dr = ImageDraw.Draw(row)
+    for i, f in enumerate(FACINGS):
+        row.alpha_composite(Image.fromarray(render_frame(r, frames["idle"][f][0])).crop((4, 4, 28, 32)).resize((24 * s, 28 * s), Image.NEAREST), (i * (24 * s + 6), 14))
+        dr.text((i * (24 * s + 6) + 2, 1), f, fill=(230, 230, 230, 255))
+    rows.append(("facings 12x", row))
+    s = 24  # heads: the grids are the hand work, so they get the biggest view
+    row = Image.new("RGBA", (len(FACINGS) * (20 * s + 6), 16 * s + 14), (60, 62, 80, 255))
+    dr = ImageDraw.Draw(row)
+    for i, f in enumerate(FACINGS):
+        row.alpha_composite(Image.fromarray(render_frame(r, frames["idle"][f][0])).crop((6, 4, 26, 20)).resize((20 * s, 16 * s), Image.NEAREST), (i * (20 * s + 6), 14))
+        dr.text((i * (20 * s + 6) + 2, 1), f, fill=(230, 230, 230, 255))
+    rows.append(("heads 24x", row))
+    for label, (y0, y1) in (("torso 16x", (17, 31)), ("feet 16x", (24, 32))):
+        s = 16
+        row = Image.new("RGBA", (len(FACINGS) * (20 * s + 6), (y1 - y0) * s), (60, 62, 80, 255))
+        for i, f in enumerate(FACINGS):
+            row.alpha_composite(Image.fromarray(render_frame(r, frames["idle"][f][0])).crop((6, y0, 26, y1)).resize((20 * s, (y1 - y0) * s), Image.NEAREST), (i * (20 * s + 6), 0))
+        rows.append((label, row))
+    s = 6
+    for anim, facing in (("rotate", "all"), ("walk", "down_side"), ("run", "side"), ("jump", "up_side"), ("attack", "down"), ("walk", "side_l")):
+        fr = frames[anim][facing]
+        row = Image.new("RGBA", (len(fr) * (32 * s + 4), 32 * s), (60, 62, 80, 255))
+        for i, f in enumerate(fr):
+            row.alpha_composite(Image.fromarray(render_frame(r, f)).resize((32 * s, 32 * s), Image.NEAREST), (i * (32 * s + 4), 0))
+        rows.append((f"{anim}/{facing} 6x", row))
+    W = max(im.width for _, im in rows) + 8
+    out = Image.new("RGBA", (W, sum(im.height + 22 for _, im in rows)), (60, 62, 80, 255))
+    d = ImageDraw.Draw(out)
+    y = 0
+    for label, im in rows:
+        d.text((4, y + 4), label, fill=(230, 230, 230, 255))
+        out.alpha_composite(im, (4, y + 18))
+        y += im.height + 22
+    dest = BUILD / "preview" / f"{name}_review.png"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    out.save(dest)
+    print(dest, out.size)
+
+
+def cmd_step(name, message, snapshot=False, goal=None, amend=False):
+    """Score the recipe, append a row to history/NOTES.md, snapshot every fifth step."""
+    from .mockup import MOCKUP_FACINGS, extract, similarity
+    tpl = template()
+    r = Recipe(CHARS / name / "recipe.toml")
+    frames = build_frames(tpl)
+    sprites = extract(CHARS / name / "concept" / f"{name}-pixel-mockup.png")
+    scores = [similarity(sp, render_frame(r, frames["idle"][f][0])) for sp, f in zip(sprites, MOCKUP_FACINGS)]
+    mean = float(np.mean(scores))
+    hist = CHARS / name / "history"
+    hist.mkdir(exist_ok=True)
+    notes = hist / "NOTES.md"
+    text = notes.read_text() if notes.exists() else ""
+    rows = [l for l in text.splitlines() if l.startswith("| ") and l.split("|")[1].strip().isdigit()]
+    if amend and rows:  # replace the last row (a fix to an unscored view, a better message)
+        text = text.replace(rows[-1] + "\n", "")
+        n = int(rows[-1].split("|")[1])
+    else:
+        n = (int(rows[-1].split("|")[1]) + 1) if rows else 0
+    if not text.strip():
+        text = f"# {name} iteration log\n\n| step | change | similarity |\n|---|---|---|\n"
+    notes.write_text(text.rstrip("\n") + f"\n| {n} | {message} | {mean:.4f} |\n")
+    if snapshot or n % 5 == 0:
+        (hist / f"step-{n:02d}.toml").write_text((CHARS / name / "recipe.toml").read_text())
+        print(f"snapshot history/step-{n:02d}.toml")
+    print(f"step {n}: {mean:.4f}  (" + "  ".join(f"{f}={v:.4f}" for f, v in zip(MOCKUP_FACINGS, scores)) + ")")
+    if goal is not None:
+        from .mockup import ceiling, palette_letters
+        cs = float(np.mean([ceiling(sp, palette_letters(r)) for sp in sprites]))
+        thr = cs * (1 - goal / 100)
+        print(f"goal: ceiling {cs:.4f}, within {goal:g}% = {thr:.4f}: " + (f"REACHED (+{mean - thr:.4f})" if mean >= thr else f"short by {thr - mean:.4f}"))
+
+
 def cmd_heads(name):
     tpl = template()
     r = Recipe(CHARS / name / "recipe.toml")
+    frames = build_frames(tpl)
     from .ascii import tone_ascii
     for facing in FACINGS:
         base = facing[:-2] if facing.endswith("_l") else facing
@@ -106,7 +208,10 @@ def cmd_heads(name):
             t = t[:, ::-1]
         ta = tone_ascii(t)
         g = r.grids.get(facing)
-        print(f"[{facing}]  template | grid" + ("" if g is not None else "  (no grid)"))
+        fr = frames["idle"][facing][0]
+        _, hx, hy, _ = fr.head
+        print(f"[{facing}]  template | grid" + ("" if g is not None else "  (no grid)")
+              + f"   grid col = frame col - {hx - HEAD_PAD}, grid row = frame row - {hy - HEAD_PAD}")
         for y in range(len(ta)):
             gr = "".join(g[y]) if g is not None and y < len(g) else ""
             print(f"{y:2d} {ta[y].replace(' ', '_')} | {gr}")
@@ -132,12 +237,14 @@ def cmd_labels(anims=()):
 
 
 def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
-                split_=False, shift_=False, fit_part_=None):
+                split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False, mirror_swap=False, apply=False, clean=False, hot=0,
+                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
-    from .mockup import (MOCKUP_FACINGS, breakdown, cost_maps, digits, extract, fit_part, heat, palette_fit,
-                         palette_letters, place, shift_probe, similarity, slack, split, text_view, widths)
+    from .mockup import (MOCKUP_FACINGS, breakdown, cost_maps, digits, draft_grid, extract, fit_part, grid_text, heat,
+                         hex_box, mirror_grid, palette_fit, palette_letters, place, shift_probe, similarity, slack,
+                         split, text_view, widths, clean_grid, apply_grid, hot_spots, init_palette)
     tpl = template()
     r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
     src = Path(mockup) if mockup else CHARS / name / "concept" / f"{name}-pixel-mockup.png"
@@ -150,6 +257,9 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     pal = palette_letters(r)
     pairs: dict[tuple, list] = {}
     part_pairs: dict[str, list] = {}
+    hot_views: list = []
+    pal_views: list = []
+    oracle_views: list = []
     from .mockup import quantize
     for i, (sprite, facing) in enumerate(zip(sprites, MOCKUP_FACINGS)):
         fr = frames[anim][facing][frame]
@@ -174,8 +284,20 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
             si, co = split(placed, rend)
             print(f"== {facing}: silhouette={si:.3f} colour-loss={co:.3f}")
         if shift_ and facing in r.grids:
-            dx, dy, gain = shift_probe(r, facing, sprite, fr, render_frame)
-            print(f"== {facing}: best grid shift dx={dx:+d} dy={dy:+d} gain={gain:+.3f}")
+            dx, dy, gain = shift_probe(r, facing, sprite, fr, render_frame, chars)
+            print(f"== {facing}: best grid shift{' of ' + chars if chars else ''} dx={dx:+d} dy={dy:+d} gain={gain:+.3f}")
+        if facing in draft or "all" in draft:
+            g = draft_grid(r, facing, placed, fr, chars=chars)
+            if clean:
+                g = clean_grid(g, r.legend)
+            print(f"== {facing}: drafted grid ({'cleaned; ' if clean else ''}nearest legend colour per cell)")
+            print(grid_text(g))
+            if apply:
+                apply_grid(r.path, facing, g)
+                print(f"   written to {r.path.name}")
+        if hex_ and hex_[0] == facing:
+            print(f"== {facing}: mockup hex")
+            print("\n".join(hex_box(placed, *hex_[1])))
         if fit_part_:
             codes = list(fit_part_)
             for y, x in zip(*np.where((rend[..., 3] > 0) & (placed[..., 3] > 0) & np.isin(fr.labels, codes))):
@@ -193,21 +315,68 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         cells += [Image.fromarray(heat(cr, rend)), Image.fromarray(heat(cm, placed))]
         for j, im in enumerate(cells):
             sheet.alpha_composite(im.resize((cell, cell), Image.NEAREST), (gap + i * (cell + gap), gap + j * (cell + gap)))
+        hot_views.append((facing, placed, rend, cr, cm, pal))
+        pal_views.append((facing, placed, fr.labels, fr.tones))
+        oracle_views.append((facing, sprite, placed, rend, fr.labels))
+    for facing in draft:  # left facings: mirrored from their right-facing twin
+        if facing.endswith("_l") or (facing == "all" and False):
+            pass
+    if draft and apply and _pass == 1 and any(f in MOCKUP_FACINGS or f == "all" for f in draft):
+        # the mockup's best placement moves once the head is covered: draft again against it
+        print("== second pass: the placement changed with the grids, redrafting")
+        return cmd_compare(name, mockup, recipe, anim, frame, text, fit, optimize, ceil, fit_grid, chars, widths_, digits_,
+                           slack_, split_, shift_, fit_part_, draft, hex_, quiet, mirror_swap, apply, clean, hot, init_pal,
+                           goal, oracle_, _pass=2, min_gain=min_gain, ablate_=ablate_)
+    if draft and apply:  # the right twins may have just been written: reload them
+        r = Recipe(r.path)
+    lefts = [f for f in ("down_side_l", "side_l", "up_side_l") if f in draft or ("all" in draft and f[:-2] in r.grids)]
+    for facing in lefts:
+        g, done = mirror_grid(r, facing, frames[anim][facing][frame], tpl.heads[facing[:-2]], swap=mirror_swap)
+        if g is None:
+            print(f"== {facing}: no {facing[:-2]} grid to mirror")
+            continue
+        print(f"== {facing}: {done} (look at the heads row of `just review`)")
+        print(grid_text(g))
+        if apply:
+            apply_grid(r.path, facing, g)
+            print(f"   written to {r.path.name}")
+    if hot:
+        print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
+        print(f"== {hot} costliest pixels (single scattered pixels at cost ~1 mean nothing big is left)")
+        print("\n".join(hot_spots(hot_views, hot)))
+    if ablate_:
+        from .mockup import ablate
+        idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
+        print("== ablation: score gain when a rule is removed")
+        print("\n".join(ablate(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle])))
+    if oracle_:
+        from .mockup import oracle
+        print("== oracle: gain from a pixel copy of the mockup, per part")
+        print("\n".join(oracle(oracle_views, pal)))
+    if init_pal:
+        from .catalog import TONE_IDS
+        print("== palette from the mockup, per body part and template tone")
+        print("\n".join(init_palette(pal_views, TONE_IDS)))
     out = BUILD / "preview" / f"{name}_compare.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(out)
     print(out)
-    if text:
+    if text or fit or fit_part_:  # letters are assigned per recipe: always show what they mean
         print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
     if fit:
         print("\n".join(palette_fit(pairs, pal)))
     if fit_part_:
         print(f"== fit on parts {fit_part_} (all views)")
         print("\n".join(fit_part(part_pairs, pal)))
-    if ceil:  # what this palette could reach with the mockup's exact shapes
+    if ceil or goal is not None:  # what this palette could reach with the mockup's exact shapes
         from .mockup import ceiling
         cs = [ceiling(sp, pal) for sp in sprites]
-        print("ceiling    " + "  ".join(f"{f}={v:.3f}" for f, v in zip(MOCKUP_FACINGS, cs)) + f"  mean={np.mean(cs):.3f}")
+        print("ceiling    " + "  ".join(f"{f}={v:.4f}" for f, v in zip(MOCKUP_FACINGS, cs)) + f"  mean={np.mean(cs):.4f}")
+        if goal is not None:  # the goal is a distance below the ceiling, in percent of it
+            thr = float(np.mean(cs)) * (1 - goal / 100)
+            mean = float(np.mean(scores))
+            print(f"goal       within {goal:g}% of the ceiling = {thr:.4f}; mean {mean:.4f} "
+                  + (f"REACHED (+{mean - thr:.4f})" if mean >= thr else f"short by {thr - mean:.4f}"))
     if fit_grid:  # trace the mockup with the head grids; prints the grids, applies nothing
         from .mockup import fit_grid as _fit, grid_text
         for facing in fit_grid:
@@ -218,9 +387,12 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     if optimize:  # bounded palette search; prints the moves, applies nothing
         from .mockup import optimize_palette
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
-        moves = optimize_palette(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle])
+        moves = optimize_palette(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle],
+                                 radius=28 if min_gain >= 0.001 else 20, step=8 if min_gain >= 0.001 else 4, min_gain=min_gain)
         print("optimize: " + (", ".join(f"{a}.{b} {c} -> {d} (+{g:.3f})" for a, b, c, d, g in moves) or "no move gains"))
-    print("similarity " + "  ".join(f"{f}={v:.3f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.3f}")
+    print("similarity " + "  ".join(f"{f}={v:.4f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.4f}")
+    if quiet:
+        return
     # loss per body part, in score points (render side + mockup side), per view then mean
     print("loss      " + "  ".join(f"{f:>10}" for f in MOCKUP_FACINGS) + "        mean")
     for g, vs in parts.items():
@@ -236,6 +408,12 @@ def main():
     h = sub.add_parser("heads"); h.add_argument("name")
     cr = sub.add_parser("crops"); cr.add_argument("name"); cr.add_argument("--recipe", action="append", default=[])
     cr.add_argument("--box", default="17,32", help="frame rows y0,y1 (torso 17,31; feet 24,32; head 4,20)")
+    cr.add_argument("--diff", action="store_true", help="outline pixels that differ from the current recipe")
+    ln = sub.add_parser("lint"); ln.add_argument("name")
+    rv = sub.add_parser("review"); rv.add_argument("name")
+    st = sub.add_parser("step"); st.add_argument("name"); st.add_argument("message"); st.add_argument("--snapshot", action="store_true")
+    st.add_argument("--goal", type=float, metavar="PCT", help="also report the target PCT percent below the ceiling")
+    st.add_argument("--amend", action="store_true", help="replace the last NOTES row instead of adding one")
     lb = sub.add_parser("labels"); lb.add_argument("anims", nargs="*")
     c = sub.add_parser("compare"); c.add_argument("name"); c.add_argument("--mockup"); c.add_argument("--recipe")
     c.add_argument("--text", nargs="*", default=(), metavar="VIEW", help="print views as text (or 'all')")
@@ -249,6 +427,18 @@ def main():
     c.add_argument("--split", action="store_true", help="silhouette match vs colour loss per view")
     c.add_argument("--shift", action="store_true", help="best whole-grid offset per head grid")
     c.add_argument("--fit-part", metavar="CODES", help="fit table restricted to label codes, e.g. T or Rr")
+    c.add_argument("--draft-grid", nargs="*", default=(), metavar="VIEW", help="draft a head grid from the mockup (or 'all')")
+    c.add_argument("--hex", nargs=2, metavar=("VIEW", "Y0,Y1,X0,X1"), help="raw mockup hex for a box of frame pixels")
+    c.add_argument("--quiet", action="store_true", help="no loss table")
+    c.add_argument("--mirror-swap", action="store_true", help="with --draft-grid VIEW_l: swap hair and stubble (one-sided cut)")
+    c.add_argument("--clean", action="store_true", help="with --draft-grid: the mechanical cleanups (visor chars off the lens rows, speckles, last row)")
+    c.add_argument("--apply", action="store_true", help="with --draft-grid: write the grids into the recipe")
+    c.add_argument("--hot", type=int, default=0, metavar="N", help="the N costliest pixels over all views")
+    c.add_argument("--init-palette", action="store_true", help="median mockup colour per body part and tone (before grids)")
+    c.add_argument("--goal", type=float, metavar="PCT", help="report the target as PCT percent below the palette ceiling")
+    c.add_argument("--oracle", action="store_true", help="gain from a pixel copy of the mockup per body part: where the gap lives")
+    c.add_argument("--ablate", action="store_true", help="drop each rule in turn and score (candidates to confirm with --hex)")
+    c.add_argument("--min-gain", type=float, default=0.0015, help="--optimize keeps a move only above this gain (0.0004 for the last thousandths; it raises the ceiling too)")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
     a = ap.parse_args()
     if a.cmd == "build":
@@ -258,10 +448,18 @@ def main():
     elif a.cmd == "heads":
         cmd_heads(a.name)
     elif a.cmd == "crops":
-        cmd_crops(a.name, a.recipe, tuple(int(v) for v in a.box.split(",")))
+        cmd_crops(a.name, a.recipe, tuple(int(v) for v in a.box.split(",")), a.diff)
+    elif a.cmd == "lint":
+        cmd_lint(a.name)
+    elif a.cmd == "review":
+        cmd_review(a.name)
+    elif a.cmd == "step":
+        cmd_step(a.name, a.message, a.snapshot, a.goal, a.amend)
     elif a.cmd == "compare":
         cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
-                    slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part)
+                    slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part, draft=a.draft_grid,
+                    hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet,
+                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate)
     else:
         cmd_labels(a.anims)
 

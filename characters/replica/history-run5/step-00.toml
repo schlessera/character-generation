@@ -1,4 +1,4 @@
-# NAME: one line on who they are. Concept art and pixel mockup: concept/
+# replica: a rooftop courier, magenta undercut, LED visor, chrome right arm, dark bomber with orange trim. Concept art and pixel mockup: concept/
 #
 # Start: copy to characters/NAME/recipe.toml. The palette below is Juno's (a dark-skinned courier
 # with magenta hair, a charcoal bomber, orange trim, white sneakers, a chrome arm): a starting point,
@@ -12,7 +12,7 @@
 # Mirroring swaps the anatomical labels and the meaning of front/back. A rule for a ONE-SIDED
 # feature (the cyber-arm, the far sleeve, an ear) must name its facings explicitly and usually
 # must not include the `_l` twin; symmetric trim (collar, hem, zipper) can list both.
-name = "NAME"
+name = "replica"
 rule_facing = "body"    # trim follows the body through spinning poses: side from the tracked head, front/back from the arms
 emissive = ["glow"]     # ramps that stay lit in the dark (the lens, the arm's joints)
 emissive_strength = 0.5
@@ -73,20 +73,12 @@ n = 2
 facings = ["down_side"]
 color = "skin.base"
 
-[[rules]]  # 3/4 front: the far shoulder stands out above the far sleeve (the mockup is three wider there)
-type = "grow"
-part = "torso"
-sides = ["front"]
-n = 3
-facings = ["down_side"]
-color = "jacket.base"
-
-[[rules]]  # 3/4 back: two
+[[rules]]  # 3/4 front and back: the far shoulder stands out above the far sleeve
 type = "grow"
 part = "torso"
 sides = ["front"]
 n = 2
-facings = ["up_side"]
+facings = ["down_side", "up_side"]
 color = "jacket.base"
 
 [[rules]]  # 3/4 back: the far (cyber) arm one pixel out, and its shoulder cap over the jacket's edge
@@ -142,20 +134,12 @@ facings = ["down_side", "down_side_l", "up_side", "up_side_l"]
 color = "shoes.base"
 
 # ---- shading before trim, so the collar and hem paint over it -------------------------------
-
 [[rules]]  # 3/4: the flank turned away from the front, one column, one shade darker
 type = "region"
 part = "torso"
 anchor = "back"
 n = 1
 facings = ["down_side", "down_side_l"]
-color = "jacket.shade"
-
-[[rules]]  # the waistband's shadow: the jacket row above the hem, one shade darker (the hem paints the last row)
-type = "rows"
-part = "torso"
-from = "bottom"
-n = 2
 color = "jacket.shade"
 
 # ---- collar: straight rows (an edge against the neck follows the neck's U and bends) ---------
@@ -299,6 +283,12 @@ n = 2
 facings = ["down_side"]
 color = "jacket.base"
 
+[[rules]]  # crease at the elbow
+type = "band"
+part = "arm_l"
+at = 0.5
+color = "jacket.shade"
+
 # long sleeves: only the fingertips show. The inner side is named per facing because mirroring
 # swaps the anatomical labels (hand_l is the far hand in one 3/4 view, the near one in the other).
 [[rules]]
@@ -363,7 +353,7 @@ type = "band"  # glint only in 3/4 front, where the arm is nearest)
 part = "arm_r"
 at = 0.75
 anchor = "back"
-facings = ["down_side"]
+facings = ["down_side", "down_side_l"]
 color = "chrome.light"
 
 [[rules]]  # the hand: a dark gap between the articulated fingers
