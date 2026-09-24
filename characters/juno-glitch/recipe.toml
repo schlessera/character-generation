@@ -10,4 +10,5 @@ orange = { base = "#ff3fd2", shade = "#b8209a" }
 cyan   = { base = "#ffe93f", shade = "#c4a51a", light = "#fff8c2" }
 fx     = { base = "#e2ff9e", shade = "#9dff3a", light = "#f6ffd9" }
 skin   = { base = "#e0b089", shade = "#b07f5c", light = "#c8946e", blush = "#e09a86" }
-stubble = { base = "#a8785a", shade = "#8e6247", light = "#8e6247", ink = "#3a2618" }
+stubble = { base = "#a8785a", shade = "#8e6247", light = "#c49a78", ink = "#3a2618" }
+outline = { base = "#1a1226" }   # a purple-black outline to go with the violet jacket

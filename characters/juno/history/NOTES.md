@@ -66,4 +66,9 @@ grid) and `--fit` (the median mockup color under every render color).
 | 43 | new `compare --ceiling`: the mockup quantized to the recipe's own palette, scored against itself. 0.926 for this palette, so the remaining gap (0.054, worst in the 3/4 view) is shape: the mockup's body is wider than the template's | 0.872 |
 | 44 | zoomed frame review of walk, run, jump and attack: the back collar tab drew a three-row "T" down the spine in the jump, now one pixel below the band as in the mockup; the back print is a small chevron (three band rules) instead of two stacked pixels | 0.872 |
 | 45 | snapshot | 0.872 |
+| 46 | heel-tab rule dropped: with the toe and heel caps it made a third orange spot on the profile shoe (neutral on the score, cleaner) | 0.872 |
+| 47 | Glitch colorway: its own purple-black outline and a visible circuit pattern (its stubble `light` equalled its `shade`) | 0.872 |
+| 48 | outline and visor rims are ramps (`outline`, `visor`) that the legend and `[outline]` reference, so a colorway swaps them with the palette; `[outline] color` may name a ramp | 0.872 |
+| 49 | the 3/4 view's cost map: every remaining hot spot is the mockup's wider torso edge and far arm, none on the head; the optimizer's second pass only repeats the rejected plum move. Converged on the mockup | 0.872 |
+| 50 | snapshot; playground smoke test | 0.872 |
 

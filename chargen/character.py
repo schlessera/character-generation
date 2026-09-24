@@ -193,11 +193,12 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     if f.head and r.grids:
         painted = _apply_head(r, f, rgba)
     # 4. outline: ink pixels that touch transparency (the silhouette edge);
-    #    head-grid pixels painted with a legend char listed in `keep` stay as drawn
+    #    head-grid pixels painted with a legend char listed in `keep` stay as drawn.
+    #    `color` is a hex or a ramp reference, so a colorway can swap it with the palette.
     if "color" in r.outline:
         a = rgba[..., 3] > 0
         edge = ink & a & ~_erode(a) & ~np.isin(painted, list(r.outline.get("keep", "")))
-        rgba[edge, :3] = hex_rgb(r.outline["color"])
+        rgba[edge, :3] = r.color(r.outline["color"], TONE_IDS["base"])
     return rgba
 
 

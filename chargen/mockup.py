@@ -193,7 +193,9 @@ def palette_letters(recipe) -> list[tuple[tuple[int, int, int], str]]:
         for slot, c in ramp.items():
             out.append((c, (key + marks.get(slot, "?")).ljust(2)))
     if "color" in recipe.outline:
-        out.append((hex_rgb(recipe.outline["color"]), "##"))
+        c = recipe.color(recipe.outline["color"], 1)
+        if c not in {p for p, _ in out}:  # a hex outline; a ramp one is already listed
+            out.append((c, "##"))
     for ref in recipe.legend.values():  # fixed colors in the head legend
         if ref.startswith("#"):
             out.append((hex_rgb(ref), "x "))
