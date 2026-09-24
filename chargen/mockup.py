@@ -296,3 +296,52 @@ def ceiling(sprite: np.ndarray, pal) -> float:
     d = np.stack([_redmean(px, np.repeat(c[None], len(px), 0)) for c in cols], 1)
     q[a, :3] = cols[np.argmin(d, 1)].astype(np.uint8)
     return similarity(sprite, q)
+
+
+# ---------------------------------------------------------------- head-grid fitter
+
+def fit_grid(recipe, facing: str, sprite: np.ndarray, frame, render, chars: str | None = None,
+             min_gain: float = 0.0008, sweeps: int = 2) -> tuple[np.ndarray, float, float]:
+    """Trace the mockup with the head grid: for every grid cell that lands on the head (or
+    beside it), try each legend character and keep the one that raises the view's
+    similarity by at least `min_gain`. `chars` limits the candidates (e.g. hair tones
+    only). Greedy, a few sweeps. Returns (grid, score before, score after); the recipe's
+    grid is left as it was."""
+    from .character import HEAD_PAD
+    grid = recipe.grids[facing].copy()
+    orig = recipe.grids[facing]
+    cands = list(chars) if chars else list(recipe.legend) + ["."]
+    _, hx, hy, _ = frame.head
+    H, W = frame.tones.shape
+
+    def score():
+        recipe.grids[facing] = grid
+        return similarity(sprite, render(recipe, frame))
+    base = before = score()
+    for _ in range(sweeps):
+        changed = False
+        for gy in range(grid.shape[0]):
+            for gx in range(grid.shape[1]):
+                y, x = hy + gy - HEAD_PAD, hx + gx - HEAD_PAD
+                if not (0 <= y < H and 0 <= x < W):
+                    continue
+                cur = grid[gy, gx]
+                best, best_c = base, cur
+                for c in cands:
+                    if c == cur:
+                        continue
+                    grid[gy, gx] = c
+                    s = score()
+                    if s > best + min_gain:
+                        best, best_c = s, c
+                grid[gy, gx] = best_c
+                if best_c != cur:
+                    base, changed = best, True
+        if not changed:
+            break
+    recipe.grids[facing] = orig
+    return grid, before, base
+
+
+def grid_text(grid: np.ndarray) -> str:
+    return "\n".join("".join(row) for row in grid)

@@ -106,7 +106,7 @@ def cmd_labels(anims=()):
     print(out)
 
 
-def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False):
+def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
@@ -158,6 +158,13 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         from .mockup import ceiling
         cs = [ceiling(sp, pal) for sp in sprites]
         print("ceiling    " + "  ".join(f"{f}={v:.3f}" for f, v in zip(MOCKUP_FACINGS, cs)) + f"  mean={np.mean(cs):.3f}")
+    if fit_grid:  # trace the mockup with the head grids; prints the grids, applies nothing
+        from .mockup import fit_grid as _fit, grid_text
+        for facing in fit_grid:
+            i = MOCKUP_FACINGS.index(facing)
+            g, b, a = _fit(r, facing, sprites[i], frames[anim][facing][frame], render_frame, chars)
+            print(f"fit-grid {facing}: {b:.3f} -> {a:.3f}")
+            print(grid_text(g))
     if optimize:  # bounded palette search; prints the moves, applies nothing
         from .mockup import optimize_palette
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
@@ -183,6 +190,8 @@ def main():
     c.add_argument("--fit", action="store_true", help="suggest palette moves from the mockup's colors")
     c.add_argument("--optimize", action="store_true", help="bounded palette search against the mockup (prints moves)")
     c.add_argument("--ceiling", action="store_true", help="score of the mockup quantized to the recipe's palette")
+    c.add_argument("--fit-grid", nargs="*", default=(), metavar="VIEW", help="trace the mockup with the head grid (prints it)")
+    c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
     a = ap.parse_args()
     if a.cmd == "build":
         cmd_build(a.names)
@@ -191,7 +200,7 @@ def main():
     elif a.cmd == "heads":
         cmd_heads(a.name)
     elif a.cmd == "compare":
-        cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling)
+        cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars)
     else:
         cmd_labels(a.anims)
 

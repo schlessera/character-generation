@@ -134,3 +134,32 @@ mockups. The mockups have a dark jacket only."
 | 89 | torsos of all eight facings checked: jacket, orange trim and the cyber-arm only | 0.874 |
 | 90 | snapshot, README media regenerated | 0.874 |
 
+## Seventh run (steps 91–110): to 0.900
+
+"Keep iterating until you are at 0.900 or better. Be creative on what is actually required to solve
+the visual problems across all angles. Think about the semantic meaning of the changes." And,
+mid-run: "do not be afraid to intermittently drop the score if there is a valid reason for it."
+
+| step | change | similarity |
+|---|---|---|
+| 91 | silhouette vs colour split: silhouettes already match at 0.996–1.000 in every view; the whole gap is colour placement inside the outline. A per-part *slack* table (loss now minus the palette ceiling's loss) says where there is room: torso, cyber-arm, feet | 0.874 |
+| 92 | `grow` learns the facing's `front`/`back`. The far sleeve, hand and shoulder stand beside the torso in the 3/4 views (the template tucks the far arm behind; the mockup's puffy sleeve shows). A general "jacket bulk" grow was tried first and rejected: the ±1 tolerance already covered the +1 rows, growing overshot | 0.877 |
+| 93 | profile shoes ungrown (the template's foot is already as long as the mockup's); visor rim neutral dark instead of navy | 0.879 |
+| 94 | new `compare --fit-grid VIEW [--chars ...]`: traces the mockup with a head grid cell by cell, keeps a change only if the view gains. Front grid: at its optimum already. Unrestricted it paints junk (grey on the neck rows, the glint erased); restricted to hair and stubble tones its gains are small. Used for diagnosis, not applied | 0.879 |
+| 95 | the lens has no glint in the mockup, its ends are the frame's dark caps: `g` cells become rim colour in every grid | 0.881 |
+| 96 | cyber-arm joint seams in chrome shade, not black rings; the shirt strip is dark grey, not black | 0.881 |
+| 97 | **the neck was jacket-coloured**: `[parts]` listed `neck` before `body`, and later lines win. Neck is skin now. The standing collar per facing: the torso's top row from the front and 3/4, the whole neck from behind (the mockup's band sits on the neck row there), the neck's back two columns in profile | 0.881 |
+| 98 | the far-flank `region` ran after the collar and painted over it; moved before the trim | 0.881 |
+| 99 | 3/4 zipper: both lapel edges and the shirt between, the far edge on the template's ink column (`ink = true`) | 0.882 |
+| 100 | 3/4-back: the cyber-arm's shoulder cap overlaps the jacket's edge (`region` with a new `skip` row parameter; the template starts the far arm two rows lower) | 0.883 |
+| 101 | the hem is split by the opening, as on an open bomber: painted before the zipper rules everywhere (the continuous band cost in 3/4 and is not what the mockup shows) | 0.884 |
+| 102 | a grid-shift probe: the mane wants one more pixel of volume toward her left in every view that shows it (3/4 +1, back and 3/4-back −1, the same anatomical direction); sneakers grow toward the toes only in the 3/4 views | 0.886 |
+| 103 | profile zipper on the jacket's front edge column, which the template draws in ink | 0.888 |
+| 104 | the stubble's shade is plum (`#44262f`): the shaved side under the magenta mane sits in its shadow and picks up its hue. The optimizer had proposed this twice and I had rejected it as drift; 77 pixels with the same median say it is reflected colour. Sole nearly white, stubble light and hair deep nudged | 0.893 |
+| 105 | skin shade far lighter (`#96603a`, the template's cheek shade is too deep for her), jacket ink lighter | 0.895 |
+| 106 | long sleeves: only the fingertips of the left hand show past the cuff, the inner side named per facing because mirroring swaps the labels (the cyber hand is chrome like its sleeve, no rule) | 0.896 |
+| 107 | generator bug: `render_frame` took its ink mask before the rules, so an outline that `grow` had pushed out kept its pre-outline colour (visible as chrome-grey on the cyber-arm). Mask taken after the rules | 0.897 |
+| 108 | 3/4 near arm: the mockup's cyber-arm stands two columns further out with a dark seam before the torso; ours was flush. Arm and hand grow out by one, the arm's front column is the jacket's shadow line; the flank shade down to one column. (Growing alone had failed twice: it made a three-pixel chrome arm where the mockup has chrome plus seam) | 0.898 |
+| 109 | hair shade and visor rim nudged to the fit table's medians | 0.899 |
+| 110 | the palette optimizer at a finer threshold (±20, step 4, gain ≥ 0.0004): pants shade lighter, chrome shade neutral, lens cyan a touch less saturated, stubble shade one step more plum; snapshot | 0.902 |
+

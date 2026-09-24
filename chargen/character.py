@@ -198,8 +198,10 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     # 4. outline: ink pixels that touch transparency (the silhouette edge);
     #    head-grid pixels painted with a legend char listed in `keep` stay as drawn.
     #    `color` is a hex or a ramp reference, so a colorway can swap it with the palette.
+    #    The ink mask is taken from the frame as the rules left it: `grow` moves edges.
     if "color" in r.outline:
         a = rgba[..., 3] > 0
+        ink = f.tones == TONE_IDS["ink"]
         edge = ink & a & ~_erode(a) & ~np.isin(painted, list(r.outline.get("keep", "")))
         rgba[edge, :3] = r.color(r.outline["color"], TONE_IDS["base"])
     return rgba
@@ -215,9 +217,14 @@ def _grow(rule: dict, f: Frame, rgba: np.ndarray, r: Recipe) -> Frame:
     codes = list(part_codes(rule["part"]))
     steps = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
     H, W = tones.shape
+    sides = []
+    for side in rule.get("sides", list(steps)):
+        if side in ("front", "back"):  # the facing's front side; left facings are mirrored
+            side = "left" if (side == "front") == f.facing.endswith("_l") else "right"
+        sides.append(side)
     for _ in range(rule.get("n", 1)):
         part = np.isin(lab, codes) & (tones > 0)
-        for side in rule.get("sides", list(steps)):
+        for side in sides:
             dy, dx = steps[side]
             for y, x in zip(*np.where(part)):
                 ny, nx = y + dy, x + dx
@@ -296,7 +303,8 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
             anchor = "left" if (anchor == "front") == f.facing.endswith("_l") else "right"
         out = np.zeros_like(part)
         n = rule.get("n", 1)
-        for y in np.where(part.any(axis=1))[0][:rule.get("top")]:
+        rows = np.where(part.any(axis=1))[0][rule.get("skip", 0):]  # `skip`: rows left out at the top
+        for y in rows[:rule.get("top")]:
             xs = np.where(part[y])[0]
             sel = xs[:n] if anchor == "left" else xs[-n:]
             out[y, sel] = True
