@@ -1,0 +1,505 @@
+# replica: a rooftop courier with a magenta undercut, LED visor, chrome cyber right arm, dark bomber jacket with orange trim. Concept art and pixel mockup: concept/
+# Start: copy to characters/NAME/recipe.toml, fill the palette from `just compare NAME --fit`,
+# then draw the head grids from `just compare NAME --text VIEW`. Rules below are the patterns that
+# held for a jacket-and-sneakers design; keep what the design has, delete the rest, add what it
+# needs. Every rule says why it exists: the next reader is an agent with the text view open.
+name = "replica"
+rule_facing = "head"    # trim follows the tracked head through spinning poses
+emissive = ["glow"]     # ramps that stay lit in the dark (a visor, joints)
+emissive_strength = 0.5
+light = { color = "#3ff0ff", radius = 24, intensity = 0.2, anchor = "arm_r+hand_r" }
+
+# Ramps. Template tones pick slots: base, shade, light, blush, ink. Without `ink` the template's
+# ink stays (outlines, eyes). Take every value from `--fit`; expect the outline to be a warm dark
+# brown, the jacket's shade close to its base, the skin's shade much lighter than the template's.
+[palette]
+skin    = { base = "#ad7043", shade = "#96603a", light = "#95593a", blush = "#a8653f" }
+hair    = { base = "#c22e6e", shade = "#9e2a5f", light = "#cc3276", deep = "#83254f", ink = "#261b19" }
+jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#232120" }
+pants   = { base = "#34353a", shade = "#323338", light = "#3c3d42", ink = "#141417" }
+shirt   = { base = "#2e2f2b", shade = "#222320" }
+shoes   = { base = "#dcdcde", shade = "#d9d6d6", light = "#d6d6da" }
+trim    = { base = "#f06a1e", shade = "#e86218" }
+glow    = { base = "#44e4e8", shade = "#1aa6c4", light = "#c6fdff" }
+outline = { base = "#241a17" }                       # silhouette and the legend's `o`
+visor   = { base = "#1a191d", shade = "#3b3839" }    # rim above the lens, rim below
+stubble = { base = "#523d30", light = "#7d5a46", shade = "#42222f" }  # shaved side; plum shade = shadow under the magenta mane
+smear   = { base = "#e6f6f8", shade = "#b8e4ec", light = "#ffffff", ink = "#8fcfdc" }  # attack swing trail (fx label)
+chrome  = { base = "#a9a9a9", shade = "#878788", light = "#bebebe", ink = "#3a4250" }  # the cyber-arm
+
+# Part/group -> ramp. LATER LINES WIN: groups first, specific parts after (a `neck` line before
+# `body` is silently overridden — it happened).
+[parts]
+head = "skin"
+body = "jacket"
+neck = "skin"
+hand_l = "skin"
+legs = "pants"
+feet = "shoes"
+fx = "smear"                 # the attack's swing smears; unmapped they render as dark blobs
+"arm_r+hand_r" = "chrome"   # the cyber-arm, anatomical right in every frame
+
+[outline]
+color = "outline"
+keep = "kSs"        # legend chars that keep their colour on the silhouette edge (hair outline, ear)
+
+# ---- silhouette first: `grow` changes the outline, later rules see the grown labels ----------
+# Only where `--widths` shows the mockup 2+ pixels wider, and with a name. A general bulk grow
+# overshoots (the metric already forgives one pixel).
+[[rules]]  # 3/4 front: the far sleeve and hand stand beside the torso (the template tucks them behind)
+type = "grow"
+part = "arm_l"
+sides = ["front"]
+n = 2
+facings = ["down_side", "down_side_l"]
+color = "jacket.base"
+
+[[rules]]
+type = "grow"
+part = "hand_l"
+sides = ["front"]
+n = 2
+facings = ["down_side", "down_side_l"]
+color = "skin.base"
+
+[[rules]]  # 3/4 front: the far shoulder above the sleeve
+type = "grow"
+part = "torso"
+sides = ["front"]
+n = 2
+facings = ["down_side", "down_side_l"]
+color = "jacket.base"
+
+[[rules]]  # sneakers one pixel wider: both sides from the front and behind, toward the toes in 3/4,
+type = "grow"  # nothing in profile (the template's foot is already as long as a mockup's)
+part = "feet"
+sides = ["left", "right"]
+facings = ["down", "up"]
+color = "shoes.base"
+
+[[rules]]
+type = "grow"
+part = "feet"
+sides = ["front"]
+facings = ["down_side", "down_side_l", "up_side", "up_side_l"]
+color = "shoes.base"
+
+[[rules]]  # 3/4 back: the far cyber-arm stands a column out beside the torso
+type = "grow"
+part = "arm_r"
+sides = ["front"]
+n = 1
+facings = ["up_side"]  # up_side_l has the arm on the other edge
+color = "chrome.base"
+
+[[rules]]  # 3/4 back: the far shoulder stands out above the cyber-arm (mockup 2 wider, rows 18-21)
+type = "grow"
+part = "torso"
+sides = ["front"]
+n = 2
+facings = ["up_side"]  # up_side_l has the arm on the other edge
+color = "jacket.base"
+
+# ---- shading before trim, so the collar and hem paint over it -------------------------------
+[[rules]]  # 3/4: the flank turned away from the front, one column, one shade darker
+type = "region"
+part = "torso"
+anchor = "back"
+n = 1
+facings = ["down_side", "down_side_l"]
+color = "jacket.shade"
+
+[[rules]]  # 3/4 back: the cyber-arm's shoulder cap over the jacket's edge (an arm cannot grow into the torso)
+type = "region"
+part = "torso"
+anchor = "front"
+n = 2
+skip = 1
+top = 2
+facings = ["up_side"]  # up_side_l has the arm on the other edge
+color = "chrome.base"
+
+# ---- collar: straight rows (an edge against the neck follows the neck's U and bends) ---------
+[[rules]]  # front and 3/4: the torso's top row; the zipper rules notch it open
+type = "rows"
+part = "torso"
+from = "top"
+n = 1
+facings = ["down", "down_side", "down_side_l"]
+color = "trim"
+
+[[rules]]  # from behind the standing collar hides the neck
+type = "all"
+part = "neck"
+ink = true
+facings = ["up", "up_side", "up_side_l"]
+color = "trim"
+
+[[rules]]  # profile: its back panel behind the neck
+type = "region"
+part = "neck"
+anchor = "back"
+n = 2
+ink = true
+facings = ["side", "side_l"]
+color = "trim"
+
+[[rules]]  # back: a short collar tab
+type = "stripe"
+part = "torso"
+top = 2
+facings = ["up"]
+color = "trim"
+
+# ---- hem before the zipper: an open jacket's hem is split by the opening --------------------
+[[rules]]  # the template draws the jacket's bottom line in ink: paint it too
+type = "edge"
+part = "torso"
+touching = "legs"
+sides = ["down"]
+ink = true
+color = "trim"
+
+# ---- the opening, per facing ----------------------------------------------------------------
+[[rules]]  # front: two edges over the shirt, one straight column each on twisted poses
+type = "stripe"
+straight = true
+part = "torso"
+offset = -1
+facings = ["down"]
+color = "trim.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 1
+facings = ["down"]
+color = "trim.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 0
+facings = ["down"]
+color = "shirt"
+
+[[rules]]  # neck skin dipping into the collar
+type = "stripe"
+part = "torso"
+offset = 0
+top = 1
+facings = ["down"]
+color = "skin.shade"
+
+[[rules]]  # 3/4: the chest front projects toward the facing side; the far edge sits on the
+type = "stripe"  # template's ink column, so paint ink
+straight = true
+part = "torso"
+offset = 0
+facings = ["down_side", "down_side_l"]
+color = "trim.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 1
+ink = true
+facings = ["down_side", "down_side_l"]
+color = "shirt"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 2
+ink = true
+facings = ["down_side", "down_side_l"]
+color = "trim.base"
+
+[[rules]]  # profile: down the front edge column, which the template draws in ink
+type = "stripe"
+part = "torso"
+anchor = "front"
+straight = true
+offset = 0
+ink = true
+facings = ["side", "side_l"]
+color = "trim.base"
+
+# ---- sleeves ---------------------------------------------------------------------------------
+[[rules]]  # cuff, a shade darker than the hem so they do not merge where the hand hangs beside it
+type = "edge"
+part = "arm_l"
+touching = "hand_l"
+color = "trim.shade"
+
+[[rules]]  # crease at the elbow
+type = "band"
+part = "arm_l"
+at = 0.5
+color = "jacket.shade"
+
+# long sleeves: only the fingertips show. The inner side is named per facing because mirroring
+# swaps the anatomical labels (hand_l is the far hand in one 3/4 view, the near one in the other).
+[[rules]]
+type = "region"
+part = "hand_l"
+anchor = "left"
+n = 2
+facings = ["down_side"]
+color = "jacket.base"
+
+[[rules]]
+type = "region"
+part = "hand_l"
+anchor = "left"
+n = 1
+facings = ["down", "down_side_l"]
+color = "jacket.base"
+
+[[rules]]
+type = "region"
+part = "hand_l"
+anchor = "right"
+n = 1
+facings = ["up", "up_side", "up_side_l"]
+color = "jacket.base"
+
+# ---- shoes -----------------------------------------------------------------------------------
+[[rules]]  # high-tops: one row up the leg
+type = "rows"
+part = "legs"
+from = "bottom"
+n = 1
+color = "shoes.base"
+
+[[rules]]  # pale sole
+type = "rows"
+part = "feet"
+from = "bottom"
+n = 1
+color = "shoes.shade"
+
+[[rules]]  # caps at both ends of the shoe's upper row
+type = "band"
+part = "foot_r"
+at = 0.0
+anchor = "left"
+color = "trim.base"
+
+[[rules]]
+type = "band"
+part = "foot_r"
+at = 0.0
+anchor = "right"
+color = "trim.base"
+
+[[rules]]
+type = "band"
+part = "foot_l"
+at = 0.0
+anchor = "left"
+color = "trim.base"
+
+[[rules]]
+type = "band"
+part = "foot_l"
+at = 0.0
+anchor = "right"
+color = "trim.base"
+
+# ---- cyber-arm: one glow pixel per joint (elbow, wrist); the lens ramp is the emissive glow ----
+[[rules]]
+type = "band"
+part = "arm_r"
+at = 0.5
+anchor = "center"
+color = "glow.base"
+
+[[rules]]
+type = "band"
+part = "arm_r"
+at = 1.0
+anchor = "center"
+color = "glow.base"
+
+# ---- head grids: one per facing, drawn from `just compare NAME --text VIEW` -------------------
+# Grid = head template padded by 3, '.' keeps the template. `just heads NAME` prints alignment.
+# Column offset grid->frame differs per facing; derive it from the hair outline row first.
+[head.legend]
+h = "hair"          # tone-relative
+b = "hair.base"
+H = "hair.shade"    # strand lines
+D = "hair.deep"
+i = "hair.light"
+k = "hair.ink"      # hair outline
+S = "skin.base"
+s = "skin.shade"
+x = "visor.base"    # rim above the lens (also the lens' end caps: no glint)
+v = "glow.base"     # lens
+f = "visor.shade"   # rim below the lens
+o = "outline.base"  # outline drawn by the grid (an ear beside the head)
+t = "stubble.base"  # shaved side: checker of t and w
+w = "stubble.light"
+p = "stubble.shade" # plum shadow where the mane meets the shaved side
+"-" = "clear"
+
+[head.grids]
+# down = """
+# ...
+# """
+down = """
+....................
+.......kkkkkk.......
+......kDibbbHkk.....
+.....kDbDHHHbbHk....
+.....kDHibbbHibHkk..
+....xtpHHDbbbDbbbk..
+...ktttpppDbbbDbk...
+...kwwtSSSpHbbbbk...
+...kttSSSSSpHbbHbk..
+...kpSSSSSSSpbbHHk..
+..kSkxxxxxxxpbHbkkk.
+..kStvvvvvvvpbDbk...
+...kSkffffffpHDbk...
+....kkSSSSSSSkkDk...
+....................
+....................
+....................
+"""
+down_side = """
+...................
+........kkkkkk.....
+......kkibbbbDkk...
+.....xDibHHHbbbHk..
+....kfpHHbbbbHbbHkk
+...ktttpDHDbbbHbbix
+...ktwttpppDbbbHbk.
+...kwtwtSSSpHbbbbk.
+...ktwtSSSSSpHbbHbk
+...kkkSSSSSSSpbbHHk
+...kSpxxxxxxxxbHbkk
+...ksswvvvvvvkbDbk.
+...kwxSffffffkHDbk.
+....kkkSSSSSSSkkDk.
+...................
+...................
+...................
+"""
+side = """
+..................
+..................
+......kkkkkkk.....
+.....kHbbibbHkk...
+....kHHbDHDbbbbk..
+...-kppppbbHHbbbk.
+...ktwttfpDbbHbbk.
+...kttwtttpppDDHbk
+...ktwtwwtSSSpDHbk
+...kwtwttSSSSSkHik
+...ktwkkxxxxxxkDHk
+...ktkSstvvvvvkbDk
+...ktkskSfffffkHk.
+....ktksSSSSSSkHk.
+..................
+..................
+..................
+"""
+up_side = """
+..................
+..................
+.......kkkkkk.....
+.....kkDbbbbHk....
+...kkbbbbbbHHHk...
+..kDbbbbiHHHDDk...
+..bbbbbHDHHDpppk..
+..kiHbbHHHpftttk..
+..kHbbHHHptttwtk..
+..iHbbHbptttwtwk..
+..HHbHbptttwttkkk.
+..kHbDbpttwtkkSvx.
+..xHHDHpttttkSwk..
+..kDHpptttttttSk..
+..................
+..................
+..................
+"""
+up = """
+....................
+....................
+.......kkkkkk.......
+.....kkHbbbbHk......
+....kbbbbbbbbDk.....
+..kkbHbbbbHHHDk.....
+..kbHbbbbbbHDptk....
+...kHbbbbbDHptttk...
+...kbbbbbHHHftwtk...
+..kbbHbbiHHptttwk...
+.kkbHHbbHHpttwwtk...
+..kxDbbHHHfttttkSk..
+...kHbDHHptttttkSk..
+...kHHDHptttttttk...
+....................
+....................
+....................
+"""
+down_side_l = """
+...................
+.....kkkkkk........
+...kkDbbbbikk......
+..kHbbbHHHbiDk.....
+..kpbbHbbbbHHbk....
+..ktpbbbDHbbHbbk...
+..kwtpbDbbbHbbHbk..
+..ktwpSSSpbbHbbHk..
+..ktpSSSSSpbHbbbk..
+..kpSSSSSSSpbHbHk..
+..kxxxxxxxxpbHbbDk.
+..kvvvvvvvxbbHbDk..
+..kSffffffkbDbHk...
+...kSSSSSSkkDkk....
+...................
+...................
+...................
+"""
+side_l = """
+..................
+..................
+.....kkkkkkk......
+...kkHbbibbHk.....
+..kbbbbDHDbHHk....
+.kbbbHHbbbHbbk-...
+.kbbHbbDbHbbHbk...
+kbHDDpbbHbbHbbk...
+kbHDpSSSpbHbbHk...
+kiHkSSSSSpbHbHk...
+kHDkxxxxxxkbHbk...
+kDbkvvvvvkbHbDk...
+.kHkfffffkbDbHk...
+.kHkSSSSSSkDbk....
+..................
+..................
+..................
+"""
+up_side_l = """
+..................
+..................
+.......kkkkkk.....
+.....kkDbbbbHk....
+...kkbbbbbbHHpk...
+..kDbbbbiHHpttk...
+..kbbbbHDHptwtk...
+..kiHbbHHptttwk...
+..kHbbHHptwttwk...
+..kHbbHptttwtwk...
+..kbHbpttwttwtk...
+.xvbDpttwttttSk...
+..kHptttttwtSk....
+..kpttttttttk.....
+..................
+..................
+..................
+"""
