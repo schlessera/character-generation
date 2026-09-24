@@ -127,6 +127,8 @@ type = "edge"; part = "torso"; touching = "legs"; sides = ["down"]; ink = true; 
 [[rules]]  # a coat that falls over the thighs (Nyx, from behind): two leg rows of coat, the hem band on the first
 type = "rows"; part = "legs"; from = "top"; n = 2; ink = true; facings = ["up", "up_side", "up_side_l"]; color = "jacket"
 type = "rows"; part = "legs"; from = "top"; n = 1; ink = true; facings = ["up", "up_side", "up_side_l"]; color = "trim.base"
+[[rules]]  # the hem crosses the hands resting in the pockets: a lime row on the hands' last row (Nyx, +0.007 in profile; `anims` without run/attack)
+type = "rows"; part = "hands"; from = "bottom"; n = 1; facings = ["side", "side_l", "down_side", "down_side_l"]; anims = ["idle", "walk", "rotate", "interact"]; color = "trim.base"
 [[rules]]  # 3/4 front: piping down the skirt's front edge over the far leg (Nyx)
 type = "region"; part = "leg_r"; anchor = "left"; n = 1; facings = ["down_side_l"]; color = "trim.base"
 ```
