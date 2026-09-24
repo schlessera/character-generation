@@ -531,7 +531,19 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
         moves = optimize_palette(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle],
                                  radius=28 if min_gain >= 0.001 else 20, step=8 if min_gain >= 0.001 else 4, min_gain=min_gain)
-        print("optimize: " + (", ".join(f"{a}.{b} {c} -> {d} (+{g:.3f})" for a, b, c, d, g in moves) or "no move gains"))
+        # a palette move lifts the ceiling too: the goal is a distance below it, so report the net margin
+        from .character import hex_rgb
+        from .mockup import ceiling as _ceiling
+        lines = []
+        for a, b, c, d, g in moves:  # (optimize_palette leaves kept moves applied: start from the original colour)
+            r.ramps[a][b] = hex_rgb(c)
+        for a, b, c, d, g in moves:
+            before = float(np.mean([_ceiling(sp, palette_letters(r)) for sp in sprites]))
+            r.ramps[a][b] = hex_rgb(d)
+            after = float(np.mean([_ceiling(sp, palette_letters(r)) for sp in sprites]))
+            dc = after - before
+            lines.append(f"{a}.{b} {c} -> {d} (score +{g:.4f}, ceiling {dc:+.4f}, net margin {g - dc * (1 - (goal or 3) / 100):+.4f})")
+        print("optimize: " + ("; ".join(lines) or "no move gains") + ("" if not moves else "   (moves applied cumulatively for the ceiling column; nothing written)"))
     if draft and apply:  # the scores above were taken before this pass wrote its grids: re-score the file
         r2 = Recipe(r.path)
         scores = [similarity(sp, render_frame(r2, frames[anim][f][frame])) for sp, f in zip(sprites, MOCKUP_FACINGS)]
