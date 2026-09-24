@@ -249,10 +249,10 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     for rule in rules:
         if "facings" in rule and f.facing not in rule["facings"]:
             continue
+        if "per_facing" in rule:  # parameter overrides for this facing: { side_l = { at = 0.3 }, down_side_l = { n = 1, anims = [...] } }
+            rule = {**rule, **rule["per_facing"].get(f.facing, {})}
         if "anims" in rule and f.anim not in rule["anims"]:  # e.g. profile trim that stacks up in the attack's spin
             continue
-        if "per_facing" in rule:  # parameter overrides for this facing: { side_l = { at = 0.3 }, down_side_l = { n = 1 } }
-            rule = {**rule, **rule["per_facing"].get(f.facing, {})}
         if rule["type"] == "grow":
             f = _grow(rule, f, rgba, r)
             continue

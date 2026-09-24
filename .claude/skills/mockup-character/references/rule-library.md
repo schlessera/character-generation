@@ -196,9 +196,11 @@ type = "rows"; part = "feet"; from = "bottom"; n = 1; facings = ["up_side_l"]; c
 
 ## Animation-only fixes
 
-`anims = ["idle", "walk", ...]` limits a rule to those animations. The general case: any rule
-whose part is a HAND or an ARM but which depicts the coat (pockets, a hem along the hand's
-bottom row, a skirt over the hand) is wrong wherever the arm swings — lime bars ran along the
+`anims = ["idle", "walk", ...]` limits a rule to those animations (per facing through
+`per_facing = { side_l = { anims = [...] } }`). The general case: any rule whose part is a
+HAND, an ARM or a LEG but which depicts the coat (pockets, a hem along the hand's bottom row or
+the legs' top row, a skirt over the hand) is wrong wherever that limb swings — the run and the
+jump as much as the attack — lime bars ran along the
 arm in the run and the attack on Nyx until the rule got `anims = ["idle", "walk", "rotate",
 "interact"]`. Profile trim (a cuff, piping, a hem) also stacked into a hook in the attack's
 spinning frames: exclude `attack` there too. Only idle is scored, so the score never sees it;
