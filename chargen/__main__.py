@@ -203,6 +203,31 @@ def cmd_turntable(name, scale=8, ms=220, anims=("idle",)):
     print(dest, len(q), "frames")
 
 
+def cmd_grid(name, view, row=None, text=None):
+    """Print a head grid with row numbers, or set one row of it: `grid NAME VIEW 7 '..kbbbk..'`.
+    The setter replaces the whole block in the file, so no string search can land in the wrong
+    view (a search for the side_l block's opening matches inside up_side_l's, a pitfall every run hit once)."""
+    from .mockup import apply_grid, grid_text
+    r = Recipe(CHARS / name / "recipe.toml")
+    if view not in r.grids:
+        raise SystemExit(f"no grid for {view}; grids: {', '.join(r.grids)}")
+    g = r.grids[view]
+    if row is None:
+        for y, line in enumerate(grid_text(g).split("\n")):
+            print(f"{y:2d} {line}")
+        return
+    if not (0 <= row < g.shape[0]):
+        raise SystemExit(f"row {row} is outside the grid (0..{g.shape[0] - 1})")
+    new = list(text.ljust(g.shape[1], ".")[:g.shape[1]])
+    bad = sorted(set(new) - set(r.legend) - {"."})
+    if bad:
+        raise SystemExit(f"characters not in the legend: {' '.join(bad)}")
+    print(f"{view} row {row}: {''.join(g[row])} -> {''.join(new)}")
+    g[row] = new
+    apply_grid(r.path, view, g)
+    print(f"written to {r.path.name}")
+
+
 def cmd_step(name, message, snapshot=False, goal=None, amend=False):
     """Score the recipe, append a row to history/NOTES.md, snapshot every fifth step."""
     from .mockup import extract, mockup_facings, placement, similarity
@@ -570,6 +595,7 @@ def main():
     cr.add_argument("--diff", action="store_true", help="outline pixels that differ from the current recipe")
     ln = sub.add_parser("lint"); ln.add_argument("name")
     rv = sub.add_parser("review"); rv.add_argument("name")
+    gr = sub.add_parser("grid"); gr.add_argument("name"); gr.add_argument("view"); gr.add_argument("row", nargs="?", type=int); gr.add_argument("text", nargs="?")
     tt = sub.add_parser("turntable"); tt.add_argument("name"); tt.add_argument("anims", nargs="*", default=["idle"])
     tt.add_argument("--scale", type=int, default=8); tt.add_argument("--ms", type=int, default=220)
     st = sub.add_parser("step"); st.add_argument("name"); st.add_argument("message"); st.add_argument("--snapshot", action="store_true")
@@ -619,6 +645,8 @@ def main():
         cmd_lint(a.name)
     elif a.cmd == "review":
         cmd_review(a.name)
+    elif a.cmd == "grid":
+        cmd_grid(a.name, a.view, a.row, a.text)
     elif a.cmd == "turntable":
         cmd_turntable(a.name, a.scale, a.ms, a.anims or ["idle"])
     elif a.cmd == "step":

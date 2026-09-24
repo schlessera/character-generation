@@ -60,6 +60,8 @@ Other commands:
   replace the last one — message and all — with `--amend`), snapshot every fifth step; with `--goal`, the ceiling and
   the threshold.
 - `just selftest` — every command and flag on a scratch copy; run it after touching `chargen/`.
+- `just grid NAME VIEW [ROW 'text']` — print a grid with row numbers, or replace one row of it
+  (the block is rewritten whole: no string search can land in another view).
 - `just heads NAME` — each facing's head template rows beside its grid, with the grid↔frame
   column and row offsets in the header.
 - `just crops NAME --box y0,y1 [--recipe v.toml …] [--diff]` — the eight idle facings cropped to

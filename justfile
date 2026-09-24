@@ -49,6 +49,10 @@ lint name:
 review name:
     uv run python -m chargen review {{name}}
 
+# Print a head grid with row numbers, or set one of its rows: `just grid NAME VIEW 7 '..kbbbk..'`
+grid name view *args:
+    uv run python -m chargen grid {{name}} {{view}} {{args}}
+
 # GIF of the character turning through the eight facings (idle; add anims for more) -> build/preview/NAME_turntable.gif
 turntable name *flags:
     uv run python -m chargen turntable {{name}} {{flags}}

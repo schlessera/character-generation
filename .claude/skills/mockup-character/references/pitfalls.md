@@ -30,7 +30,8 @@ Each one cost at least a step, some cost ten. Read before editing `[parts]`, gri
 - A string replace over the grids section that includes the `[head.grids]` header renames the
   table (`g` → `x` turned it into `[head.xrids]`, score 0.64). Replace inside the triple-quoted
   strings only.
-- `s.index('side_l = """')` matches inside `down_side_l = """`. Search with the leading newline.
+- `s.index('side_l = """')` matches inside `down_side_l = """`. Search with the leading newline,
+  or use `just grid NAME VIEW ROW 'text'`, which rewrites the block whole.
 - Grids paint on labels `H`, `N` and `.` only; they can extend the head's silhouette but never
   move the body. Chars in `[outline] keep` keep their colour on the silhouette edge (the ear, the
   hair outline); anything else on the edge becomes the outline colour.
