@@ -1,0 +1,523 @@
+# Juno "Static" Okafor: rooftop data courier. Concept art: concept/
+name = "Juno"
+rule_facing = "head"   # trim follows the body through the spinning attack
+emissive = ["cyan"]    # ramps that glow: the visor lens and the cyber-arm's joints stay lit in the dark
+emissive_strength = 0.5  # how self-lit they are: 0 = lit like the rest of her, 1 = full brightness
+emissive_parts = { "arm_r+hand_r" = 1.0 }  # the cyber-arm's joints glow at full brightness
+# the soft glow she casts on the roof, centered under her cyber-arm in every frame
+light = { color = "#3ff0ff", radius = 24, intensity = 0.2, anchor = "arm_r+hand_r" }
+
+# Ramps. Template tones map to slots: base, shade, light, blush, ink (fill ink).
+# A ramp without `ink` keeps the template's ink (outlines, eyes).
+[palette]
+skin    = { base = "#ad7043", shade = "#7f4a2d", light = "#95593a", blush = "#a8653f" }
+stubble = { base = "#553e30", shade = "#432f24", light = "#6b4d3b", ink = "#2b1a14" }
+hair    = { base = "#c22e6e", shade = "#9a285c", light = "#cc3276", deep = "#8a2454", ink = "#261b19" }
+jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#131316" }
+pants   = { base = "#34353a", shade = "#2e2f34", light = "#3c3d42", ink = "#141417" }
+logo    = { base = "#9a9aa2" }
+shirt   = { base = "#16151b", shade = "#101014" }
+shoes   = { base = "#dcdcde", shade = "#d0d0d4", light = "#d6d6da" }
+chrome  = { base = "#b2b6bc", shade = "#767a84", light = "#dfe2e6", ink = "#34383f" }
+fx      = { base = "#8ff8ff", shade = "#3cc4e6", light = "#c8fcff" }
+orange  = { base = "#f06a1e", shade = "#e86218" }
+cyan    = { base = "#3ce4ec", shade = "#1aa6c4", light = "#c6fdff" }
+outline = { base = "#241a17" }   # the mockup's warm dark brown, on the silhouette and the ear
+visor   = { base = "#1b2230", shade = "#35363b" }   # the dark rim above the lens, the grey rim below
+
+# Part/group -> ramp. Later lines override earlier ones.
+[parts]
+head = "skin"
+neck = "skin"
+body = "jacket"
+hand_l = "skin"
+legs = "pants"
+feet = "shoes"
+"arm_r+hand_r" = "chrome"
+fx = "fx"
+
+[outline]
+color = "outline"
+keep = "kSs"        # head-grid chars that stay as drawn on the silhouette: hair outline, ear
+
+# Procedural details from label geometry. color: "#hex", "ramp" (tone-relative) or "ramp.slot".
+[[rules]]  # high collar (from the front it is open: only the flaps and the zipper edges)
+type = "edge"
+part = "torso"
+touching = "neck"
+facings = ["side", "side_l", "up_side", "up_side_l", "up"]
+color = "orange"
+
+[[rules]]  # collar flaps standing up beside the neck
+type = "stripe"
+part = "neck"
+anchor = "left"
+facings = ["down", "down_side", "down_side_l"]
+color = "orange"
+
+[[rules]]
+type = "stripe"
+part = "neck"
+anchor = "right"
+facings = ["down", "down_side", "down_side_l"]
+color = "orange"
+
+[[rules]]  # the collar standing up behind the neck in profile and from behind
+type = "stripe"
+part = "neck"
+anchor = "back"
+facings = ["side", "side_l", "up_side", "up_side_l"]
+color = "orange"
+
+[[rules]]  # collar tips: the jacket's top corners, where the collar meets the shoulders
+type = "band"
+part = "torso"
+at = 0.0
+anchor = "left"
+facings = ["down", "down_side", "down_side_l"]
+color = "orange"
+
+[[rules]]
+type = "band"
+part = "torso"
+at = 0.0
+anchor = "right"
+facings = ["down", "down_side", "down_side_l"]
+color = "orange"
+
+[[rules]]  # jacket hem (the template draws the jacket's bottom edge in ink: paint that too)
+type = "edge"
+part = "torso"
+touching = "legs"
+sides = ["down"]
+ink = true
+color = "orange"
+
+[[rules]]  # open jacket: two orange zipper edges...
+type = "stripe"
+straight = true
+part = "torso"
+offset = -1
+facings = ["down"]
+color = "orange.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 1
+facings = ["down"]
+color = "orange.base"
+
+[[rules]]  # ...over a black shirt
+type = "stripe"
+straight = true
+part = "torso"
+offset = 0
+facings = ["down"]
+color = "shirt"
+
+[[rules]]  # neck skin dipping into the collar
+type = "stripe"
+part = "torso"
+offset = 0
+top = 1
+facings = ["down"]
+color = "skin.shade"
+
+[[rules]]  # 3/4 view: near zipper edge, shirt showing toward the front
+type = "stripe"
+straight = true
+part = "torso"
+offset = 0
+facings = ["down_side", "down_side_l"]
+color = "orange.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 1
+facings = ["down_side", "down_side_l"]
+color = "shirt"
+
+[[rules]]  # profile: zipper edge along the jacket front
+type = "stripe"
+part = "torso"
+anchor = "front"
+offset = -1
+facings = ["side", "side_l"]
+color = "orange.base"
+
+[[rules]]  # back: collar tab
+type = "stripe"
+part = "torso"
+top = 2
+facings = ["up"]
+color = "orange"
+
+[[rules]]  # chest logo (the "static" kanji patch), a light mark on her left chest
+type = "band"
+part = "torso"
+at = 0.35
+anchor = "center"
+offset = 2
+facings = ["down"]
+color = "logo"
+
+[[rules]]  # back print: a grey chevron between the shoulders
+type = "band"
+part = "torso"
+at = 0.4
+anchor = "center"
+offset = -1
+facings = ["up"]
+color = "logo"
+
+[[rules]]
+type = "band"
+part = "torso"
+at = 0.4
+anchor = "center"
+offset = 1
+facings = ["up"]
+color = "logo"
+
+[[rules]]
+type = "band"
+part = "torso"
+at = 0.55
+anchor = "center"
+offset = 0
+facings = ["up"]
+color = "logo"
+
+[[rules]]  # sleeve cuff
+type = "edge"
+part = "arm_l"
+touching = "hand_l"
+color = "orange"
+
+[[rules]]  # jacket side shading where the sleeves meet the body
+type = "edge"
+part = "torso"
+touching = "arms"
+color = "jacket.shade"
+
+[[rules]]  # sleeve crease at the elbow
+type = "band"
+part = "arm_l"
+at = 0.5
+color = "jacket.shade"
+
+[[rules]]  # cyber elbow: plate seam with a glowing joint
+type = "band"
+part = "arm_r"
+at = 0.5
+color = "chrome.ink"
+
+[[rules]]
+type = "band"
+part = "arm_r"
+at = 0.5
+anchor = "center"
+color = "cyan.base"
+
+[[rules]]  # shoulder cap seam
+type = "band"
+part = "arm_r"
+at = 0.0
+color = "chrome.shade"
+
+[[rules]]  # cyber wrist: dark joint ring with one glowing seam pixel
+type = "edge"
+part = "arm_r"
+touching = "hand_r"
+color = "chrome.ink"
+
+[[rules]]
+type = "band"
+part = "arm_r"
+at = 1.0
+anchor = "center"
+color = "cyan.base"
+
+[[rules]]  # cargo pockets on the outer thighs
+type = "band"
+part = "leg_r"
+at = 0.3
+anchor = "left"
+offset = 1
+facings = ["down"]
+color = "pants.light"
+
+[[rules]]
+type = "band"
+part = "leg_l"
+at = 0.3
+anchor = "right"
+offset = -1
+facings = ["down"]
+color = "pants.light"
+
+[[rules]]
+type = "band"
+part = "leg_r"
+at = 0.3
+anchor = "right"
+offset = -1
+facings = ["up"]
+color = "pants.light"
+
+[[rules]]
+type = "band"
+part = "leg_l"
+at = 0.3
+anchor = "left"
+offset = 1
+facings = ["up"]
+color = "pants.light"
+
+[[rules]]  # high-tops: the sneaker reaches one row up the leg
+type = "rows"
+part = "legs"
+from = "bottom"
+n = 1
+color = "shoes.base"
+
+[[rules]]  # cyber-hand: a dark gap between the articulated fingers
+type = "rows"
+part = "hand_r"
+from = "bottom"
+n = 1
+color = "chrome.shade"
+
+[[rules]]
+type = "band"
+part = "hand_r"
+at = 1.0
+anchor = "center"
+color = "chrome.ink"
+
+[[rules]]  # polished forearm plate catching the light on its outer edge
+type = "band"
+part = "arm_r"
+at = 0.75
+anchor = "back"
+color = "chrome.light"
+
+[[rules]]  # a far cyber-arm the template draws as a dark silhouette still reads as chrome
+type = "all"
+part = "arm_r+hand_r"
+ink = true
+only_if_ink = true
+color = "chrome.shade"
+
+[[rules]]
+type = "band"
+part = "arm_r"
+at = 0.5
+anchor = "center"
+ink = true
+only_if_ink = true
+color = "cyan.base"
+
+[[rules]]  # pale soles
+type = "rows"
+part = "feet"
+from = "bottom"
+n = 1
+color = "shoes.shade"
+
+[[rules]]  # orange toe and heel caps: the outer pixels of the shoe's upper row
+type = "band"
+part = "foot_r"
+at = 0.0
+anchor = "left"
+color = "orange.base"
+
+[[rules]]
+type = "band"
+part = "foot_r"
+at = 0.0
+anchor = "right"
+color = "orange.base"
+
+[[rules]]
+type = "band"
+part = "foot_l"
+at = 0.0
+anchor = "left"
+color = "orange.base"
+
+[[rules]]
+type = "band"
+part = "foot_l"
+at = 0.0
+anchor = "right"
+color = "orange.base"
+
+[head.legend]
+h = "hair"          # tone-relative: template outline becomes hair outline, shading carries over
+b = "hair.base"
+H = "hair.shade"
+D = "hair.deep"     # strand lines between the waves
+i = "hair.light"
+k = "hair.ink"
+u = "stubble.base"
+U = "stubble.shade" # stubble texture: u/U checker reads as buzzed hair
+w = "stubble.light" # the circuit pattern shaved into the undercut
+S = "skin.base"
+s = "skin.shade"
+v = "cyan.base"
+V = "cyan.shade"
+g = "cyan.light"    # glint on the visor lens
+x = "visor.base"    # visor frame, the dark rim above the lens
+f = "visor.shade"   # the grey rim below the lens
+o = "outline.base"  # outline (ear sticking out of the head silhouette)
+"-" = "clear"
+
+# Head grids: head template padded by 3 px, '.' = unchanged. Print aligned with
+# `just heads juno`. Grids may run below the head (hair hanging past the jaw).
+[head.grids]
+down = """
+....................
+.......kkkkkk.......
+.......kDibbbHkk....
+......kDbDHHHbbHk...
+......kDHibbbHibbkk.
+.....kUUHHbbbbDbbbk.
+....oUuuUUUDbbbDbk..
+....owwu...UHbbbbk..
+....owu.....UHbbHbk.
+....oU.S....SUbbHHk.
+...oSoxxxxxxxxbHbkkk
+...oSwgvvvvvvUbDbk..
+....oSfffffffHDbk...
+.....o.......SkkkDk.
+...............kk...
+"""
+down_side = """
+...................
+.......kkkkkk......
+.....kkibbbbDkk....
+....kDibHHHbbbHk...
+...kUUHHHbbbbHbbHkk
+...ouuUDDDbbbHbbik.
+...ouwuUUuDbbbHbk..
+...owuw...UHbbbbk..
+...ouw.....UHbbHbk.
+...oU...S...UbbHHk.
+..oSUxxxxxxxbHbkkk.
+..oSSwgvvvvvkbDbk..
+..owUSffffffkHDbk..
+...o.o........kHk..
+..............kk...
+"""
+side = """
+..................
+......kkkkkk......
+.....kHbbibbDkk...
+....kHbbDDDbbbbbk.
+....kUUUUbbHHbbbk.
+...kuUuuUUDbbHbbbk
+...kuUwuUuUUUDDHbk
+...kuwuU.u...UDHbk
+...kuUwUu.....kHbk
+...ku......S.SkDHk
+....uo..xxxxxxkHbk
+....Uo...vvvvgkHk.
+.....uo..fffffkHk.
+......o......kkHk.
+...............k..
+..................
+"""
+up_side = """
+...................
+.......kkkkkk......
+.....kkDbbbbHk.....
+...kkbbbbbbbHHHk...
+..kDbbbbiHHHDDk....
+..kbbbbHDHHDUUUk...
+..kiHbbHbHUUUuuk...
+..kHbbHHHUUuuwuk...
+..kHbbHbUUuuwuwk...
+..kHbHbUUuuwuukk...
+..kHbDbUuuwu.x.....
+..kHHDHUUuuU.V.....
+..kDHUUUuUuUuu.....
+...kDkUkkkkkk......
+....kU.............
+.....k.............
+"""
+up = """
+....................
+.......kkkkkk.......
+.....kkHbbbbHk......
+....kbbbbbbbbDk.....
+..kkbHbbbbHHHDk.....
+..kbHbbbbbbHDuUk....
+...kHbbbbbDHUUuuk...
+...kbbbbbHHHUuwuk...
+..kbbHbbiHHUUuuwk...
+.kkbHHbbHHUUuwuuk...
+..kkDbbHHHUUuuukSk..
+...kHbDHHUUuuuUkSo..
+...kHHDHUUuuuuwuk...
+...kHkDkkkkkkkSk....
+....kkk.............
+.....k..............
+"""
+down_side_l = """
+...................
+.......kkkkk.......
+.....kkbbbbbkk.....
+....kbbbiibbbbkk...
+...kUbDbbibbbDbbk..
+...kuUDbbbbbDbbbbkk
+...uUuDDbbbbDbbbbk.
+...Uu...DDbbbDHbbbk
+...u.......DbbDHbk.
+......S...S.DbbHbbk
+....xxxxxxx..DbHbk.
+....xgvvvvv.kbbHbk.
+.....ffffffkbHkk...
+............kbk....
+.............k.....
+"""
+side_l = """
+..................
+......kkkkkk......
+....kkbbbbbbkkk...
+...kbbbbbiibbbbk..
+..kbDbbbbibbDbbbk.
+..kbbDDbbbbDbbbbbk
+.kbbk..DDbbbDbbbk.
+.kbk.....DbbbDHbbk
+..k.......DbbDHbk.
+......S....DbbHbbk
+....xxxxx..DbDHbk.
+....gvvvvkbbDHbk..
+....fffff.kbHHbk..
+..........kbHbk...
+...........kbk....
+............k.....
+"""
+up_side_l = """
+..................
+.......kkkkk......
+.....kkbbbbbkk....
+....kbbbiibbbbk...
+...kbbbbbDbbbbbk..
+..kbbDbbDbbbDbUk..
+..kbDbbDbbbbDuUuk.
+.kbDbbDbbbbDuUuUk.
+.kbbbDbbbbbDUuUuk.
+.kHbDbbbbbbDuUuUk.
+.kbDbbbbbbDuUuUuk.
+.kHHbbbbbDUuUu....
+.kHHbbbbbk........
+..kHHbbbk.........
+...kkHk...........
+.....k............
+"""

@@ -184,6 +184,9 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     for rule in r.rules:
         if "facings" in rule and f.facing not in rule["facings"]:
             continue
+        if rule["type"] == "grow":
+            f = _grow(rule, f, rgba, r)
+            continue
         mask = _rule_mask(rule, f)
         for y, x in zip(*np.where(mask)):
             c = r.color(rule["color"], f.tones[y, x])
@@ -193,12 +196,47 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     if f.head and r.grids:
         painted = _apply_head(r, f, rgba)
     # 4. outline: ink pixels that touch transparency (the silhouette edge);
-    #    head-grid pixels painted with a legend char listed in `keep` stay as drawn
+    #    head-grid pixels painted with a legend char listed in `keep` stay as drawn.
+    #    `color` is a hex or a ramp reference, so a colorway can swap it with the palette.
+    #    The ink mask is taken from the frame as the rules left it: `grow` moves edges.
     if "color" in r.outline:
         a = rgba[..., 3] > 0
+        ink = f.tones == TONE_IDS["ink"]
         edge = ink & a & ~_erode(a) & ~np.isin(painted, list(r.outline.get("keep", "")))
-        rgba[edge, :3] = hex_rgb(r.outline["color"])
+        rgba[edge, :3] = r.color(r.outline["color"], TONE_IDS["base"])
     return rgba
+
+
+def _grow(rule: dict, f: Frame, rgba: np.ndarray, r: Recipe) -> Frame:
+    """`grow`: push a part's silhouette out by `n` pixels on the given `sides` (default
+    all), into transparent pixels only. The part's edge pixel moves outward (so the
+    outline stays an outline) and the pixel it left becomes `color`. The frame's tones
+    and labels grow with it, so later rules see the bigger part. Bigger shoes on a
+    template whose feet are two pixels wide, for example."""
+    tones, lab = f.tones.copy(), f.labels.copy()
+    codes = list(part_codes(rule["part"]))
+    steps = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
+    H, W = tones.shape
+    sides = []
+    for side in rule.get("sides", list(steps)):
+        if side in ("front", "back"):  # the facing's front side; left facings are mirrored
+            side = "left" if (side == "front") == f.facing.endswith("_l") else "right"
+        sides.append(side)
+    for _ in range(rule.get("n", 1)):
+        part = np.isin(lab, codes) & (tones > 0)
+        for side in sides:
+            dy, dx = steps[side]
+            for y, x in zip(*np.where(part)):
+                ny, nx = y + dy, x + dx
+                if not (0 <= ny < H and 0 <= nx < W) or tones[ny, nx] > 0:
+                    continue
+                rgba[ny, nx] = rgba[y, x]
+                tones[ny, nx], lab[ny, nx] = tones[y, x], lab[y, x]
+                if tones[y, x] == TONE_IDS["ink"]:  # the edge moved out: fill behind it
+                    c = r.color(rule["color"], TONE_IDS["base"])
+                    rgba[y, x] = (*c, 255)
+                    tones[y, x] = TONE_IDS["base"]
+    return replace(f, tones=tones, labels=lab)
 
 
 def _erode(a: np.ndarray) -> np.ndarray:
@@ -256,6 +294,20 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
             x = base + rule.get("offset", 0) * (-1 if f.facing.endswith("_l") else 1)
             if 0 <= x < part.shape[1] and part[y, x]:
                 out[y, x] = True
+        return out
+    if kind == "region":
+        # the first `n` pixels of every row from the anchored side ("left"/"right", or the
+        # facing's "front"/"back"): a panel of the part, e.g. the far flank of the torso
+        anchor = rule.get("anchor", "back")
+        if anchor in ("front", "back"):
+            anchor = "left" if (anchor == "front") == f.facing.endswith("_l") else "right"
+        out = np.zeros_like(part)
+        n = rule.get("n", 1)
+        rows = np.where(part.any(axis=1))[0][rule.get("skip", 0):]  # `skip`: rows left out at the top
+        for y in rows[:rule.get("top")]:
+            xs = np.where(part[y])[0]
+            sel = xs[:n] if anchor == "left" else xs[-n:]
+            out[y, sel] = True
         return out
     if kind == "band":
         # one row at fraction `at` (0 = top, 1 = bottom) of the part's vertical extent;

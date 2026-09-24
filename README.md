@@ -69,7 +69,7 @@ flowchart LR
 | 2 | [Teaching the AI anatomy](#2--teaching-the-ai-anatomy) | Labeling every pixel of every frame with the body part it belongs to |
 | 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
 | 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
-| 5 | [Closing the gap](#5--closing-the-gap) | 25 rounds of the agent comparing its render to the mockup, and where it stopped paying off |
+| 5 | [Closing the gap](#5--closing-the-gap) | 110 rounds against the mockup: where it stopped paying off, what got it moving again, where it converged, and what the score never saw |
 | 6 | [Debugging in plain text](#6--debugging-in-plain-text) | Bugs tracked down with a query and fixed with a few characters |
 | 7 | [Variations for free](#7--variations-for-free) | A new colorway is a ten-line file |
 | 8 | [The AI picks up the pencil](#8--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
@@ -239,11 +239,11 @@ flowchart LR
 Every five steps the recipe was saved to `characters/juno/history/step-NN.toml`, so each stage of the progression is
 rebuilt from source like every other image here:
 
-<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after 0, 5, 10, 15, 20 and 25 iteration steps, in five views" width="920"></p>
+<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after every fifth iteration step from 0 to 110, in five views" width="920"></p>
 
 <p align="center"><img src="docs/images/juno-iteration-heads.png" alt="Head close-ups (front, profile, back) across the same steps" width="920"></p>
 
-What each block of five steps did (the full log, step by step, is
+What each block of five steps did in the first run (the full log, step by step, is
 [`characters/juno/history/NOTES.md`](characters/juno/history/NOTES.md)):
 
 | steps | focus | similarity |
@@ -259,10 +259,12 @@ The similarity score is deliberately coarse. It lets every opaque pixel look for
 in the other image, so it forgives one-pixel drift but not a wrong shape or color. A perfect 1.0 is out of reach for
 reasons explained below.
 
-<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767" width="720"></p>
+<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767, then 0.836, 0.848, 0.867, then flat around 0.872 from step 45 to 90, then 0.902 at 110" width="720"></p>
 
-The curve shows the returns diminishing. Shape (steps 1–5) and color (6–10) were the big wins. After step 15 the score
-is flat, and it's worth looking at why, because most of the remaining gap can't be closed by more iterations.
+The first 25 steps show the returns diminishing. Shape (steps 1–5) and color (6–10) were the big wins. After step 15
+the score was flat, and it's worth looking at why, because most of the remaining gap can't be closed by iterating the
+same way. (A second run, steps 26–40, then changed the instruments rather than the recipe, and moved the score again.
+That comes [after the analysis](#the-second-run-better-instruments).)
 
 **The two images follow different rules.** Juno is built by a rule system: the template's five tones, recolored
 through a small palette, plus geometric rules keyed to body-part labels. The mockup was painted by an image model that
@@ -308,9 +310,100 @@ Some details needed new capabilities in the generator, and the agent added them 
   `straight` on twisted poses;
 - `rule_facing = "head"` makes trim follow the tracked head through the spinning attack, so the zipper doesn't end up
   on her back;
-- `[outline] keep` lists the head-grid colors that keep their own color on the silhouette (the ear, the hair outline).
+- `[outline] keep` lists the head-grid colors that keep their own color on the silhouette (the ear, the hair outline);
+- a `grow` rule pushes a body part's outline outward into empty pixels (the sneakers are a pixel wider than the
+  template's feet on both sides), the only rule that changes the silhouette;
+- a `region` rule selects the first n columns of a part from one side, the facing's front or back included (and may
+  skip rows at the top), so the torso's far flank can be a shade darker in the 3/4 views, the cyber-arm's shoulder
+  cap can overlap the jacket's edge, and a sleeve can hang over all but the fingertips of a hand;
+- `grow` also takes the facing's front or back as a side, so the far sleeve can stand beside the torso in the 3/4
+  views where the template tucks it behind;
+- `compare --fit-grid VIEW` traces the mockup with a head grid cell by cell; it turned out to be a diagnostic (the
+  grids were already at their optimum) rather than a tool to apply.
 
 All of these are opt-in, so the earlier snapshots still render exactly as they did.
+
+### The second run: better instruments
+
+The first run ended with the score flat and the conclusion above: the remaining gap was structural. A second run of
+fifteen steps (26–40) tested that conclusion by changing what the agent could *see* before changing the recipe.
+`just compare` grew four instruments:
+
+- a **loss table per body part** (head, torso, cyber-arm, feet…), in score points, per view, so the biggest leak has a
+  name rather than a feeling;
+- **heat-map rows** below the side-by-side, the render dimmed with its unmatched pixels in red, and the same for the
+  mockup;
+- `--text VIEW`: the mockup and the render as text, `mockup | render`, every pixel written as a recipe palette letter
+  (`H` hair base, `H-` hair shade, `t` stubble, `r` orange, `##` outline, `??` nothing close). The mockup becomes
+  something an agent can read *as a head grid*, row by row, and copy from;
+- `--fit`: for every color in the render, the median mockup color underneath it. A palette suggestion table.
+
+The first thing the fit table said was that the mockup's outline is a warm dark brown (`#241a17`), not the near-black
+the recipe used. That one line was worth more than the previous ten steps (0.767 → 0.800). Then the text view showed
+what the loop had been unable to see in a side-by-side image: the visor sits one row lower on the same-height head,
+the whole back of the head is shaved down to the jaw in profile, the pants are the jacket's grey, the collar is open
+from the front, the sneakers are white high-tops with orange caps rather than orange soles. Each head grid was
+redrawn from the text view, offset by offset.
+
+| steps | focus | similarity |
+|---|---|---|
+| 26–30 | **what the fit table said.** Warm outline, grey pants, a palette refit, the open collar, the visor's grey rim, white high-tops | 0.836 |
+| 31–35 | **head grids read off the text view.** Profile, front and 3/4 redrawn: shaved side down to the jaw, hair from the crown, an outlined ear, a brow row over the visor; the visor on the same head row in every facing | 0.848 |
+| 36–40 | **the back views and the trim.** Back grids redrawn, the hem painted over the template's ink edge, collar tips at the jacket's corners, a second palette pass | 0.867 |
+
+What changed is that the agent could now find the rest of the way by itself, because the reference was in a form it
+reads well. The human-flagged issues of the first run (strand direction, a visor too wide) were all things a text
+diff makes obvious.
+
+A third run (steps 41–55) added two more instruments and then stopped. `compare --optimize` is a bounded palette
+search (each ramp slot may move up to 28 per channel, and only if the score gains); it confirmed the one color still
+off, the lens cyan, and proposed one drift, a stubble shade sliding toward the hair's shadow, which is why it prints
+its moves instead of applying them. `compare --ceiling` scores the mockup quantized to the recipe's own palette:
+0.926, against 0.872 for the render. The cost maps put all of that remaining gap on the mockup's wider torso and far
+arm, none of it on the head. With the palette and the head grids converged, the last steps went to what the metric
+can't see: a collar tab that drew a "T" down the spine in the jump, the profile shoe, the Glitch colorway's outline,
+and the outline and visor colors becoming ramps a colorway can swap.
+
+| steps | focus | similarity |
+|---|---|---|
+| 41–45 | **the last color and the ceiling.** Lens cyan, the optimizer and the ceiling instruments, a frame review at zoom | 0.872 |
+| 46–50 | **the recipe as a base for colorways.** Outline and visor rims as ramps, Glitch gets its own outline; converged | 0.872 |
+| 51–55 | **consistency.** Left-facing grids in the same strand vocabulary as the redrawn right-facing ones; final animation pass and figures | 0.872 |
+
+A fourth run (56–70) started from three complaints by the human watching, none of which the score measures: the
+visor sat too low on the side views, the collar bent, the shoes were too small. The visor now has a height per
+angle (the front keeps its brow row, the angled views sit at eye level, which is also what the mockup does). The
+collar bent because it was an *edge* against the neck, and the neck's boundary is a U; it is now the torso's
+straight top row, notched open by the zipper. The shoes needed something no rule could do: change the silhouette.
+A new `grow` rule pushes a part's outline outward, and the sneakers are three pixels wide instead of two. The score
+did not move. It was never looking there.
+
+A fifth run (71–85) went after the jacket from the angles the mockup barely shows. The 3/4 views were the worst:
+the zipper sat on the torso's centre column, next to the template's own shade column, so a five-pixel-wide torso
+showed four colours in a row; the sleeve cuff and the hem, both orange and one row apart, merged into a stepped band;
+a side-shading rule added dark columns beside every sleeve. The fix was mostly geometry: the chest front projects
+toward the facing side, so the open edge moved there; the hem is painted after the zipper so it runs under the
+opening; the cuff is a darker orange; the shading rule went. A `region` rule (the first n columns of a part from
+its front or back) shades the far flank in the 3/4 views, and the back chevron shows its near half from 3/4 behind.
+The turn-around now reads as one jacket seen from eight sides. Five more steps (86–90) removed the light
+marks the concept had put on the jacket, the chest patch and the back chevron: the mockup's jacket is dark from
+every angle, and the human watching preferred it that way.
+
+The last run (91–110) was asked to reach 0.900, with license to drop the score for a good reason. The first thing
+to establish was where a score could still come from: a silhouette-only comparison showed every view's outline
+already matching at 0.996–1.000, so the whole gap was colour placement inside the outline, and a per-part *slack*
+table (each part's loss now, minus its loss in the mockup quantized to the palette) named the torso and the
+cyber-arm. Reading the text views semantically then found two real errors that no score had flagged: the neck had
+been jacket-coloured since step 0, because `[parts]` listed it before `body` and later lines win; and the far
+flank's shading ran after the collar and painted over it. The rest was geometry read off the mockup: the far
+sleeve stands beside the torso in 3/4 (`grow` toward the facing's front), the cyber-arm's shoulder cap overlaps
+the jacket's edge from 3/4 behind, the near cyber-arm stands a column further out with the jacket's shadow line
+before the torso, the hem is split by the opening, the zipper runs on the front edge column in profile, only the
+fingertips show past the long sleeves. One colour the optimizer had proposed twice and been refused twice went in
+on a semantic reading: the stubble's shade is plum, because the shaved side sits in the magenta mane's shadow. And
+a generator bug fell out of the text view: the outline that `grow` pushes out kept its pre-outline colour. The
+score moved from 0.874 to 0.902, the last three thousandths from colour medians the fit table had been listing all
+along.
 
 ## 6 · Debugging in plain text
 

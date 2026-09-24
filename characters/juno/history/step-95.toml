@@ -10,25 +10,25 @@ light = { color = "#3ff0ff", radius = 24, intensity = 0.2, anchor = "arm_r+hand_
 # Ramps. Template tones map to slots: base, shade, light, blush, ink (fill ink).
 # A ramp without `ink` keeps the template's ink (outlines, eyes).
 [palette]
-skin    = { base = "#ad7043", shade = "#96603a", light = "#95593a", blush = "#a8653f" }  # lit evenly; the template's cheek shade is too deep for her
-stubble = { base = "#553e30", shade = "#42222f", light = "#74533f", ink = "#2b1a14" }  # the shade under the mane picks up its magenta
-hair    = { base = "#c22e6e", shade = "#9e2a5f", light = "#cc3276", deep = "#83254f", ink = "#261b19" }
-jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#232120" }
-pants   = { base = "#34353a", shade = "#323338", light = "#3c3d42", ink = "#141417" }
-shirt   = { base = "#26252b", shade = "#1c1b21" }
-shoes   = { base = "#dcdcde", shade = "#d9d6d6", light = "#d6d6da" }
-chrome  = { base = "#b2b6bc", shade = "#7a7e80", light = "#dfe2e6", ink = "#34383f" }
+skin    = { base = "#ad7043", shade = "#7f4a2d", light = "#95593a", blush = "#a8653f" }
+stubble = { base = "#553e30", shade = "#432f24", light = "#6b4d3b", ink = "#2b1a14" }
+hair    = { base = "#c22e6e", shade = "#9a285c", light = "#cc3276", deep = "#8a2454", ink = "#261b19" }
+jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#131316" }
+pants   = { base = "#34353a", shade = "#2e2f34", light = "#3c3d42", ink = "#141417" }
+shirt   = { base = "#16151b", shade = "#101014" }
+shoes   = { base = "#dcdcde", shade = "#d0d0d4", light = "#d6d6da" }
+chrome  = { base = "#b2b6bc", shade = "#767a84", light = "#dfe2e6", ink = "#34383f" }
 fx      = { base = "#8ff8ff", shade = "#3cc4e6", light = "#c8fcff" }
 orange  = { base = "#f06a1e", shade = "#e86218" }
-cyan    = { base = "#44e4e8", shade = "#1aa6c4", light = "#c6fdff" }
+cyan    = { base = "#3ce4ec", shade = "#1aa6c4", light = "#c6fdff" }
 outline = { base = "#241a17" }   # the mockup's warm dark brown, on the silhouette and the ear
-visor   = { base = "#1a191d", shade = "#3b3839" }   # the dark rim above the lens, the grey rim below
+visor   = { base = "#1a191d", shade = "#35363b" }   # the dark rim above the lens, the grey rim below
 
 # Part/group -> ramp. Later lines override earlier ones.
 [parts]
 head = "skin"
+neck = "skin"
 body = "jacket"
-neck = "skin"       # after body: the neck shows between the collar tips
 hand_l = "skin"
 legs = "pants"
 feet = "shoes"
@@ -58,63 +58,6 @@ n = 2
 facings = ["down_side", "down_side_l"]
 color = "skin.base"
 
-# Long sleeves: the jacket hangs over the left hand, only the fingertips show past the cuff.
-# (The cyber-arm's hand is chrome like its sleeve, so it needs no rule.) The inner side of
-# the hand is named per facing, because mirroring swaps the anatomical labels.
-[[rules]]  # 3/4 front, the far hand
-type = "region"
-part = "hand_l"
-anchor = "left"
-n = 2
-facings = ["down_side"]
-color = "jacket.base"
-
-[[rules]]  # front, and the mirrored 3/4 where the left hand is the near one
-type = "region"
-part = "hand_l"
-anchor = "left"
-n = 1
-facings = ["down", "down_side_l"]
-color = "jacket.base"
-
-[[rules]]  # from behind and 3/4 behind
-type = "region"
-part = "hand_l"
-anchor = "right"
-n = 1
-facings = ["up", "up_side", "up_side_l"]
-color = "jacket.base"
-
-[[rules]]  # 3/4 front: the near arm stands one pixel further out from the body, and the
-type = "grow"  # jacket's shadow line runs between it and the torso
-part = "arm_r+hand_r"
-sides = ["back"]
-facings = ["down_side"]
-color = "chrome.base"
-
-[[rules]]
-type = "region"
-part = "arm_r"
-anchor = "front"
-n = 1
-facings = ["down_side"]
-color = "jacket.shade"
-
-[[rules]]  # ...and the mirrored view, where the near arm is the jacket sleeve
-type = "grow"
-part = "arm_l"
-sides = ["back"]
-facings = ["down_side_l"]
-color = "jacket.base"
-
-[[rules]]
-type = "region"
-part = "arm_l"
-anchor = "front"
-n = 1
-facings = ["down_side_l"]
-color = "jacket.shade"
-
 [[rules]]  # 3/4 back: the far (cyber) arm one pixel out
 type = "grow"
 part = "arm_r"
@@ -137,46 +80,11 @@ sides = ["front"]
 facings = ["up_side", "up_side_l"]
 color = "jacket.base"
 
-[[rules]]  # 3/4 views: the flank turned away from the front, one shade darker (before the
-type = "region"  # trim, so the collar and hem paint over it)
-part = "torso"
-anchor = "back"
-n = 1
-facings = ["down_side", "down_side_l"]
-color = "jacket.shade"
-
-[[rules]]  # 3/4 back: the cyber-arm's shoulder cap overlaps the jacket's edge (the template
-type = "region"  # starts the far arm two rows lower, hidden behind the torso)
-part = "torso"
-anchor = "front"
-n = 2
-skip = 1
-top = 2
-facings = ["up_side", "up_side_l"]
-color = "chrome.base"
-
-[[rules]]  # the standing collar. From the front: one straight row across the jacket's top
-type = "rows"  # (an edge against the neck would follow the neck's curve); the zipper notches it
+[[rules]]  # high collar: one straight row across the shoulders (an edge against the neck
+type = "rows"  # would follow the neck's curve); the zipper rules notch it open at the front
 part = "torso"
 from = "top"
 n = 1
-facings = ["down", "down_side", "down_side_l"]
-color = "orange"
-
-[[rules]]  # ...from behind it hides the neck entirely
-type = "all"
-part = "neck"
-ink = true
-facings = ["up", "up_side", "up_side_l"]
-color = "orange"
-
-[[rules]]  # ...and in profile its back panel shows behind the neck
-type = "region"
-part = "neck"
-anchor = "back"
-n = 2
-ink = true
-facings = ["side", "side_l"]
 color = "orange"
 
 [[rules]]  # the collar standing up behind the neck in profile and from behind
@@ -184,15 +92,6 @@ type = "stripe"
 part = "neck"
 anchor = "back"
 facings = ["side", "side_l", "up_side", "up_side_l"]
-color = "orange"
-
-[[rules]]  # jacket hem; the zipper rules split it at the opening, as on an open bomber (the template
-# draws the jacket's bottom edge in ink: paint that too)
-type = "edge"
-part = "torso"
-touching = "legs"
-sides = ["down"]
-ink = true
 color = "orange"
 
 [[rules]]  # open jacket: two orange zipper edges...
@@ -219,14 +118,14 @@ offset = 0
 facings = ["down"]
 color = "shirt"
 
-[[rules]]  # 3/4 view: the chest shows in the collar's opening, on the shirt column
-type = "stripe"
-straight = true
+[[rules]]  # jacket hem, after the zipper so the band runs under the opening (the template draws
+# the jacket's bottom edge in ink: paint that too)
+type = "edge"
 part = "torso"
-offset = 1
-top = 1
-facings = ["down_side", "down_side_l"]
-color = "skin.shade"
+touching = "legs"
+sides = ["down"]
+ink = true
+color = "orange"
 
 [[rules]]  # neck skin dipping into the collar
 type = "stripe"
@@ -236,39 +135,28 @@ top = 1
 facings = ["down"]
 color = "skin.shade"
 
-[[rules]]  # 3/4 view: both zipper edges and the shirt between, toward the front (the far
-type = "stripe"  # edge sits on the template's ink column, painted too)
-straight = true
-part = "torso"
-offset = 0
-facings = ["down_side", "down_side_l"]
-color = "orange.base"
-
-[[rules]]
+[[rules]]  # 3/4 view: near zipper edge, shirt showing toward the front
 type = "stripe"
 straight = true
 part = "torso"
 offset = 1
-ink = true
 facings = ["down_side", "down_side_l"]
-color = "shirt"
+color = "orange.base"
 
 [[rules]]
 type = "stripe"
 straight = true
 part = "torso"
 offset = 2
-ink = true
 facings = ["down_side", "down_side_l"]
-color = "orange.base"
+color = "shirt"
 
-[[rules]]  # profile: the zipper runs down the jacket's front edge, which the template draws in ink
+[[rules]]  # profile: zipper edge along the jacket front
 type = "stripe"
 part = "torso"
 anchor = "front"
 straight = true
-offset = 0
-ink = true
+offset = -1
 facings = ["side", "side_l"]
 color = "orange.base"
 
@@ -285,6 +173,14 @@ part = "arm_l"
 touching = "hand_l"
 color = "orange.shade"
 
+[[rules]]  # 3/4 views: the flank turned away from the front, one shade darker
+type = "region"
+part = "torso"
+anchor = "back"
+n = 2
+facings = ["down_side", "down_side_l"]
+color = "jacket.shade"
+
 [[rules]]  # sleeve crease at the elbow
 type = "band"
 part = "arm_l"
@@ -295,7 +191,7 @@ color = "jacket.shade"
 type = "band"
 part = "arm_r"
 at = 0.5
-color = "chrome.shade"
+color = "chrome.ink"
 
 [[rules]]
 type = "band"
@@ -310,11 +206,11 @@ part = "arm_r"
 at = 0.0
 color = "chrome.shade"
 
-[[rules]]  # cyber wrist: joint ring with one glowing seam pixel
+[[rules]]  # cyber wrist: dark joint ring with one glowing seam pixel
 type = "edge"
 part = "arm_r"
 touching = "hand_r"
-color = "chrome.shade"
+color = "chrome.ink"
 
 [[rules]]
 type = "band"
@@ -359,18 +255,11 @@ offset = 1
 facings = ["up"]
 color = "pants.light"
 
-[[rules]]  # sneakers one pixel wider than the template's feet: both sides from the front and
-type = "grow"  # behind, toward the toes in the 3/4 views (in profile the template's foot is
-part = "feet"  # already as long as the mockup's)
-sides = ["left", "right"]
-facings = ["down", "up"]
-color = "shoes.base"
-
-[[rules]]
-type = "grow"
+[[rules]]  # sneakers one pixel wider than the template's feet, on both sides (in profile
+type = "grow"  # the template's foot is already as long as the mockup's)
 part = "feet"
-sides = ["front"]
-facings = ["down_side", "down_side_l", "up_side", "up_side_l"]
+sides = ["left", "right"]
+facings = ["down", "down_side", "down_side_l", "up_side", "up_side_l", "up"]
 color = "shoes.base"
 
 [[rules]]  # high-tops: the sneaker reaches one row up the leg
@@ -493,20 +382,20 @@ down = """
 """
 down_side = """
 ...................
-........kkkkkk.....
-......kkibbbbDkk...
-.....kDibHHHbbbHk..
-....kUUHHHbbbbHbbHk
-....ouuUDDDbbbHbbik
-....ouwuUUuDbbbHbk.
-....owuw...UHbbbbk.
-....ouw.....UHbbHbk
-....oUxxxxxxxUbbHHk
-...oSUwxvvvvvbHbkkk
-...oSSwffffffkbDbk.
-...owUS......kHDbk.
-....o.o........kHk.
-...............kk..
+.......kkkkkk......
+.....kkibbbbDkk....
+....kDibHHHbbbHk...
+...kUUHHHbbbbHbbHkk
+...ouuUDDDbbbHbbik.
+...ouwuUUuDbbbHbk..
+...owuw...UHbbbbk..
+...ouw.....UHbbHbk.
+...oUxxxxxxxUbbHHk.
+..oSUwxvvvvvbHbkkk.
+..oSSwffffffkbDbk..
+..owUS......kHDbk..
+...o.o........kHk..
+..............kk...
 """
 side = """
 ..................
@@ -528,39 +417,39 @@ side = """
 """
 up_side = """
 ...................
-......kkkkkk.......
-....kkDbbbbHk......
-..kkbbbbbbbHHHk....
-.kDbbbbiHHHDDk.....
-.kbbbbHDHHDUUUk....
-.kiHbbHbHUUUuuk....
-.kHbbHHHUUuuwuk....
-.kHbbHbUUuuwuwk....
-.kHbHbUUuuwuukk....
-.kHbDbUuuwu.V......
-.kHHDHUUuuU........
-.kDHUUUuUuUuu......
-..kDkUkkkkkk.......
-...kU..............
-....k..............
+.......kkkkkk......
+.....kkDbbbbHk.....
+...kkbbbbbbbHHHk...
+..kDbbbbiHHHDDk....
+..kbbbbHDHHDUUUk...
+..kiHbbHbHUUUuuk...
+..kHbbHHHUUuuwuk...
+..kHbbHbUUuuwuwk...
+..kHbHbUUuuwuukk...
+..kHbDbUuuwu.V.....
+..kHHDHUUuuU.......
+..kDHUUUuUuUuu.....
+...kDkUkkkkkk......
+....kU.............
+.....k.............
 """
 up = """
 ....................
-......kkkkkk........
-....kkHbbbbHk.......
-...kbbbbbbbbDk......
-.kkbHbbbbHHHDk......
-.kbHbbbbbbHDuUk.....
-..kHbbbbbDHUUuuk....
-..kbbbbbHHHUuwuk....
-.kbbHbbiHHUUuuwk....
-kkbHHbbHHUUuwuuk....
-.kkDbbHHHUUuuukSk...
-..kHbDHHUUuuuUkSo...
-..kHHDHUUuuuuwuk....
-..kHkDkkkkkkkSk.....
-...kkk..............
-....k...............
+.......kkkkkk.......
+.....kkHbbbbHk......
+....kbbbbbbbbDk.....
+..kkbHbbbbHHHDk.....
+..kbHbbbbbbHDuUk....
+...kHbbbbbDHUUuuk...
+...kbbbbbHHHUuwuk...
+..kbbHbbiHHUUuuwk...
+.kkbHHbbHHUUuwuuk...
+..kkDbbHHHUUuuukSk..
+...kHbDHHUUuuuUkSo..
+...kHHDHUUuuuuwuk...
+...kHkDkkkkkkkSk....
+....kkk.............
+.....k..............
 """
 down_side_l = """
 ...................
