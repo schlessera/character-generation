@@ -13,6 +13,10 @@ Each one cost at least a step, some cost ten. Read before editing `[parts]`, gri
 - **Rules skip ink tones unless `ink = true`.** The template draws the jacket's bottom line, the
   torso's far edge in 3/4 and the front edge in profile as ink; a stripe or edge on those columns
   silently does nothing. Pass `ink = true` where the mockup paints there.
+- **`ink = true` with a tone-relative colour** (`color = "trim"`) on a ramp without an `ink` slot
+  used to paint template ink — the hem vanished off the front view in both replays and, it turned
+  out, in Juno. The generator now paints such pixels with the ramp's shade; a fixed slot
+  (`trim.base`) is still the explicit choice.
 - **`only_if_ink`** exists for frames where the template draws a far limb entirely as a silhouette.
 - **`[outline] color`** may name a ramp; give the legend's `o` the same ramp so colorways swap both.
 - Variants: always as a copy (`compare NAME --recipe tmp.toml`); a tone-relative colour like
@@ -52,6 +56,11 @@ Each one cost at least a step, some cost ten. Read before editing `[parts]`, gri
 - Three decimals hide a 0.8997 as 0.900; `compare` prints four now.
 - The mockup extractor used to keep a neighbouring view's shoe row at the top of a view; it keeps
   the main run of rows now.
+- Run 2 (revised skill): 0.9045 after the five drafted grids at step 5, 0.905 at step 10. Its
+  findings: the hem bug above, the visor-row sentence that read as an instruction to move rows, no
+  mirror helper for the left grids (drafted grids are wider than the side templates), text-view
+  letters that differed from the grid legend's. All addressed: `--draft-grid VIEW_l --mirror-swap`,
+  the text view now uses the legend's characters, the sentence says "check, don't move".
 
 ## Score reading
 

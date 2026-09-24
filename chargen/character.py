@@ -194,7 +194,13 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
             continue
         mask = _rule_mask(rule, f)
         for y, x in zip(*np.where(mask)):
-            c = r.color(rule["color"], f.tones[y, x])
+            t = f.tones[y, x]
+            # a rule that asked to paint ink pixels means "this material here", so a ramp
+            # without an ink slot paints its shade rather than falling back to template ink
+            if rule.get("ink") and t == TONE_IDS["ink"] and "." not in rule["color"] and not rule["color"].startswith("#"):
+                if "ink" not in r.ramps.get(rule["color"], {}):
+                    t = TONE_IDS["shade"]
+            c = r.color(rule["color"], t)
             rgba[y, x] = (*c, 255) if c else (0, 0, 0, 0)
     # 3. head overlays
     painted = np.full((H, W), ".", "<U1")

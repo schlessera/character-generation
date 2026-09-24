@@ -132,13 +132,13 @@ def cmd_labels(anims=()):
 
 
 def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
-                split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False):
+                split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False, mirror_swap=False):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
     from .mockup import (MOCKUP_FACINGS, breakdown, cost_maps, digits, draft_grid, extract, fit_part, grid_text, heat,
-                         hex_box, palette_fit, palette_letters, place, shift_probe, similarity, slack, split, text_view,
-                         widths)
+                         hex_box, mirror_grid, palette_fit, palette_letters, place, shift_probe, similarity, slack,
+                         split, text_view, widths)
     tpl = template()
     r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
     src = Path(mockup) if mockup else CHARS / name / "concept" / f"{name}-pixel-mockup.png"
@@ -180,6 +180,15 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         if facing in draft or "all" in draft:
             g = draft_grid(r, facing, placed, fr, chars=chars)
             print(f"== {facing}: drafted grid (nearest legend colour per cell; clean it by hand)")
+            print(grid_text(g))
+    for facing in draft:  # left facings: mirrored from their right-facing twin
+        if facing.endswith("_l"):
+            g = mirror_grid(r, facing, tpl.heads[facing[:-2]].shape[1], swap=mirror_swap)
+            if g is None:
+                print(f"== {facing}: no {facing[:-2]} grid to mirror")
+                continue
+            print(f"== {facing}: mirrored from {facing[:-2]}" + (" with hair and stubble swapped" if mirror_swap else "")
+                  + " (check the near side against the playbook's table)")
             print(grid_text(g))
         if hex_ and hex_[0] == facing:
             print(f"== {facing}: mockup hex")
@@ -262,6 +271,7 @@ def main():
     c.add_argument("--draft-grid", nargs="*", default=(), metavar="VIEW", help="draft a head grid from the mockup (or 'all')")
     c.add_argument("--hex", nargs=2, metavar=("VIEW", "Y0,Y1,X0,X1"), help="raw mockup hex for a box of frame pixels")
     c.add_argument("--quiet", action="store_true", help="no loss table")
+    c.add_argument("--mirror-swap", action="store_true", help="with --draft-grid VIEW_l: swap hair and stubble (one-sided cut)")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
     a = ap.parse_args()
     if a.cmd == "build":
@@ -275,7 +285,8 @@ def main():
     elif a.cmd == "compare":
         cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
                     slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part, draft=a.draft_grid,
-                    hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet)
+                    hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet,
+                    mirror_swap=a.mirror_swap)
     else:
         cmd_labels(a.anims)
 

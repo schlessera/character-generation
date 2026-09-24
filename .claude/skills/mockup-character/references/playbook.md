@@ -40,25 +40,32 @@ column offsets were −6 (down, up) and −7 (the side views), rows −4; they d
 on the head (or beside it, down to one row below the jaw) takes the legend character nearest in
 colour to the mockup pixel under it. Paste it under `[head.grids]`, then clean:
 
+- stray `f` or `x` inside the hair or stubble: a dark plum pixel is nearest to the visor greys;
+  every draft has a few, they are the first thing to remove;
 - isolated speckles inside the hair (a lone `D` in a field of `b`): keep the strand *lines*, drop
   single pixels;
 - the lens rows: `x` rim above, `v` lens, `f` rim below, and the lens ends are `x` (dark caps),
   never a glint — the mockup has none;
 - the ear: `o S o` beside the head, `S` and `s` are in `[outline] keep` so they survive the edge;
-- the last row: the draft stops one row below the jaw; hanging hair tips may stay, collar pixels
-  must not;
+- the last row: the draft stops one row below the jaw; keep hair characters there (hanging tips),
+  clear everything else — in text you cannot tell a tip from the collar, the rule can;
 - the hair outline: `k` on the silhouette (it is in `keep`); the draft may choose `o` where the
   mockup's outline is a hair's breadth closer to the outline colour — both read the same.
 
 Legend entries must be fixed slots (`hair.base`), never a tone-relative ramp name: the draft picks
 by colour, and a tone-relative entry has no single colour.
 
-**Visor rows per angle.** Front keeps a skin brow row above the rim (rim, lens, grey rim, chin); 3/4
-and profile put the lens one row higher, at eye level. The mockup itself does this; the human
-watching asked for it.
+**Visor rows per angle.** The draft follows the mockup, which puts a skin brow row above the rim
+in the front view (rim, lens, grey rim, chin) and the lens at eye level in 3/4 and profile. Check
+that the drafts kept it; do not move rows by hand (a replay read this as an instruction and nearly
+shifted a correct draft).
 
-**Left-facing grids** are not in the mockup. Draw them from the design (and from the right-facing
-grid, mirrored, with the hair swapped). Which side is nearest:
+**Left-facing grids** are not in the mockup. `--draft-grid down_side_l --mirror-swap` (and
+`side_l`, `up_side_l`) mirrors the right-facing grid about the head template's padded width — a
+drafted grid is 20 columns wide while the side templates are 18–19, so reversing the rows as
+strings misaligns by one or two — and swaps mane and shaved side for a one-sided cut (without
+`--mirror-swap` for a symmetric one). Then clean and, above all, look: the mirrored fringe of the
+profile becomes a forward overhang on the other side. Which side is nearest:
 
 | facing | she faces | nearest side | for Juno's undercut (shaved right, mane left) |
 |---|---|---|---|
@@ -69,10 +76,11 @@ grid, mirrored, with the hair swapped). Which side is nearest:
 Without them `render_frame` mirrors the right grid and `compare` prints a warning; a one-sided
 haircut then lands on the wrong side in three of eight facings.
 
-**Volume.** `--shift --chars kbHDi` probes a one-pixel move of the hair cells only. A consistent
-direction across views (Juno: toward her left in 3/4, back and 3/4-back) means the mane wants a
-column more on that side — add hair cells there. A lone shift in one view is the mockup's own
-head/body offset; ignore it. Never shift a whole grid: the visor and ear go with it.
+**Volume (hand-drawn grids only).** `--shift --chars kbHDi` probes a one-pixel move of the hair
+cells. A consistent direction across views (Juno: toward her left in 3/4, back and 3/4-back)
+means the mane wants a column more on that side — add hair cells there. A lone shift in one view
+is the mockup's own head/body offset; ignore it. Never shift a whole grid: the visor and ear go
+with it. Drafted grids come out aligned; the probe finds nothing on them.
 
 ## 3 · Trim per facing
 

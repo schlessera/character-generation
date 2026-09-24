@@ -212,9 +212,18 @@ def palette_letters(recipe) -> list[tuple[tuple[int, int, int], str]]:
         c = recipe.color(recipe.outline["color"], 1)
         if c not in {p for p, _ in out}:  # a hex outline; a ramp one is already listed
             out.append((c, "##"))
-    for ref in recipe.legend.values():  # fixed colors in the head legend
-        if ref.startswith("#"):
-            out.append((hex_rgb(ref), "x "))
+    # the head legend's characters win for the colours they reference, so the text view reads
+    # like a grid (and the drafted grid reads like the text view)
+    by_col = {}
+    for ch, ref in recipe.legend.items():
+        if ref == "clear":
+            continue
+        col = hex_rgb(ref) if ref.startswith("#") else recipe.color(ref, 1)
+        by_col.setdefault(col, ch)
+    out = [(c, (by_col[c] + " ") if c in by_col else l) for c, l in out]
+    for col, ch in by_col.items():
+        if col not in {p for p, _ in out}:
+            out.append((col, ch + " "))
     return out
 
 
@@ -476,6 +485,27 @@ def fit_part(pairs_by_letter: dict[str, list], pal) -> list[str]:
         med = np.median(np.array([p for p, _ in v]), 0).astype(int)
         out.append(f"{k:6} {len(v):4d}  #{med[0]:02x}{med[1]:02x}{med[2]:02x}        {quantize(med, pal):>4}      "
                    f"{np.mean([c for _, c in v]):.2f}     {sum(c for _, c in v):.1f}")
+    return out
+
+
+HAIR_STUBBLE_SWAP = str.maketrans("bHDiuUw", "uUUwbHb")  # a one-sided cut: mane <-> shaved side
+
+
+def mirror_grid(recipe, facing: str, template_width: int, swap: bool = False) -> np.ndarray | None:
+    """A left-facing grid drafted from its right-facing twin: mirrored about the head
+    template's padded width (the grid may be wider than the template, so reversing the rows
+    as strings misaligns), and with hair and stubble swapped when the haircut is one-sided."""
+    base = facing[:-2]
+    g = recipe.grids.get(base)
+    if g is None:
+        return None
+    from .character import HEAD_PAD
+    w = template_width + 2 * HEAD_PAD
+    out = np.full_like(g, ".")
+    for x in range(min(w, g.shape[1])):
+        out[:, x] = g[:, w - 1 - x]
+    if swap:
+        out = np.vectorize(lambda ch: ch.translate(HAIR_STUBBLE_SWAP))(out)
     return out
 
 

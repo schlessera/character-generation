@@ -1,6 +1,6 @@
 ---
 name: mockup-character
-description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (0.90 similarity in about a dozen steps; the palette ceiling is 0.91–0.94). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, visor, collar, jacket, sleeves, shoes or turn-around — even if they don't say "recipe" or "mockup". It encodes what 110 iteration steps on Juno and a 12-step replay by a fresh agent taught: the order of work that pays, the instruments to read, the rule patterns per facing, and the mistakes not to repeat.
+description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (0.90 similarity in five to ten steps; the palette ceiling is 0.91–0.94). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, visor, collar, jacket, sleeves, shoes or turn-around — even if they don't say "recipe" or "mockup". It encodes what 110 iteration steps on Juno and two replays by fresh agents (12 and 10 steps) taught: the order of work that pays, the instruments to read, the rule patterns per facing, and the mistakes not to repeat.
 ---
 
 # Character from a pixel mockup
@@ -9,14 +9,15 @@ A character here is a recipe: colour ramps per body part, geometric trim rules k
 labels, and per-facing head grids, skinned onto every frame of the labelled template. The mockup
 (five views: down, down_side, side, up_side, up, stacked vertically) is the reference; `just compare
 NAME` snaps it to its pixel grid and scores it against the render. Measured path: the skeleton
-recipe plus five drafted head grids reaches 0.90 in about eight steps; the rest is checking that
-it looks right from all eight angles and in every animation.
+recipe plus five drafted head grids reaches 0.90 in five steps; the three left-facing grids, a
+trim check from all eight angles and an animation pass take five more.
 
 Read `references/playbook.md` for the phases in detail (rule snippets per facing, the near-side
 table for the left-facing grids), `references/instruments.md` for what each `compare` flag shows,
-`references/pitfalls.md` before touching grids, `[parts]`, grow rules or a fit table. The worked
-example is `characters/juno/recipe.toml`; its log is `characters/juno/history/NOTES.md`, and
-`characters/replica/history/AGENT-LOG.md` is a fresh agent's account of using this skill.
+`references/pitfalls.md` before touching grids, `[parts]`, grow rules or a fit table. The skeleton
+and these references are self-contained. If you want a finished example, `characters/juno/recipe.toml`
+is one (its log: `characters/juno/history/NOTES.md`); `characters/replica/history-run1/AGENT-LOG.md`
+and `history/AGENT-LOG.md` are two fresh agents' accounts of using this skill.
 
 ## What makes this fast
 
@@ -26,8 +27,9 @@ example is `characters/juno/recipe.toml`; its log is `characters/juno/history/NO
    phase 3 and 4 is verification; on a different design, delete what the design lacks and refit
    the colours — the structure still applies.
 2. **Head grids are drafted, not drawn.** `just compare NAME --draft-grid VIEW` quantizes the
-   mockup's head to the legend's colours at every grid cell and prints a ready grid. Each view
-   went from ~0.6 to ~0.9 on its first draft in the replay. Hand transcription from the text
+   mockup's head to the legend's colours at every grid cell and prints a ready grid; each view
+   went from ~0.6 to ~0.9 on its first paste in both replays. `--draft-grid VIEW_l
+   [--mirror-swap]` drafts a left-facing grid from its twin. Hand transcription from the text
    view — Juno's method — is where the time went.
 3. **Read text, not just pictures.** `--text VIEW` (palette letters), `--hex VIEW y0,y1,x0,x1`
    (raw colours), `--digits`, `--widths`: the structural mistakes (a jacket-coloured neck, a
@@ -66,18 +68,22 @@ spread column marks a median that is not a colour the mockup uses much (two popu
 lit and dark columns on the joggers): look at `--hex` before moving. Sample the outline: mockups
 from image generation use a warm dark brown, and the outline is the largest single colour.
 
-### Phase 2 — head grids (6–7 steps)
+### Phase 2 — head grids (5–8 steps)
 
-`--draft-grid VIEW` for each of the five mockup views (one step each: paste, clean, score).
-Cleaning: isolated speckles inside the hair, the lens row (rim `x`, lens `v`, rim `f`, dark caps
-at both ends, no glint), the ear (`o S o`), and nothing drawn on the collar row. Decide the visor
-row per angle: front keeps a brow row above the rim; 3/4 and profile sit at eye level. Then the
-three left-facing grids by hand from the near-side table in the playbook (the mirrored fallback
-puts a one-sided haircut on the wrong side; `compare` warns when they are missing). `--shift
---chars kbHDi` once: a consistent direction across views means the mane wants a column more on
-that side — add hair there, never shift the whole grid (it moves the visor and ear).
+`--draft-grid VIEW --quiet` for each of the five mockup views (one step each: paste, clean,
+score). Cleaning, in the order it comes up: stray `f`/`x` inside the hair or stubble (a dark plum
+pixel reads as visor grey to the nearest-colour pick), isolated speckles in the hair, the lens
+row (rim `x`, lens `v`, rim `f`, dark `x` caps at both ends, no glint), the ear (`o S o`), and the
+last row: keep hair characters only, no collar. The visor row per angle comes out of the draft
+(front has a brow row above the rim, 3/4 and profile sit at eye level): check it, do not move it.
+Then the three left-facing grids: `--draft-grid down_side_l --mirror-swap` (and `side_l`,
+`up_side_l`) mirrors the twin about the template width and swaps mane and shaved side; check
+the near side against the playbook's table and clean like the others — the left views are
+where the non-metric risk lives (a fringe mirrored into a pompadour was only seen at 12×).
+`compare` warns while any left grid is missing. `--shift --chars kbHDi` is for hand-drawn grids;
+drafts are already aligned.
 
-### Phase 3 — trim per facing (2–4 steps)
+### Phase 3 — trim per facing (1–3 steps)
 
 `just crops NAME --box 17,31` (torso) and `--box 24,32` (feet), one row per `--recipe` variant;
 test every change as a variant file, never in place. The skeleton's rules are the Juno answers;

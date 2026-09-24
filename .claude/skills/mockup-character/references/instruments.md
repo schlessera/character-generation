@@ -8,14 +8,15 @@ number in the notes. The printed **loss table** splits it per body part (render 
 side).
 
 Geometry: frames are 32×32 (rows and columns 0..31); head grids are the head template padded by
-3 on every side. Palette letters are assigned **per recipe** (ramp initial + slot mark: `H` base,
-`H-` shade, `H+` light, `H=` deep, `H#` ink; `##` outline when it is a hex, its ramp letter when it
-is a ramp); the `legend:` line printed with `--text`, `--fit` and `--fit-part` says what they mean
-for this recipe. All flags combine; `--quiet` drops the loss table.
+3 on every side. Palette letters are assigned **per recipe**: a colour the head legend references prints as that
+legend character (`k` hair outline, `b` hair, `u` stubble, `v` lens, `o` outline…), so the text
+view reads like a grid; every other colour is ramp initial + slot mark (`J` base, `J-` shade, `J+`
+light, `J=` deep, `J#` ink). The `legend:` line printed with `--text`, `--fit` and `--fit-part`
+says what they mean for this recipe. All flags combine; `--quiet` drops the loss table.
 
 | flag | prints | read it for |
 |---|---|---|
-| `--draft-grid VIEW…` / `all` | a head grid drafted from the mockup: nearest legend colour per cell on the head, `.` elsewhere; `--chars` limits the candidates | phase 2; paste, clean, score |
+| `--draft-grid VIEW…` / `all` | a head grid drafted from the mockup: nearest legend colour per cell on the head, `.` elsewhere; `--chars` limits the candidates. For a `VIEW_l`: the right twin mirrored about the template width, `--mirror-swap` exchanges mane and shaved side | phase 2; paste, clean, score |
 | `--hex VIEW y0,y1,x0,x1` | raw mockup hex per pixel for a box of frame coordinates | palette reads where the letters blur (dark ramps a few RGB steps apart) |
 | `--text VIEW…` / `all` | mockup \| render, every pixel as a palette letter (`H` hair base, `H-` shade, `H=` deep, `H#` ink, `##` outline, `??` no colour close) | drawing grids; finding structure that is off; the first thing to look at for any complaint |
 | `--fit` | per render colour: pixel count, median mockup colour under it, distance, spread (`~` = wide: the median is not a colour the mockup uses much) | palette moves for large flat areas, **after** the grids exist |
