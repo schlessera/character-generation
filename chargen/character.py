@@ -206,10 +206,9 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     rules = []
     for rule in r.rules:  # `each = true` on a group part: the rule runs once per single part (a stripe
         if rule.get("each"):  # on `feet` is otherwise one stripe through both feet)
-            from .labels import PARTS
-            names = {v: k for k, v in PARTS.items()}
+            from .labels import PARTS  # code -> single part name
             for code in part_codes(rule["part"]):
-                rules.append({**rule, "part": names.get(code, rule["part"]), "each": False})
+                rules.append({**rule, "part": PARTS.get(code, rule["part"]), "each": False})
         else:
             rules.append(rule)
     for rule in rules:
