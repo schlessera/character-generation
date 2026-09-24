@@ -62,6 +62,15 @@ Each one cost at least a step, some cost ten. Read before editing `[parts]`, gri
   letters that differed from the grid legend's. All addressed: `--draft-grid VIEW_l --mirror-swap`,
   the text view now uses the legend's characters, the sentence says "check, don't move".
 
+- Run 3 (tooling round): goal reached at step 2 with one command; done at step 6. Its findings,
+  all tool defects: `--clean` wrote `.` over stray visor pixels (template skin showed as tan
+  dots — now the neighbours' majority), it kept `k` outline cells on the row below the jaw (they
+  chopped the collar into dashes — now dropped), `--mirror-swap` handled the profile and the 3/4
+  wrong (per-facing rules now, see the playbook's table), the text view reused `o`/`i` for two
+  colours (ramp letters now avoid the legend's), `lint` was silent on a recipe without grids, and
+  a patch had left the per-view tail of `compare` under the wrong `if` — `just selftest` exists
+  because of that one.
+
 ## Score reading
 
 - The metric tolerates one pixel of drift in any direction. A width difference of +1 is already

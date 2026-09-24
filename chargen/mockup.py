@@ -201,7 +201,7 @@ def palette_letters(recipe) -> list[tuple[tuple[int, int, int], str]]:
     (base '', shade '-', light '+', deep '=', ink '#', blush '~'), plus the outline."""
     from .character import hex_rgb
     marks = {"base": "", "shade": "-", "light": "+", "deep": "=", "ink": "#", "blush": "~"}
-    used: dict[str, str] = {}
+    used: dict[str, str] = {ch.upper(): "legend" for ch in recipe.legend if ch != "-"}  # legend chars are taken
     out = []
     for name, ramp in recipe.ramps.items():
         key = next((c for c in name[0].upper() + name[1:] if c.upper() not in used), name[0])
@@ -512,8 +512,16 @@ def mirror_grid(recipe, facing: str, template_width: int, swap: bool = False) ->
             mx = w - 1 - x
             if 0 <= mx < g.shape[1]:
                 out[y, mx] = g[y, x].translate(STUBBLE_TO_HAIR)  # the mane covers the near temple
-        for y, x in zip(*np.where(stub)):
-            out[y, x] = g[y, x]  # the shaved side stays on her right
+        if facing == "side_l":
+            pass  # the profile shows one side only: her left, all mane
+        elif facing == "down_side_l":  # her right is the far side: a strip of it shows at the far edge
+            for y in range(g.shape[0]):
+                xs = np.where(stub[y])[0]
+                for x in xs[:2]:
+                    out[y, x] = g[y, x]
+        else:  # up_side_l: her right (shaved) is the near side, where it was on screen
+            for y, x in zip(*np.where(stub)):
+                out[y, x] = g[y, x]
     return out
 
 
@@ -574,14 +582,20 @@ def clean_grid(g: np.ndarray, legend: dict, hair: str = HAIR, stubble: str = "uU
     vis = [ch for ch, ref in legend.items() if ref.startswith("visor") or ref.startswith("glow")]
     lens_rows = {y for y in range(g.shape[0]) if sum(ch == "v" for ch in g[y]) >= 3}
     keep_rows = lens_rows | {y + 1 for y in lens_rows} | {y - 1 for y in lens_rows}  # the rims sit beside the lens
-    for y in range(g.shape[0]):
-        if y in keep_rows:
-            continue
-        for x in range(g.shape[1]):
-            if g[y, x] in vis:
-                g[y, x] = "."
     tex = set(hair + stubble)
     H, W = g.shape
+
+    def majority(y, x):
+        nb = [g[yy, xx] for yy, xx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)) if 0 <= yy < H and 0 <= xx < W]
+        nb = [c for c in nb if c in tex]
+        return max(set(nb), key=nb.count) if nb else "."
+
+    for y in range(H):
+        if y in keep_rows:
+            continue
+        for x in range(W):
+            if g[y, x] in vis:  # a stray visor colour inside the hair: what surrounds it, never '.'
+                g[y, x] = majority(y, x)  # ('.' would show the template's skin as a tan dot)
     for y in range(H):
         for x in range(W):
             if g[y, x] not in tex:
@@ -595,8 +609,8 @@ def clean_grid(g: np.ndarray, legend: dict, hair: str = HAIR, stubble: str = "uU
     last = H - 1
     while last > 0 and (g[last] == ".").all():
         last -= 1
-    for x in range(W):
-        if g[last, x] != "." and g[last, x] not in hair:
+    for x in range(W):  # the row below the jaw: hanging hair tips only, and not their outline
+        if g[last, x] != "." and g[last, x] not in hair.replace("k", ""):  # (k cells chop the collar into dashes)
             g[last, x] = "."
     return g
 
@@ -653,6 +667,6 @@ def init_palette(views, tone_ids: dict) -> list[str]:
             a = np.array(px, float)
             med = np.median(a, 0).astype(int)
             spread = _redmean(np.repeat(med[None].astype(float), len(a), 0), a).std()
-            out.append(f"{label:14} {tone:6} {len(px):4d}  #{med[0]:02x}{med[1]:02x}{med[2]:02x}  {spread:5.0f}{' ~' if spread > 120 else ''}")
-    out.append("(read with --hex on a box when marked ~: two populations; the head needs its grids first)")
+            out.append(f"{label:14} {tone:6} {len(px):4d}  #{med[0]:02x}{med[1]:02x}{med[2]:02x}  {spread:5.0f}{' ~' if spread > 80 else ''}")
+    out.append("(~ = wide: two populations, or trim on that part's tone (caps on the feet, glow on the arm): read --hex on a box; the head needs its grids first)")
     return out

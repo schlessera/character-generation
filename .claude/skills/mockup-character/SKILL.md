@@ -1,6 +1,6 @@
 ---
 name: mockup-character
-description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (0.90 similarity in one to five steps; the goal is a percentage below the measured palette ceiling). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, visor, collar, jacket, sleeves, shoes or turn-around — even if they don't say "recipe" or "mockup". It encodes what 110 iteration steps on Juno and two replays by fresh agents (12 and 10 steps) taught: the order of work that pays, the instruments to read, the rule patterns per facing, and the mistakes not to repeat.
+description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (0.90 similarity in one to five steps; the goal is a percentage below the measured palette ceiling). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, visor, collar, jacket, sleeves, shoes or turn-around — even if they don't say "recipe" or "mockup". It encodes what 110 iteration steps on Juno and three replays by fresh agents (12, 10 and 6 steps) taught: the order of work that pays, the instruments to read, the rule patterns per facing, and the mistakes not to repeat.
 ---
 
 # Character from a pixel mockup
@@ -15,9 +15,8 @@ eight angles and the last thousandths take three to five steps more.
 Read `references/playbook.md` for the phases in detail (rule snippets per facing, the near-side
 table for the left-facing grids), `references/instruments.md` for what each `compare` flag shows,
 `references/pitfalls.md` before touching grids, `[parts]`, grow rules or a fit table. The skeleton
-and these references are self-contained. If you want a finished example, `characters/juno/recipe.toml`
-is one (its log: `characters/juno/history/NOTES.md`); `characters/replica/history-run1/AGENT-LOG.md`
-and `history/AGENT-LOG.md` are two fresh agents' accounts of using this skill.
+and these references are self-contained; do not start from another character's finished recipe,
+the skeleton is the distilled version of it.
 
 ## What makes this fast
 
@@ -68,10 +67,12 @@ are drafted (nearest legend colour per cell on the head), cleaned (visor charact
 and lens rows, lone speckles, the row below the jaw keeps hair only) and written into the recipe;
 the three left-facing views are mirrored from their twins about the template width with mane
 and shaved side swapped (drop `--mirror-swap` for a symmetric cut). Score: ~0.90 on the replay.
-Then `just review NAME` and look — the left views are where the non-metric risk lives (check
-the near side against the playbook's table; a fringe mirrored into a forward overhang was only
-visible at 12×). Fix what you see by editing the grid rows; `just heads NAME` shows the template
-alignment. The visor row per angle comes out of the draft: check, do not move.
+Then `just review NAME` and look, first at the heads row (24×): the three left views are drafts
+of a different kind (a mirror with the mane put back on her own side) and are where the
+non-metric risk lives — a character facing screen-right shows the camera her *right* side, so the
+left-facing views show her left; the playbook's table says what each must show. Fix what you see
+by editing the grid rows; `just heads NAME` shows the template alignment. The visor row per angle
+comes out of the draft: check, do not move.
 
 ### Step 2 — trim and silhouette check (1–3 steps)
 
@@ -83,9 +84,11 @@ silhouettes at 0.99+. One-sided features must not carry `_l` twins (lint says so
 
 ### Step 3 — the last thousandths (0–2 steps)
 
-`--slack` (parts with room), `--hot 20` (the costliest pixels with what the mockup and render
-show there), `--fit-part CODES`, then `--fit`/`--optimize` — palette instruments only make sense
-now that the head is covered. `--fit-grid` is a diagnostic; if it finds nothing the grids are done.
+`--slack` (parts with room), `--fit-part CODES`, then `--fit`/`--optimize` — palette instruments
+only make sense now that the head is covered. `--hot 20` lists the costliest pixels: scattered
+single pixels at cost ~1 mean nothing big is left. `--fit-grid` is a diagnostic; if it finds
+nothing, or only speckles, the grids are done. A fix to an unscored view (a left grid) can go on
+the previous row with `just step ... --amend`.
 
 ### Done when
 

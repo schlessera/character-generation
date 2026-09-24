@@ -49,9 +49,13 @@ lint name:
 review name:
     uv run python -m chargen review {{name}}
 
-# Score, append a row to history/NOTES.md, snapshot every fifth step (or --snapshot)
+# Score, append a row to history/NOTES.md, snapshot every fifth step (or --snapshot); --amend replaces the last row
 step name message *flags:
     uv run python -m chargen step {{name}} "{{message}}" {{flags}}
+
+# Exercise every compare flag and the lint/review/step/crops commands on a scratch copy of juno
+selftest:
+    uv run python tools/selftest.py
 
 # ---------------------------------------------------------------- template labels
 

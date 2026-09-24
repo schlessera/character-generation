@@ -66,6 +66,8 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
         out.append(("info", f"[head.legend] unused characters: {' '.join(unused)}."))
 
     # grids
+    if not r.grids:
+        out.append(("error", "[head.grids] no grids at all: `just compare NAME --draft-grid all --clean --apply --mirror-swap`."))
     missing = [f for f in ("down_side_l", "side_l", "up_side_l") if f[:-2] in r.grids and f not in r.grids]
     if missing:
         out.append(("warn", f"[head.grids] no grid for {', '.join(missing)}: the right-facing grid is mirrored, wrong for a "

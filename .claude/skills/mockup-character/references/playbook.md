@@ -2,7 +2,7 @@
 
 Contents: 1 palette · 2 head grids · 3 trim per facing · 4 silhouette · 5 last thousandths ·
 6 checks and hygiene. Rule syntax is in `chargen/character.py` (`_rule_mask`, `_grow`); the
-recipe format is `characters/juno/recipe.toml`.
+recipe format is the skeleton itself, `assets/recipe-skeleton.toml`.
 
 ## 1 · Palette and outline
 
@@ -60,7 +60,11 @@ in the front view (rim, lens, grey rim, chin) and the lens at eye level in 3/4 a
 that the drafts kept it; do not move rows by hand (a replay read this as an instruction and nearly
 shifted a correct draft).
 
-**Left-facing grids** are not in the mockup. `--draft-grid down_side_l --mirror-swap` (and
+**Left-facing grids** are not in the mockup. First the fact that costs everyone a paragraph of
+3D reasoning: a character facing screen-right shows the camera her *right* side (her right
+shoulder is nearest), so the `side` view is her shaved side and `side_l` is all mane; in the 3/4
+views the near side is the one turned toward the camera, the far side shows as a strip at the
+outer edge. `--draft-grid down_side_l --mirror-swap` (and
 `side_l`, `up_side_l`) mirrors the right-facing grid about the head template's padded width — a
 drafted grid is 20 columns wide while the side templates are 18–19, so reversing the rows as
 strings misaligns by one or two — and, because a mirror image swaps her left and right, puts a
@@ -68,11 +72,11 @@ one-sided cut back on her own side: the shaved patch stays where it was on scree
 image becomes hair (drop `--mirror-swap` for a symmetric cut). Then clean and, above all, look: the mirrored fringe of the
 profile becomes a forward overhang on the other side. Which side is nearest:
 
-| facing | she faces | nearest side | for Juno's undercut (shaved right, mane left) |
-|---|---|---|---|
-| down_side_l | down-left | her left | mane toward the viewer, fringe over the near cheek |
-| side_l | left | her left | mane covers the near side; visor at the front-left |
-| up_side_l | up-left | her right | shaved side nearest, visor tip on the far side |
+| facing | she faces | nearest side | for Juno's undercut (shaved right, mane left) | what `--mirror-swap` drafts |
+|---|---|---|---|---|
+| down_side_l | down-left | her left | mane over the near (screen-right) side and cheek; a strip of shaved side at the far, screen-left edge | mirror, stubble → hair, two columns of stubble kept at the far edge |
+| side_l | left | her left | all mane down to the jaw; face and visor at the front-left | mirror, all stubble → hair |
+| up_side_l | up-left | her right | shaved side with the ear nearest (screen-right), mane over the top and far side, visor tip at the far face edge | mirror, the shaved patch kept where it was on screen |
 
 Without them `render_frame` mirrors the right grid and `compare` prints a warning; a one-sided
 haircut then lands on the wrong side in three of eight facings.
