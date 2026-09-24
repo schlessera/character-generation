@@ -233,3 +233,64 @@ def palette_fit(pairs: dict[tuple[int, int, int], list[np.ndarray]], pal) -> lis
         lines.append(f"#{c[0]:02x}{c[1]:02x}{c[2]:02x} {names.get(tuple(c), '?'):14} {len(a):4d}   "
                      f"#{med[0]:02x}{med[1]:02x}{med[2]:02x}        {d:4.0f}")
     return lines
+
+
+# ---------------------------------------------------------------- palette optimizer
+
+def optimize_palette(recipe, sprites, renders_for, radius: int = 28, step: int = 8,
+                     min_gain: float = 0.0015) -> list[tuple[str, str, str, str, float]]:
+    """Bounded coordinate descent over the recipe's ramp slots against the mockup views.
+
+    For every ramp slot, tries moving each channel by ±step (repeatedly, within `radius`
+    of the original color) and keeps a move only if the mean similarity over all views
+    improves by at least `min_gain`. The bound keeps the palette the design's own: a
+    slot can be nudged toward the mockup, not replaced by whatever scores best. Returns
+    (ramp, slot, old hex, new hex, gain) for the moves it kept; the recipe is left as it
+    was, so the caller decides which moves to apply.
+    """
+    def hexs(c):
+        return "#%02x%02x%02x" % tuple(c)
+
+    def score():
+        return float(np.mean([similarity(sp, im) for sp, im in zip(sprites, renders_for(recipe))]))
+
+    base = score()
+    moves = []
+    for ramp, slots in recipe.ramps.items():
+        for slot in list(slots):
+            orig = slots[slot]
+            best, best_c = base, orig
+            improved = True
+            while improved:
+                improved = False
+                for ch in range(3):
+                    for d in (-step, step):
+                        c = list(best_c)
+                        c[ch] = max(0, min(255, c[ch] + d))
+                        c = tuple(c)
+                        if max(abs(a - b) for a, b in zip(c, orig)) > radius or c == best_c:
+                            continue
+                        slots[slot] = c
+                        s = score()
+                        if s > best + min_gain / 4:
+                            best, best_c, improved = s, c, True
+                slots[slot] = best_c
+            if best - base >= min_gain:
+                moves.append((ramp, slot, hexs(orig), hexs(best_c), best - base))
+                base = best
+            else:
+                slots[slot] = orig
+    return moves
+
+
+def ceiling(sprite: np.ndarray, pal) -> float:
+    """The mockup snapped to the recipe's palette, scored against the mockup itself: what a
+    render with exactly the mockup's shapes but only this palette could reach. The gap
+    between this and `similarity` is shape; the gap to 1.0 is palette."""
+    cols = np.array([c for c, _ in pal], float)
+    q = sprite.copy()
+    a = sprite[..., 3] > 0
+    px = sprite[a, :3].astype(float)
+    d = np.stack([_redmean(px, np.repeat(c[None], len(px), 0)) for c in cols], 1)
+    q[a, :3] = cols[np.argmin(d, 1)].astype(np.uint8)
+    return similarity(sprite, q)

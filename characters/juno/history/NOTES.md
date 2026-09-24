@@ -57,3 +57,13 @@ grid) and `--fit` (the median mockup color under every render color).
 | 39 | orange collar tips at the jacket's top corners, where the mockup has them, instead of only beside the neck | 0.867 |
 | 40 | all animations checked, README figures regenerated; snapshot | 0.867 |
 
+## Third run (steps 41–55)
+
+| step | change | similarity |
+|---|---|---|
+| 41 | lens cyan darkened to the mockup's (`#3ce4ec`; the cost map showed every lens pixel half-matched), orange shade lighter | 0.870 |
+| 42 | new `compare --optimize`: bounded coordinate descent over the ramp slots (±28 per channel), prints moves, applies nothing. It found the same cyan move and one plum drift of the stubble shade toward the hair shadow, rejected: an advisory tool, not an autopilot | 0.872 |
+| 43 | new `compare --ceiling`: the mockup quantized to the recipe's own palette, scored against itself. 0.926 for this palette, so the remaining gap (0.054, worst in the 3/4 view) is shape: the mockup's body is wider than the template's | 0.872 |
+| 44 | zoomed frame review of walk, run, jump and attack: the back collar tab drew a three-row "T" down the spine in the jump, now one pixel below the band as in the mockup; the back print is a small chevron (three band rules) instead of two stacked pixels | 0.872 |
+| 45 | snapshot | 0.872 |
+

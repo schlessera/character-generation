@@ -106,7 +106,7 @@ def cmd_labels(anims=()):
     print(out)
 
 
-def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False):
+def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
@@ -154,6 +154,15 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
     if fit:
         print("\n".join(palette_fit(pairs, pal)))
+    if ceil:  # what this palette could reach with the mockup's exact shapes
+        from .mockup import ceiling
+        cs = [ceiling(sp, pal) for sp in sprites]
+        print("ceiling    " + "  ".join(f"{f}={v:.3f}" for f, v in zip(MOCKUP_FACINGS, cs)) + f"  mean={np.mean(cs):.3f}")
+    if optimize:  # bounded palette search; prints the moves, applies nothing
+        from .mockup import optimize_palette
+        idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
+        moves = optimize_palette(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle])
+        print("optimize: " + (", ".join(f"{a}.{b} {c} -> {d} (+{g:.3f})" for a, b, c, d, g in moves) or "no move gains"))
     print("similarity " + "  ".join(f"{f}={v:.3f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.3f}")
     # loss per body part, in score points (render side + mockup side), per view then mean
     print("loss      " + "  ".join(f"{f:>10}" for f in MOCKUP_FACINGS) + "        mean")
@@ -172,6 +181,8 @@ def main():
     c = sub.add_parser("compare"); c.add_argument("name"); c.add_argument("--mockup"); c.add_argument("--recipe")
     c.add_argument("--text", nargs="*", default=(), metavar="VIEW", help="print views as text (or 'all')")
     c.add_argument("--fit", action="store_true", help="suggest palette moves from the mockup's colors")
+    c.add_argument("--optimize", action="store_true", help="bounded palette search against the mockup (prints moves)")
+    c.add_argument("--ceiling", action="store_true", help="score of the mockup quantized to the recipe's palette")
     a = ap.parse_args()
     if a.cmd == "build":
         cmd_build(a.names)
@@ -180,7 +191,7 @@ def main():
     elif a.cmd == "heads":
         cmd_heads(a.name)
     elif a.cmd == "compare":
-        cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit)
+        cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling)
     else:
         cmd_labels(a.anims)
 
