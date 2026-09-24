@@ -360,6 +360,15 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
                 print(f"   {len(far)} cells have no legend colour within reach (median #{med[0]:02x}{med[1]:02x}{med[2]:02x}): "
                       "a slot the palette lacks (a shadowed nape, a strap); add it and redraft this view")
             used_extra |= set("".join("".join(row) for row in g)) & set(extra)
+            if apply and facing in r.grids:  # a re-draft over an existing grid: keep it only where it scores
+                old_g = r.grids[facing]
+                s_old = similarity(sprite, render_frame(r, fr))
+                r.grids[facing] = g
+                s_new = similarity(sprite, render_frame(r, fr))
+                r.grids[facing] = old_g
+                if s_new < s_old - 1e-9:
+                    print(f"   kept the existing grid: the draft scores {s_new - s_old:+.4f} here (edit rows by hand, or --draft-grid without --apply to read it)")
+                    continue
             if apply:
                 apply_grid(r.path, facing, g)
                 print(f"   written to {r.path.name}")
