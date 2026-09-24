@@ -132,12 +132,13 @@ def cmd_labels(anims=()):
 
 
 def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
-                split_=False, shift_=False, fit_part_=None):
+                split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
-    from .mockup import (MOCKUP_FACINGS, breakdown, cost_maps, digits, extract, fit_part, heat, palette_fit,
-                         palette_letters, place, shift_probe, similarity, slack, split, text_view, widths)
+    from .mockup import (MOCKUP_FACINGS, breakdown, cost_maps, digits, draft_grid, extract, fit_part, grid_text, heat,
+                         hex_box, palette_fit, palette_letters, place, shift_probe, similarity, slack, split, text_view,
+                         widths)
     tpl = template()
     r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
     src = Path(mockup) if mockup else CHARS / name / "concept" / f"{name}-pixel-mockup.png"
@@ -174,8 +175,15 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
             si, co = split(placed, rend)
             print(f"== {facing}: silhouette={si:.3f} colour-loss={co:.3f}")
         if shift_ and facing in r.grids:
-            dx, dy, gain = shift_probe(r, facing, sprite, fr, render_frame)
-            print(f"== {facing}: best grid shift dx={dx:+d} dy={dy:+d} gain={gain:+.3f}")
+            dx, dy, gain = shift_probe(r, facing, sprite, fr, render_frame, chars)
+            print(f"== {facing}: best grid shift{' of ' + chars if chars else ''} dx={dx:+d} dy={dy:+d} gain={gain:+.3f}")
+        if facing in draft or "all" in draft:
+            g = draft_grid(r, facing, placed, fr, chars=chars)
+            print(f"== {facing}: drafted grid (nearest legend colour per cell; clean it by hand)")
+            print(grid_text(g))
+        if hex_ and hex_[0] == facing:
+            print(f"== {facing}: mockup hex")
+            print("\n".join(hex_box(placed, *hex_[1])))
         if fit_part_:
             codes = list(fit_part_)
             for y, x in zip(*np.where((rend[..., 3] > 0) & (placed[..., 3] > 0) & np.isin(fr.labels, codes))):
@@ -197,7 +205,7 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     out.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(out)
     print(out)
-    if text:
+    if text or fit or fit_part_:  # letters are assigned per recipe: always show what they mean
         print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
     if fit:
         print("\n".join(palette_fit(pairs, pal)))
@@ -220,7 +228,9 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
         moves = optimize_palette(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle])
         print("optimize: " + (", ".join(f"{a}.{b} {c} -> {d} (+{g:.3f})" for a, b, c, d, g in moves) or "no move gains"))
-    print("similarity " + "  ".join(f"{f}={v:.3f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.3f}")
+    print("similarity " + "  ".join(f"{f}={v:.4f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.4f}")
+    if quiet:
+        return
     # loss per body part, in score points (render side + mockup side), per view then mean
     print("loss      " + "  ".join(f"{f:>10}" for f in MOCKUP_FACINGS) + "        mean")
     for g, vs in parts.items():
@@ -249,6 +259,9 @@ def main():
     c.add_argument("--split", action="store_true", help="silhouette match vs colour loss per view")
     c.add_argument("--shift", action="store_true", help="best whole-grid offset per head grid")
     c.add_argument("--fit-part", metavar="CODES", help="fit table restricted to label codes, e.g. T or Rr")
+    c.add_argument("--draft-grid", nargs="*", default=(), metavar="VIEW", help="draft a head grid from the mockup (or 'all')")
+    c.add_argument("--hex", nargs=2, metavar=("VIEW", "Y0,Y1,X0,X1"), help="raw mockup hex for a box of frame pixels")
+    c.add_argument("--quiet", action="store_true", help="no loss table")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
     a = ap.parse_args()
     if a.cmd == "build":
@@ -261,7 +274,8 @@ def main():
         cmd_crops(a.name, a.recipe, tuple(int(v) for v in a.box.split(",")))
     elif a.cmd == "compare":
         cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
-                    slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part)
+                    slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part, draft=a.draft_grid,
+                    hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet)
     else:
         cmd_labels(a.anims)
 

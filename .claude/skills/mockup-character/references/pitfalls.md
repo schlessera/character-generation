@@ -34,6 +34,25 @@ Each one cost at least a step, some cost ten. Read before editing `[parts]`, gri
   and erases the lens glint/tip. With `--chars` limited to hair and stubble tones it is honest,
   and by the end it found nothing: the text-view redraw is already the optimum.
 
+## Found by the replay (a fresh agent using this skill)
+
+- The skeleton shipped without the cyber-arm (ramp, part line, joint rules), without `fx` mapped
+  (attack smears rendered as dark blobs), without the stubble legend, and with `_l` twins in the
+  facings of one-sided rules (a chrome square on the bare jacket in 3/4-back-left). All fixed in
+  the skeleton; when adding a one-sided rule, name its facings without the mirror.
+- Palette work before grids: `--fit` put hair under the skin's median, `--optimize` proposed a red
+  face. Grids first, or `--hex` on body areas only.
+- A fit median on a part where the mockup alternates two colours (lit and dark jogger columns) is
+  neither colour; the `~` spread mark flags it, `--hex` shows it. This is general, not only the
+  cyber-arm's teal.
+- A whole-grid `--shift` moves the visor and ear with the hair; use `--chars kbHDi` and add hair.
+- The 3/4-back shoulder cap needs the torso's far-shoulder grow first (the playbook had assigned
+  that grow to the 3/4-front only); without it the cap lands inside the mockup's shoulder.
+- `--ceiling` moves with the palette; "done when within X of the ceiling" must use the final one.
+- Three decimals hide a 0.8997 as 0.900; `compare` prints four now.
+- The mockup extractor used to keep a neighbouring view's shoe row at the top of a view; it keeps
+  the main run of rows now.
+
 ## Score reading
 
 - The metric tolerates one pixel of drift in any direction. A width difference of +1 is already

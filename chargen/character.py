@@ -93,6 +93,11 @@ class Recipe:
         head = self.data.get("head", {})
         self.legend = head.get("legend", {})
         self.grids = {f: _parse_grid(g) for f, g in head.get("grids", {}).items()}
+        missing = [f + "_l" for f in ("down_side", "side", "up_side") if f in self.grids and f + "_l" not in self.grids]
+        if missing:  # the mirrored fallback puts an asymmetric haircut on the wrong side
+            import sys
+            print(f"warning: {path.name}: no grid for {', '.join(missing)}; the right-facing grid is mirrored "
+                  f"(wrong for a one-sided haircut or visor)", file=sys.stderr)
 
     def emissive_colors(self) -> set[tuple[int, int, int]]:
         """Every color of the ramps listed in `emissive` (they glow in the dark)."""

@@ -1,31 +1,44 @@
 # NAME: one line on who they are. Concept art and pixel mockup: concept/
-# Start: copy to characters/NAME/recipe.toml, fill the palette from `just compare NAME --fit`,
-# then draw the head grids from `just compare NAME --text VIEW`. Rules below are the patterns that
-# held for a jacket-and-sneakers design; keep what the design has, delete the rest, add what it
-# needs. Every rule says why it exists: the next reader is an agent with the text view open.
+#
+# Start: copy to characters/NAME/recipe.toml. The palette below is Juno's (a dark-skinned courier
+# with magenta hair, a charcoal bomber, orange trim, white sneakers, a chrome arm): a starting point,
+# not placeholders. Compare it with the mockup's main colours (`just compare NAME --hex VIEW ...`)
+# and refit every slot that differs. Then draft the head grids with `--draft-grid`. The rules are
+# the patterns that held for a jacket-and-sneakers design with one cyber-arm; keep what the design
+# has, delete the rest, add what it needs. Every rule says why it exists: the next reader is an
+# agent with the text view open.
+#
+# Facings: down, down_side, side, up_side, up, and the mirrored down_side_l, side_l, up_side_l.
+# Mirroring swaps the anatomical labels and the meaning of front/back. A rule for a ONE-SIDED
+# feature (the cyber-arm, the far sleeve, an ear) must name its facings explicitly and usually
+# must not include the `_l` twin; symmetric trim (collar, hem, zipper) can list both.
 name = "NAME"
 rule_facing = "head"    # trim follows the tracked head through spinning poses
-emissive = ["glow"]     # ramps that stay lit in the dark (a visor, joints)
+emissive = ["glow"]     # ramps that stay lit in the dark (the lens, the arm's joints)
 emissive_strength = 0.5
+emissive_parts = { "arm_r+hand_r" = 1.0 }
 light = { color = "#3ff0ff", radius = 24, intensity = 0.2, anchor = "arm_r+hand_r" }
 
 # Ramps. Template tones pick slots: base, shade, light, blush, ink. Without `ink` the template's
-# ink stays (outlines, eyes). Take every value from `--fit`; expect the outline to be a warm dark
-# brown, the jacket's shade close to its base, the skin's shade much lighter than the template's.
+# ink stays (outlines, eyes). Every legend entry below is a FIXED slot (`hair.base`), never a
+# tone-relative ramp name: `--draft-grid` picks legend characters by nearest colour.
 [palette]
-skin    = { base = "#ad7043", shade = "#96603a", light = "#95593a", blush = "#a8653f" }
+skin    = { base = "#ad7043", shade = "#96603a", light = "#95593a", blush = "#a8653f" }  # face lit evenly: a mockup's cheek shade is far lighter than the template's
 hair    = { base = "#c22e6e", shade = "#9e2a5f", light = "#cc3276", deep = "#83254f", ink = "#261b19" }
+stubble = { base = "#553e30", shade = "#42222f", light = "#74533f", ink = "#2b1a14" }  # shaved side; the shade is plum: shadow under the magenta mane
 jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#232120" }
 pants   = { base = "#34353a", shade = "#323338", light = "#3c3d42", ink = "#141417" }
 shirt   = { base = "#2e2f2b", shade = "#222320" }
 shoes   = { base = "#dcdcde", shade = "#d9d6d6", light = "#d6d6da" }
+chrome  = { base = "#b2b6bc", shade = "#7a7e80", light = "#dfe2e6", ink = "#34383f" }
 trim    = { base = "#f06a1e", shade = "#e86218" }
 glow    = { base = "#44e4e8", shade = "#1aa6c4", light = "#c6fdff" }
-outline = { base = "#241a17" }                       # silhouette and the legend's `o`
+fx      = { base = "#8ff8ff", shade = "#3cc4e6", light = "#c8fcff" }               # the attack's swing smears
+outline = { base = "#241a17" }                       # silhouette and the legend's `o`; a warm dark brown, not black
 visor   = { base = "#1a191d", shade = "#3b3839" }    # rim above the lens, rim below
 
 # Part/group -> ramp. LATER LINES WIN: groups first, specific parts after (a `neck` line before
-# `body` is silently overridden — it happened).
+# `body` is silently overridden — it happened). `fx` unmapped renders the attack smears as blobs.
 [parts]
 head = "skin"
 body = "jacket"
@@ -33,6 +46,8 @@ neck = "skin"
 hand_l = "skin"
 legs = "pants"
 feet = "shoes"
+"arm_r+hand_r" = "chrome"    # the cyber-arm, anatomical right in every frame
+fx = "fx"
 
 [outline]
 color = "outline"
@@ -40,13 +55,13 @@ keep = "kSs"        # legend chars that keep their colour on the silhouette edge
 
 # ---- silhouette first: `grow` changes the outline, later rules see the grown labels ----------
 # Only where `--widths` shows the mockup 2+ pixels wider, and with a name. A general bulk grow
-# overshoots (the metric already forgives one pixel).
+# overshoots (the metric already forgives one pixel). One-sided: no `_l` twins here.
 [[rules]]  # 3/4 front: the far sleeve and hand stand beside the torso (the template tucks them behind)
 type = "grow"
 part = "arm_l"
 sides = ["front"]
 n = 2
-facings = ["down_side", "down_side_l"]
+facings = ["down_side"]
 color = "jacket.base"
 
 [[rules]]
@@ -54,16 +69,48 @@ type = "grow"
 part = "hand_l"
 sides = ["front"]
 n = 2
-facings = ["down_side", "down_side_l"]
+facings = ["down_side"]
 color = "skin.base"
 
-[[rules]]  # 3/4 front: the far shoulder above the sleeve
+[[rules]]  # 3/4 front and back: the far shoulder stands out above the far sleeve
 type = "grow"
 part = "torso"
 sides = ["front"]
 n = 2
-facings = ["down_side", "down_side_l"]
+facings = ["down_side", "up_side"]
 color = "jacket.base"
+
+[[rules]]  # 3/4 back: the far (cyber) arm one pixel out, and its shoulder cap over the jacket's edge
+type = "grow"  # (an arm cannot grow into the torso, so the torso's edge takes the arm's colour)
+part = "arm_r"
+sides = ["front"]
+facings = ["up_side"]
+color = "chrome.base"
+
+[[rules]]
+type = "region"
+part = "torso"
+anchor = "front"
+n = 2
+skip = 1
+top = 2
+facings = ["up_side"]
+color = "chrome.base"
+
+[[rules]]  # 3/4 front: the near cyber-arm stands one pixel further out, with the jacket's shadow
+type = "grow"  # line between it and the torso (growing without the seam makes a fat chrome arm)
+part = "arm_r+hand_r"
+sides = ["back"]
+facings = ["down_side"]
+color = "chrome.base"
+
+[[rules]]
+type = "region"
+part = "arm_r"
+anchor = "front"
+n = 1
+facings = ["down_side"]
+color = "jacket.shade"
 
 [[rules]]  # sneakers one pixel wider: both sides from the front and behind, toward the toes in 3/4,
 type = "grow"  # nothing in profile (the template's foot is already as long as a mockup's)
@@ -237,6 +284,69 @@ n = 1
 facings = ["up", "up_side", "up_side_l"]
 color = "jacket.base"
 
+# ---- the cyber-arm: plates, joints, glow -----------------------------------------------------
+[[rules]]  # elbow: plate seam with a glowing joint
+type = "band"
+part = "arm_r"
+at = 0.5
+color = "chrome.shade"
+
+[[rules]]
+type = "band"
+part = "arm_r"
+at = 0.5
+anchor = "center"
+color = "glow.base"
+
+[[rules]]  # shoulder cap seam
+type = "band"
+part = "arm_r"
+at = 0.0
+color = "chrome.shade"
+
+[[rules]]  # wrist: joint ring with one glowing seam pixel
+type = "edge"
+part = "arm_r"
+touching = "hand_r"
+color = "chrome.shade"
+
+[[rules]]
+type = "band"
+part = "arm_r"
+at = 1.0
+anchor = "center"
+color = "glow.base"
+
+[[rules]]  # polished forearm plate catching the light on its outer edge
+type = "band"
+part = "arm_r"
+at = 0.75
+anchor = "back"
+color = "chrome.light"
+
+[[rules]]  # the hand: a dark gap between the articulated fingers
+type = "rows"
+part = "hand_r"
+from = "bottom"
+n = 1
+color = "chrome.shade"
+
+[[rules]]  # a far arm the template draws as a dark silhouette still reads as chrome
+type = "all"
+part = "arm_r+hand_r"
+ink = true
+only_if_ink = true
+color = "chrome.shade"
+
+[[rules]]
+type = "band"
+part = "arm_r"
+at = 0.5
+anchor = "center"
+ink = true
+only_if_ink = true
+color = "glow.base"
+
 # ---- shoes -----------------------------------------------------------------------------------
 [[rules]]  # high-tops: one row up the leg
 type = "rows"
@@ -280,16 +390,20 @@ at = 0.0
 anchor = "right"
 color = "trim.base"
 
-# ---- head grids: one per facing, drawn from `just compare NAME --text VIEW` -------------------
+# ---- head grids: one per facing, drafted with `just compare NAME --draft-grid VIEW` -----------
 # Grid = head template padded by 3, '.' keeps the template. `just heads NAME` prints alignment.
-# Column offset grid->frame differs per facing; derive it from the hair outline row first.
+# The five mockup views are drafted; the three `_l` views are drawn by hand from the design (see
+# the playbook's near-side table) — without them the right grid is mirrored, which puts a
+# one-sided haircut on the wrong side.
 [head.legend]
-h = "hair"          # tone-relative
 b = "hair.base"
 H = "hair.shade"    # strand lines
 D = "hair.deep"
 i = "hair.light"
 k = "hair.ink"      # hair outline
+u = "stubble.base"  # shaved side: u/U checker
+U = "stubble.shade" # ...and the plum shadow where the mane meets it
+w = "stubble.light" # a pattern shaved into the undercut
 S = "skin.base"
 s = "skin.shade"
 x = "visor.base"    # rim above the lens (also the lens' end caps: no glint)

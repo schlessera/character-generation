@@ -7,8 +7,10 @@ recipe format is `characters/juno/recipe.toml`.
 ## 1 · Palette and outline
 
 Order of colours by pixel count, which is the order of gain: outline, hair base, jacket base, skin,
-pants, hair strands, stubble, shoes, chrome, trim. `compare NAME --fit` prints, per render colour,
-the median mockup colour under it. Edge colours (the outline) are unreliable in that table because
+pants, hair strands, stubble, shoes, chrome, trim. Before any grid exists, read colours with
+`--hex` on body boxes (the bald template under the mockup's hair corrupts the head's medians and the
+optimizer). After the grids, `compare NAME --fit` prints, per render colour, the median mockup
+colour under it. Edge colours (the outline) are unreliable in that table because
 of one-pixel drift; confirm them from the mockup's most common colours instead
 (`python -c` over `mockup.extract`, or just read the `--text` view: `##` cells).
 
@@ -30,32 +32,47 @@ fit table when both are right; when it proposes a drift you cannot explain, leav
 ## 2 · Head grids
 
 A grid is head-local: the head template padded by `HEAD_PAD = 3`, one character per pixel, `.` keeps
-the template. `just heads NAME` prints each facing's template rows next to its grid. To draw from
-the mockup:
+the template. Frame = 32×32 (rows 0..31); frame row = grid row + head_y − 3, frame col = grid col +
+head_x − 3, and `just heads NAME` prints each facing's template rows next to its grid. For Juno the
+column offsets were −6 (down, up) and −7 (the side views), rows −4; they differ per facing.
 
-1. `just compare NAME --text VIEW`. Rows are frame rows; columns are frame columns (the header
-   prints the range).
-2. Find the column offset for this facing: the grid's first row of `k` (hair outline) maps to the
-   render's first outline row in the text view; `grid col = frame col − offset`. For Juno: down −6,
-   down_side −7, side −7, up_side −7, up −6. It is not the same for every facing; deriving it once
-   per facing and writing it in the notes saved a full redraw.
-3. Rewrite the grid row by row from the mockup's letters, keeping the legend's meaning: `k` hair
-   outline, `b/H/D/i` hair base/shade/deep/light, `u/U/w` stubble checker and its light pattern,
-   `S/s` skin, `x` rim above the lens, `v` lens, `f` rim below, `o` outline (ear).
-4. Where the mockup's head is wider than the template's (the 3/4 view was two columns wider on the
-   shaved side), extend by one, not two: the grid may paint on `.` labels beside the head, but the
-   body under it does not move.
-5. Left-facing grids (`*_l`) are not in the mockup; mirror what the design says (Juno's undercut is
-   on her right, so the left views show the mane). Use the same strand vocabulary as the redrawn
-   right-facing grids so the turn-around does not change style.
+**Draft, then clean.** `just compare NAME --draft-grid VIEW --quiet` prints a grid where every cell
+on the head (or beside it, down to one row below the jaw) takes the legend character nearest in
+colour to the mockup pixel under it. Paste it under `[head.grids]`, then clean:
 
-Visor rows per angle: front keeps a skin brow row above the rim (rim, lens, grey rim, chin);
-3/4 and profile put the lens one row higher, at eye level. The mockup itself does this. Lens ends
-are dark frame caps (`x`), never a glint: `--fit-grid` and the cost maps both said so.
+- isolated speckles inside the hair (a lone `D` in a field of `b`): keep the strand *lines*, drop
+  single pixels;
+- the lens rows: `x` rim above, `v` lens, `f` rim below, and the lens ends are `x` (dark caps),
+  never a glint — the mockup has none;
+- the ear: `o S o` beside the head, `S` and `s` are in `[outline] keep` so they survive the edge;
+- the last row: the draft stops one row below the jaw; hanging hair tips may stay, collar pixels
+  must not;
+- the hair outline: `k` on the silhouette (it is in `keep`); the draft may choose `o` where the
+  mockup's outline is a hair's breadth closer to the outline colour — both read the same.
 
-After the grids, `--shift` once per facing. A shift the same anatomical direction in several views
-(Juno: one pixel toward her left in 3/4, back and 3/4-back) is hair volume, apply it; a lone shift
-in one view is the mockup's own offset, ignore it.
+Legend entries must be fixed slots (`hair.base`), never a tone-relative ramp name: the draft picks
+by colour, and a tone-relative entry has no single colour.
+
+**Visor rows per angle.** Front keeps a skin brow row above the rim (rim, lens, grey rim, chin); 3/4
+and profile put the lens one row higher, at eye level. The mockup itself does this; the human
+watching asked for it.
+
+**Left-facing grids** are not in the mockup. Draw them from the design (and from the right-facing
+grid, mirrored, with the hair swapped). Which side is nearest:
+
+| facing | she faces | nearest side | for Juno's undercut (shaved right, mane left) |
+|---|---|---|---|
+| down_side_l | down-left | her left | mane toward the viewer, fringe over the near cheek |
+| side_l | left | her left | mane covers the near side; visor at the front-left |
+| up_side_l | up-left | her right | shaved side nearest, visor tip on the far side |
+
+Without them `render_frame` mirrors the right grid and `compare` prints a warning; a one-sided
+haircut then lands on the wrong side in three of eight facings.
+
+**Volume.** `--shift --chars kbHDi` probes a one-pixel move of the hair cells only. A consistent
+direction across views (Juno: toward her left in 3/4, back and 3/4-back) means the mane wants a
+column more on that side — add hair cells there. A lone shift in one view is the mockup's own
+head/body offset; ignore it. Never shift a whole grid: the visor and ear go with it.
 
 ## 3 · Trim per facing
 
@@ -119,9 +136,11 @@ general jacket-bulk grow dropped the score 0.007). Grow only for ≥2, with a na
 
 - 3/4 front: `grow arm_l front n=2` and `hand_l front n=2` (the far sleeve beside the torso),
   `grow torso front n=2` (the far shoulder above it);
-- 3/4 back: `grow arm_r front n=1` (the far cyber-arm) and the shoulder cap as `region torso
+- 3/4 back: the same `grow torso front n=2` (without it the cap below lands inside the mockup's
+  shoulder), `grow arm_r front n=1` (the far cyber-arm) and the shoulder cap as `region torso
   anchor front n=2 skip=1 top=2 chrome.base` (the arm cannot grow into the torso, so the torso's
-  edge takes the arm's colour);
+  edge takes the arm's colour). No `_l` twins on any of these: mirroring puts the arm on the
+  other edge;
 - 3/4 front, near arm: `grow arm_r+hand_r back n=1` plus `region arm_r anchor front n=1
   jacket.shade` — the mockup's near arm stands out with a dark seam before the torso; growing
   without the seam makes a fat chrome arm and loses.
@@ -148,5 +167,9 @@ hot spot can be read against the `--text` rows. Then the finer optimizer pass.
 - `just media` at the end regenerates every README figure, including the iteration figure and the
   similarity curve from the snapshots; `props-sheet.png` and `cars.png` regenerate byte-different
   but pixel-identical, revert them.
+- `just preview NAME attack` writes `build/preview/NAME_attack.png` (the filtered sheet) besides
+  the facings image; the unfiltered `NAME.png` is not refreshed by a filtered call.
+- `--ceiling` rises with every ramp added (0.912 → 0.936 on the replica run); record it at the end,
+  not only in phase 1.
 - Keep the recipe's comments saying *why* (the collar is a row because the neck is a U): the next
   person reading it is an agent with the text view open.

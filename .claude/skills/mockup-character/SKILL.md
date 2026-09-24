@@ -1,6 +1,6 @@
 ---
 name: mockup-character
-description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (0.90 similarity is reachable; the palette ceiling is about 0.92). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, visor, collar, jacket, sleeves, shoes or turn-around — even if they don't say "recipe" or "mockup". It encodes everything learned in 110 iteration steps on Juno: the order of work that pays, the instruments to read, the rule patterns per facing, and the mistakes not to repeat.
+description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (0.90 similarity in about a dozen steps; the palette ceiling is 0.91–0.94). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, visor, collar, jacket, sleeves, shoes or turn-around — even if they don't say "recipe" or "mockup". It encodes what 110 iteration steps on Juno and a 12-step replay by a fresh agent taught: the order of work that pays, the instruments to read, the rule patterns per facing, and the mistakes not to repeat.
 ---
 
 # Character from a pixel mockup
@@ -8,99 +8,102 @@ description: Turn a character's concept art and pixel mockup into a finished rec
 A character here is a recipe: colour ramps per body part, geometric trim rules keyed to body-part
 labels, and per-facing head grids, skinned onto every frame of the labelled template. The mockup
 (five views: down, down_side, side, up_side, up, stacked vertically) is the reference; `just compare
-NAME` snaps it to its pixel grid and scores it against the render. This skill is the shortest known
-path from mockup to a recipe that scores about 0.90 and looks right from all eight angles.
+NAME` snaps it to its pixel grid and scores it against the render. Measured path: the skeleton
+recipe plus five drafted head grids reaches 0.90 in about eight steps; the rest is checking that
+it looks right from all eight angles and in every animation.
 
-Read `references/playbook.md` for the phases in detail (rule snippets per facing), `references/
-instruments.md` for what each `compare` flag shows, `references/pitfalls.md` before touching grids,
-`[parts]` or `grow`. The worked example is `characters/juno/recipe.toml`; its full log is
-`characters/juno/history/NOTES.md`, and README chapter 5 tells the story with numbers.
+Read `references/playbook.md` for the phases in detail (rule snippets per facing, the near-side
+table for the left-facing grids), `references/instruments.md` for what each `compare` flag shows,
+`references/pitfalls.md` before touching grids, `[parts]`, grow rules or a fit table. The worked
+example is `characters/juno/recipe.toml`; its log is `characters/juno/history/NOTES.md`, and
+`characters/replica/history/AGENT-LOG.md` is a fresh agent's account of using this skill.
 
 ## What makes this fast
 
-Juno took 110 steps because the instruments were built along the way and several problems were only
-found by a human watching. Three things cut that down:
-
-1. **Order.** Palette and outline first (three steps gave +0.06), head grids from the text view
-   second (+0.02), trim semantics third, silhouette last. Doing grids before the palette wastes
-   effort: you redraw them once the colours settle.
-2. **Read text, not just pictures.** `compare --text VIEW` prints mockup | render as palette letters.
-   Every grid in Juno's final recipe was drawn from that view, row by row, and both real semantic
-   bugs (a jacket-coloured neck, a shading rule overpainting the collar) were only visible there.
-3. **Know the ceiling and where the room is.** `--ceiling` gives the palette's maximum;
-   `--slack` says which body part still has room; `--split` confirms whether the silhouette is done.
-   Without these the loop chases noise. Silhouettes match at 0.99+ once the grow rules are in; the
-   remaining gap is colour placement, and most of it is the mockup's 300-colour noise.
+1. **The skeleton already contains the rule set** (`assets/recipe-skeleton.toml`): collar per
+   facing, zipper per facing, hem before zipper, sleeves and fingertips, sneakers, cyber-arm,
+   the 3/4 silhouette grows, `fx` mapped. Its palette is Juno's. On a design like hers most of
+   phase 3 and 4 is verification; on a different design, delete what the design lacks and refit
+   the colours — the structure still applies.
+2. **Head grids are drafted, not drawn.** `just compare NAME --draft-grid VIEW` quantizes the
+   mockup's head to the legend's colours at every grid cell and prints a ready grid. Each view
+   went from ~0.6 to ~0.9 on its first draft in the replay. Hand transcription from the text
+   view — Juno's method — is where the time went.
+3. **Read text, not just pictures.** `--text VIEW` (palette letters), `--hex VIEW y0,y1,x0,x1`
+   (raw colours), `--digits`, `--widths`: the structural mistakes (a jacket-coloured neck, a
+   shading rule overpainting the collar, an arm flush against the torso) were only visible there.
+4. **Know the ceiling and where the room is.** `--ceiling` moves when ramps are added, so run it
+   at the end too; `--slack` names the part with room; `--split` says whether the silhouette is
+   done (0.99+ means it is). Without these the loop chases the mockup's noise.
 
 ## Workflow
 
-Work in a branch. Log every step in `characters/NAME/history/NOTES.md` (one row: step, change,
-similarity) and snapshot the recipe every five steps as `history/step-NN.toml` — the README figures
-are built from those. Commit per phase. Every five steps render `just preview NAME` and look at
-every animation; every phase run `just smoke`.
+Work in a branch. Log every step in `characters/NAME/history/NOTES.md` (step, change, similarity
+to four decimals — `compare` prints four) and snapshot the recipe every five steps as
+`history/step-NN.toml`; the README figures are built from those. Commit per phase. Every five
+steps render `just preview NAME` and look at every animation; every phase run `just smoke`.
+Human complaints outrank the score: a bent collar, a low visor, small shoes and a jacket that
+looked broken from 3/4 cost nothing on the metric and were the most visible faults.
 
 ### Phase 0 — set up (1 step)
 
-- `characters/NAME/concept/NAME-pixel-mockup.png` (the five views, on a plain background) and
-  `NAME-concept.png`. `chargen/mockup.py` measures the pixel pitch itself.
-- Copy `assets/recipe-skeleton.toml` to `characters/NAME/recipe.toml`. It has the structure that
-  survived: `[parts]` in the right order, grow rules first, the collar per facing, the zipper per
-  facing, the hem before the zipper, sleeves, shoes, head legend, empty grids.
-- `just compare NAME` renders and scores. Expect about 0.6 with placeholder colours.
+- `characters/NAME/concept/NAME-pixel-mockup.png` (five views on a plain background) and
+  `NAME-concept.png`. `chargen/mockup.py` measures the pixel pitch itself and keeps each view's
+  main run of rows (neighbouring views' shoe rows are dropped).
+- Copy `assets/recipe-skeleton.toml` to `characters/NAME/recipe.toml`, `assets/NOTES-template.md`
+  to `history/NOTES.md`. Set `name`. `just compare NAME` → about 0.6 (no grids yet).
+- Check the palette against the mockup before touching it: `--hex down 20,26,12,20` (jacket),
+  `--hex down 8,12,14,20` (hair) and so on, or the `legend:` line against the mockup's main
+  colours. If the skeleton's ramps already match, phase 1 is one step; if the design differs,
+  refit the ramps that differ from these hex reads (large flat areas only).
 
-### Phase 1 — palette and outline (3–4 steps, the biggest gain)
+### Phase 1 — palette (1–3 steps)
 
-- `just compare NAME --fit` prints the median mockup colour under every render colour. Apply the
-  medians for every ramp slot with a plausible reading (skin, hair, jacket, pants, shoes, chrome,
-  trim). Sample the outline colour too: mockups from image generation use a warm dark brown
-  (`#241a17` for Juno), not near-black, and the outline is the largest single colour by pixel count.
-- Then `--optimize` (bounded coordinate descent, prints moves, applies nothing). Take a move only
-  when it has a semantic reading; see pitfalls for the one that was refused twice and then accepted.
-- Run `--ceiling` now and write it in the notes: that is the number to measure progress against.
+`--fit` and `--optimize` are unreliable **before the grids exist**: the bald template sits under
+the mockup's hair, so the skin's median reads as hair and the optimizer proposes a red face. Use
+`--hex` on flat body areas now; run `--fit`/`--optimize` after phase 2. A `~` in the fit table's
+spread column marks a median that is not a colour the mockup uses much (two populations, e.g.
+lit and dark columns on the joggers): look at `--hex` before moving. Sample the outline: mockups
+from image generation use a warm dark brown, and the outline is the largest single colour.
 
-### Phase 2 — head grids from the text view (4–6 steps)
+### Phase 2 — head grids (6–7 steps)
 
-One grid per facing in the mockup (down, down_side, side, up_side, up), each drawn from
-`--text VIEW`, then the three left-facing grids by hand for the mane side. The playbook has the
-column-offset derivation (it differs per facing, and getting it wrong shifts the whole head).
-Decide the visor row per angle up front: front view keeps a brow row above the rim; 3/4 and
-profile sit at eye level. Lens ends are the frame's dark caps, no glint. Then `--shift` once: a
-consistent direction across views means the hair wants more volume on that side.
+`--draft-grid VIEW` for each of the five mockup views (one step each: paste, clean, score).
+Cleaning: isolated speckles inside the hair, the lens row (rim `x`, lens `v`, rim `f`, dark caps
+at both ends, no glint), the ear (`o S o`), and nothing drawn on the collar row. Decide the visor
+row per angle: front keeps a brow row above the rim; 3/4 and profile sit at eye level. Then the
+three left-facing grids by hand from the near-side table in the playbook (the mirrored fallback
+puts a one-sided haircut on the wrong side; `compare` warns when they are missing). `--shift
+--chars kbHDi` once: a consistent direction across views means the mane wants a column more on
+that side — add hair there, never shift the whole grid (it moves the visor and ear).
 
-### Phase 3 — trim semantics per facing (4–6 steps)
+### Phase 3 — trim per facing (2–4 steps)
 
-The rules in the skeleton are the Juno answers; keep what fits the design and check every facing
-with `just crops NAME --box 17,31` (torso) and `--box 24,32` (feet), one row per `--recipe`
-variant. Test any change as a variant file first (`compare NAME --recipe tmp.toml`), never in place.
-The things that were wrong at first and are worth checking on any character:
+`just crops NAME --box 17,31` (torso) and `--box 24,32` (feet), one row per `--recipe` variant;
+test every change as a variant file, never in place. The skeleton's rules are the Juno answers;
+check them against this design from all eight angles. The playbook lists what was wrong at first
+on Juno and is worth checking on any character (collar as straight rows, zipper offsets per
+facing, hem before zipper, cuff a shade darker, fingertips, flank region before the trim).
+One-sided features (the cyber-arm, the far sleeve) must not carry `_l` twins in their facings:
+mirroring moves the arm to the other edge.
 
-- collar: a straight row (an edge against the neck follows the neck's U); front = torso top row,
-  from behind = the whole neck, profile = the neck's back columns;
-- zipper: front ±1 with the shirt between; 3/4 offsets 0/1/2 toward the facing side with `ink =
-  true` (the far edge sits on the template's ink column); profile on the front edge column;
-- hem before the zipper rules (an open jacket's hem is split by the opening);
-- flank shade with `region` before the trim; cuffs a shade darker than the hem; sneakers grown one
-  pixel each side (front/back), toward the toes in 3/4, not in profile; long sleeves cover all
-  but the fingertips.
+### Phase 4 — silhouette (1–2 steps)
 
-### Phase 4 — silhouette where the mockup is ≥2 wider (2–4 steps)
+`--widths` per view. Differences of 1 are free under the metric; grow only where the mockup is 2
+or more wider, with a name (far sleeve/shoulder in 3/4, far shoulder and arm in 3/4-back, near
+arm with its shadow seam). The skeleton has these; verify them here rather than adding. `--split`
+after: silhouettes at 0.99+.
 
-`--widths` per view. Differences of 1 are free (the metric tolerates one pixel); grow only where
-the mockup is 2 or more wider, with a reason: the far sleeve and shoulder beside the torso in 3/4,
-the far arm's shoulder cap from 3/4 behind, the near arm one column out with a shadow seam. A
-general "bulk" grow overshoots and loses. Check `--split`: silhouettes should read 0.99+.
+### Phase 5 — the last thousandths (1–3 steps)
 
-### Phase 5 — the last thousandths (2–3 steps)
-
-`--slack` names the parts with room; `--fit-part CODES` (e.g. `T`, `Rr`) shows which colours on
-that part sit where the mockup has something else; `--digits VIEW` shows the pixels. `--fit-grid`
-is a diagnostic: if it finds nothing, the grids are done; if it finds much, look at the cells
-before applying — unrestricted it paints junk. Finish with `--optimize` at a finer threshold via
-`optimize_palette(..., radius=20, step=4, min_gain=0.0004)`.
+`--slack` (parts with room), `--fit-part CODES` (colours on that part), `--digits VIEW` (the
+pixels), then `--optimize`. `--fit-grid VIEW` is a diagnostic: if it finds nothing the grids are
+done; look at its cells before applying anything. Re-run `--ceiling` (it rose with every ramp
+added) and record it.
 
 ### Done when
 
-The score is within about 0.02 of `--ceiling`, `--split` shows silhouettes at 0.99+, and the
-turn-around (`just preview NAME rotate`) reads as one character from eight sides. Then `just media`
-and update README/notes. Human complaints outrank the score: a bent collar, a low visor or small
-shoes cost nothing on the metric and were the most visible faults.
+The score is within about 0.03 of the final `--ceiling`, `--split` shows silhouettes at 0.99+,
+the turn-around (`just preview NAME rotate`) reads as one character from eight sides, and the
+attack, jump and run at 6× show nothing a person would complain about. Then `just media` and
+update README/notes.

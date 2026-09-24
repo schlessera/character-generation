@@ -60,8 +60,24 @@ def extract(path) -> list[np.ndarray]:
         rgba = np.zeros(rgb.shape[:2] + (4,), np.uint8)
         rgba[..., :3] = rgb
         rgba[..., 3] = (np.abs(rgb.astype(int) - bg).sum(2) > 40) * 255
-        sprites.append(rgba)
+        sprites.append(_main_run(rgba))
     return sprites
+
+
+def _main_run(sprite: np.ndarray) -> np.ndarray:
+    """Keep the longest run of non-empty rows: a neighbouring figure's shoe or hair row can
+    land in the snapped cells of this one when the stack's gaps are tight."""
+    rows = sprite[..., 3].any(1)
+    best, cur, start = (0, 0), 0, 0
+    for i, v in enumerate(list(rows) + [False]):
+        if v:
+            cur = cur + 1 if cur else 1
+            start = i if cur == 1 else start
+            if cur > best[1] - best[0]:
+                best = (start, i + 1)
+        else:
+            cur = 0
+    return sprite[best[0]:best[1]]
 
 
 def place(sprite: np.ndarray, like: np.ndarray) -> np.ndarray:
@@ -227,13 +243,14 @@ def palette_fit(pairs: dict[tuple[int, int, int], list[np.ndarray]], pal) -> lis
     mean distance. Suggests palette moves; an edge color (outline) is unreliable because
     of one-pixel drift, so read it next to the text view."""
     names = {c: l.strip() for c, l in pal}
-    lines = ["render color         n   mockup median   dist"]
+    lines = ["render color         n   mockup median   dist  spread   (~ wide: the median is not a colour the mockup uses much; --hex before moving)"]
     for c, lst in sorted(pairs.items(), key=lambda kv: -len(kv[1])):
         a = np.array(lst)
         med = np.median(a, 0).astype(int)
-        d = _redmean(np.array(c)[None].repeat(len(a), 0), a).mean()
+        ds = _redmean(np.array(c)[None].repeat(len(a), 0), a)
+        spread = _redmean(np.repeat(med[None], len(a), 0).astype(float), a).std()
         lines.append(f"#{c[0]:02x}{c[1]:02x}{c[2]:02x} {names.get(tuple(c), '?'):14} {len(a):4d}   "
-                     f"#{med[0]:02x}{med[1]:02x}{med[2]:02x}        {d:4.0f}")
+                     f"#{med[0]:02x}{med[1]:02x}{med[2]:02x}        {ds.mean():4.0f}   {spread:4.0f} {'~' if spread > 60 else ''}")
     return lines
 
 
@@ -423,9 +440,11 @@ def split(mockup: np.ndarray, render: np.ndarray) -> tuple[float, float]:
     return float(sil), float(col)
 
 
-def shift_probe(recipe, facing: str, sprite: np.ndarray, frame, render) -> tuple[int, int, float]:
-    """The best whole-grid offset for a facing's head grid (dx, dy, gain). A consistent
-    direction across views means the hair wants more volume on that side."""
+def shift_probe(recipe, facing: str, sprite: np.ndarray, frame, render, chars: str | None = None) -> tuple[int, int, float]:
+    """The best one-pixel offset for a facing's head grid (dx, dy, gain), of the whole grid
+    or only of the cells in `chars` (e.g. the hair tones, leaving visor and ear in place).
+    A consistent direction across views means the hair wants more volume on that side;
+    act by adding hair on that side, not by moving the face."""
     g = recipe.grids[facing]
     base = similarity(sprite, render(recipe, frame))
     best = (0, 0, 0.0)
@@ -434,8 +453,12 @@ def shift_probe(recipe, facing: str, sprite: np.ndarray, frame, render) -> tuple
         for dx in (-1, 0, 1):
             if dx == dy == 0:
                 continue
-            sh = np.full_like(g, ".")
-            sh[max(0, dy):H + min(0, dy), max(0, dx):W + min(0, dx)] = g[max(0, -dy):H + min(0, -dy), max(0, -dx):W + min(0, -dx)]
+            src = g if chars is None else np.where(np.isin(g, list(chars)), g, ".")
+            keep = np.full_like(g, ".") if chars is None else np.where(np.isin(g, list(chars)), ".", g)
+            sh = keep.copy()
+            moved = src[max(0, -dy):H + min(0, -dy), max(0, -dx):W + min(0, -dx)]
+            dst = sh[max(0, dy):H + min(0, dy), max(0, dx):W + min(0, dx)]
+            dst[moved != "."] = moved[moved != "."]
             recipe.grids[facing] = sh
             gain = similarity(sprite, render(recipe, frame)) - base
             if gain > best[2]:
@@ -453,4 +476,47 @@ def fit_part(pairs_by_letter: dict[str, list], pal) -> list[str]:
         med = np.median(np.array([p for p, _ in v]), 0).astype(int)
         out.append(f"{k:6} {len(v):4d}  #{med[0]:02x}{med[1]:02x}{med[2]:02x}        {quantize(med, pal):>4}      "
                    f"{np.mean([c for _, c in v]):.2f}     {sum(c for _, c in v):.1f}")
+    return out
+
+
+def draft_grid(recipe, facing: str, placed: np.ndarray, frame, rows: int | None = None,
+               chars: str | None = None) -> np.ndarray:
+    """A head grid drafted from the mockup: every grid cell that lands on the head, the neck
+    or beside them takes the legend character whose colour is nearest to the mockup pixel
+    under it; cells over the mockup's background stay '.'. `rows` limits the grid's height
+    (the hair may hang below the head; the collar should not become hair), `chars` limits
+    the candidates. This is what redrawing a grid from `--text` amounts to, without the
+    transcription; hand-clean it afterwards (isolated speckles, the lens ends, the ear)."""
+    from .character import HEAD_PAD
+    _, hx, hy, _ = frame.head
+    legend = {k: recipe.color(v, 1) for k, v in recipe.legend.items()
+              if v != "clear" and (chars is None or k in chars)}
+    keys = list(legend)
+    cols = np.array([legend[k] for k in keys], float)
+    ref = recipe.grids.get(facing)
+    h = ref.shape[0] if ref is not None else 16
+    w = ref.shape[1] if ref is not None else 20
+    if rows:
+        h = min(h, rows)
+    g = np.full((h, w), ".", "<U1")
+    H, W = frame.tones.shape
+    head_rows = np.where((frame.labels == "H").any(1))[0]
+    bottom = int(head_rows[-1]) + 1 if len(head_rows) else H  # hair may hang one row past the jaw
+    allowed = (frame.labels == "H") | (np.isin(frame.labels, ["N", "."]) & (np.arange(H)[:, None] <= bottom))
+    for gy in range(h):
+        for gx in range(w):
+            y, x = hy + gy - HEAD_PAD, hx + gx - HEAD_PAD
+            if not (0 <= y < H and 0 <= x < W) or not allowed[y, x] or not placed[y, x, 3]:
+                continue
+            d = _redmean(np.repeat(placed[y, x, :3][None], len(cols), 0).astype(float), cols)
+            g[gy, gx] = keys[int(np.argmin(d))]
+    return g
+
+
+def hex_box(placed: np.ndarray, y0: int, y1: int, x0: int, x1: int) -> list[str]:
+    """Raw mockup hex per pixel for a box (frame rows y0..y1-1, cols x0..x1-1): the truth
+    behind the palette letters where several dark ramps sit a few RGB steps apart."""
+    out = [f"   cols {x0}..{x1 - 1}"]
+    for y in range(y0, min(y1, placed.shape[0])):
+        out.append(f"{y:2d} " + " ".join(f"{p[0]:02x}{p[1]:02x}{p[2]:02x}" if p[3] else "------" for p in placed[y, x0:x1]))
     return out
