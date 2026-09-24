@@ -31,6 +31,7 @@ says what they mean for this recipe. All flags combine; `--quiet` drops the loss
 | `--fit-grid VIEW… [--chars …]` | the head grid traced cell by cell to the mockup, only changes that gain | a diagnostic; look at the cells before applying |
 | `--recipe PATH` | score a variant file instead of the character's recipe | every experiment |
 | `--oracle` | per part, the gain from copying the mockup's quantized pixels over the render | where the gap lives; the most any rule set could add |
+| `--ablate` | score gain from removing each rule, sorted | candidates for details the mockup lacks; confirm with `--hex` |
 | `--goal PCT` | the ceiling, the threshold PCT percent below it, and whether the mean reaches it | the definition of done |
 | `--hot N` | the N costliest pixels: view, row, col, mockup letter, render letter, cost | a "nothing big is left" check: scattered singles at cost ~1 mean done |
 | `--init-palette` | median mockup colour per body part and template tone (body only; the head needs grids) | a new design's palette before the grids |
@@ -44,10 +45,11 @@ Other commands:
   heads at 24× (look here first), torso and feet crops at 16×, the turn-around and walk/run/jump/
   attack in the angled views at 6× → `build/preview/NAME_review.png`.
 - `just step NAME "message" [--goal PCT] [--snapshot] [--amend]` — score, append the NOTES row (or
-  replace the last one with `--amend`), snapshot every fifth step; with `--goal`, the ceiling and
+  replace the last one — message and all — with `--amend`), snapshot every fifth step; with `--goal`, the ceiling and
   the threshold.
 - `just selftest` — every command and flag on a scratch copy; run it after touching `chargen/`.
-- `just heads NAME` — each facing's head template rows beside its grid, for alignment.
+- `just heads NAME` — each facing's head template rows beside its grid, with the grid↔frame
+  column and row offsets in the header.
 - `just crops NAME --box y0,y1 [--recipe v.toml …] [--diff]` — the eight idle facings cropped to
   frame rows y0..y1 at 16×, one row per recipe (`17,31` torso, `24,32` feet, `4,20` head); `--diff`
   outlines every pixel a variant changes. The fastest way to judge a trim change from every angle.

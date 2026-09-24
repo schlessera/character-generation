@@ -41,8 +41,8 @@ def main():
             if want not in out:
                 fails.append(f"missing: {want!r}")
         rc, out = run("lint", NAME)
-        if "error" in out:
-            fails.append("lint reports an error on the drafted skeleton:\n" + out)
+        if "error" in out or "warn " in out:
+            fails.append("lint reports an error or warning on the drafted skeleton (it must lint clean):\n" + out)
         rc, out = run("review", NAME)
         if not (ROOT / "build/preview" / f"{NAME}_review.png").exists():
             fails.append("review wrote no image")

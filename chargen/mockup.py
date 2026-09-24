@@ -491,37 +491,78 @@ def fit_part(pairs_by_letter: dict[str, list], pal) -> list[str]:
 STUBBLE_TO_HAIR = str.maketrans("uUw", "bHb")
 
 
-def mirror_grid(recipe, facing: str, template_width: int, swap: bool = False) -> np.ndarray | None:
+def near_side(frame) -> tuple[str, str]:
+    """Which of her arms is nearer the camera in this frame, and on which screen side the far
+    arm lies: ("L"|"R", "left"|"right"|"behind"). The template draws the near arm fuller; the
+    labels are anatomical (R = her right) even in mirrored frames, so this is the ground truth
+    the playbook's 3D reasoning had to guess at."""
+    on = frame.tones > 0
+    xr = np.where(np.isin(frame.labels, ["R", "r"]) & on)[1]
+    xl = np.where(np.isin(frame.labels, ["L", "l"]) & on)[1]
+    if not len(xr) or not len(xl):
+        return "R", "behind"
+    near, far = ("L", xr) if len(xl) > len(xr) else ("R", xl)
+    nx = xl.mean() if near == "L" else xr.mean()
+    d = far.mean() - nx
+    hidden = len(far) < 0.3 * max(len(xl), len(xr))  # the profile: the far arm is mostly behind the body (3/4: ~0.4)
+    return near, "behind" if hidden or abs(d) < 1.5 else ("right" if d > 0 else "left")
+
+
+def mirror_grid(recipe, facing: str, frame, head_tones: np.ndarray, swap: bool = False,
+                shaved: str = "R") -> tuple[np.ndarray, str] | tuple[None, str]:
     """A left-facing grid drafted from its right-facing twin, mirrored about the head
-    template's padded width (the grid may be wider than the template, so reversing the rows
+    template's padded width (a drafted grid is wider than the template, so reversing the rows
     as strings misaligns). A mirror image swaps her left and right; with `swap` a one-sided
-    cut is put back on her own side: the shaved patch stays where it was on screen and its
-    mirror image (now the near temple) becomes hair, as the mane hangs there."""
+    cut (shaved side = `shaved`, her right by default) is put back on her own side using the
+    frame's labels: the mane covers the near side, the shaved side shows as a two-column strip
+    at the far edge (none in profile), hair does not overhang the far edge, the lens keeps its
+    dark caps, and the ear moves with the shaved side. Returns (grid, what was done)."""
+    from .character import HEAD_PAD
     base = facing[:-2]
     g = recipe.grids.get(base)
     if g is None:
-        return None
-    from .character import HEAD_PAD
-    w = template_width + 2 * HEAD_PAD
+        return None, "no twin"
+    w = head_tones.shape[1] + 2 * HEAD_PAD
     out = np.full_like(g, ".")
     for x in range(min(w, g.shape[1])):
         out[:, x] = g[:, w - 1 - x]
-    if swap:
-        stub = np.isin(g, list("uUw"))
-        for y, x in zip(*np.where(stub)):
-            mx = w - 1 - x
-            if 0 <= mx < g.shape[1]:
-                out[y, mx] = g[y, x].translate(STUBBLE_TO_HAIR)  # the mane covers the near temple
-        if facing == "side_l":
-            pass  # the profile shows one side only: her left, all mane
-        elif facing == "down_side_l":  # her right is the far side: a strip of it shows at the far edge
-            for y in range(g.shape[0]):
-                xs = np.where(stub[y])[0]
-                for x in xs[:2]:
-                    out[y, x] = g[y, x]
-        else:  # up_side_l: her right is screen-right in both 3/4-back views and the head template
-            return g.copy()  # is symmetric there, so the unmirrored up_side grid is the answer
-    return out
+    if not swap:
+        return out, "mirrored"
+    near, far_side = near_side(frame)
+    head = np.pad(head_tones > 0, HEAD_PAD)[:, ::-1]  # the mirrored head silhouette
+    H, W = out.shape
+    stub_rows = {int(y) for y in np.where(np.isin(g, list("uUw")).any(1))[0]}
+    # the ear: outline cells drawn by the grid, and skin cells outside the head silhouette
+    inside = np.zeros_like(out, dtype=bool)
+    hh, hw = min(head.shape[0], H), min(head.shape[1], W)
+    inside[:hh, :hw] = head[:hh, :hw]
+    ear = (out == "o") | (np.isin(out, list("Ss")) & ~inside)
+    out = np.vectorize(lambda ch: ch.translate(STUBBLE_TO_HAIR))(out)
+    done = f"mirrored about the head; near arm is her {'left' if near == 'L' else 'right'}, far side {far_side}"
+    if near != shaved:  # the mane is nearest: shaved side = a far strip, no far overhang, no ear
+        out[ear] = "b"  # the ear sat on the shaved side; the mane covers it now (cleared below if past the edge)
+        cols_all = np.where(inside.any(0))[0]
+        glo, ghi = (cols_all[0], cols_all[-1]) if len(cols_all) else (0, W - 1)
+        for y in range(H):
+            xs = np.where(inside[y])[0]
+            lo, hi = (xs[0], xs[-1]) if len(xs) else (glo, ghi)
+            for x in range(W):  # hair drawn past the far edge belonged to the mane on the other side
+                past = (far_side == "left" and x < lo) or (far_side == "right" and x > hi)
+                if past and out[y, x] in "bHDik":
+                    out[y, x] = "."
+            if far_side != "behind" and y in stub_rows and len(xs):
+                cols = (lo, lo + 1) if far_side == "left" else (hi - 1, hi)
+                for x in cols:
+                    if 0 <= x < W and out[y, x] in "bHDi":
+                        out[y, x] = "u" if (x + y) % 2 else "U"
+        done += "; mane near, shaved strip at the far edge" if far_side != "behind" else "; all mane (profile)"
+    for y in range(H):  # the lens keeps a dark cap at both ends
+        vs = np.where(out[y] == "v")[0]
+        if len(vs) >= 3:
+            for x in (vs[0] - 1, vs[-1] + 1):
+                if 0 <= x < W and out[y, x] not in ".v":
+                    out[y, x] = "x"
+    return out, done
 
 
 def draft_grid(recipe, facing: str, placed: np.ndarray, frame, rows: int | None = None,
@@ -578,7 +619,7 @@ def clean_grid(g: np.ndarray, legend: dict, hair: str = HAIR, stubble: str = "uU
     (a cell unlike all its neighbours takes their majority), and the last row keeps hair
     characters only (it is the row below the jaw: hanging tips yes, collar no)."""
     g = g.copy()
-    vis = [ch for ch, ref in legend.items() if ref.startswith("visor") or ref.startswith("glow")]
+    vis = [ch for ch, ref in legend.items() if ref.startswith("visor")]  # not the lens: a lone `v` may be the tip past the face
     lens_rows = {y for y in range(g.shape[0]) if sum(ch == "v" for ch in g[y]) >= 3}
     keep_rows = lens_rows | {y + 1 for y in lens_rows} | {y - 1 for y in lens_rows}  # the rims sit beside the lens
     tex = set(hair + stubble)
@@ -688,4 +729,22 @@ def oracle(views, pal, groups=None) -> list[str]:
             r2[m] = q[m]
             gains.append(similarity(sprite, r2) - base)
         out.append(f"{name:12} {np.mean(gains):+8.4f}")
+    return out
+
+
+def ablate(recipe, sprites, renders_for) -> list[str]:
+    """Drop each rule in turn and score: a rule that scores better removed is a detail this
+    mockup lacks (confirm with --hex before deleting; the score alone is not a reason)."""
+    base = float(np.mean([similarity(sp, im) for sp, im in zip(sprites, renders_for(recipe))]))
+    rows = []
+    rules = recipe.rules
+    for i, rule in enumerate(rules):
+        recipe.rules = rules[:i] + rules[i + 1:]
+        s = float(np.mean([similarity(sp, im) for sp, im in zip(sprites, renders_for(recipe))]))
+        rows.append((s - base, i + 1, rule.get("type"), rule.get("part"), rule.get("color", ""), rule.get("facings", "")))
+    recipe.rules = rules
+    rows.sort(reverse=True)
+    out = [f"{'without':>8}  rule  (gain when removed; base {base:.4f})"]
+    for d, i, t, p, c, f in rows:
+        out.append(f"{d:+8.4f}  {i:3d}  {t} {p} {c} {f if f else ''}")
     return out

@@ -60,26 +60,26 @@ in the front view (rim, lens, grey rim, chin) and the lens at eye level in 3/4 a
 that the drafts kept it; do not move rows by hand (a replay read this as an instruction and nearly
 shifted a correct draft).
 
-**Left-facing grids** are not in the mockup. First the fact that costs everyone a paragraph of
-3D reasoning: a character facing screen-right shows the camera her *right* side (her right
-shoulder is nearest), so the `side` view is her shaved side and `side_l` is all mane; in the 3/4
-views the near side is the one turned toward the camera, the far side shows as a strip at the
-outer edge. `--draft-grid down_side_l --mirror-swap` (and
-`side_l`, `up_side_l`) mirrors the right-facing grid about the head template's padded width — a
-drafted grid is 20 columns wide while the side templates are 18–19, so reversing the rows as
-strings misaligns by one or two — and, because a mirror image swaps her left and right, puts a
-one-sided cut back on her own side: the shaved patch stays where it was on screen, its mirror
-image becomes hair (drop `--mirror-swap` for a symmetric cut). Then clean and, above all, look: the mirrored fringe of the
-profile becomes a forward overhang on the other side. Which side is nearest:
+**Left-facing grids** are not in the mockup. `--draft-grid down_side_l --mirror-swap` (and
+`side_l`, `up_side_l`) mirrors the right-facing grid about the head template's padded width and,
+for a one-sided cut, puts the shaved side back on her own side. It does not reason about 3D: it
+reads the frame's labels. **The rule:** the template draws the near arm fuller, and the labels
+are anatomical even in mirrored frames, so the fuller arm says which side is near; the head must
+agree with the body. Three replays argued about this for a paragraph each and two got it wrong;
+`near_side()` in `chargen/mockup.py` is the ground truth, and the print line says what it found.
+For Juno's undercut (shaved right, mane left) it comes out as:
 
-| facing | she faces | nearest side | for Juno's undercut (shaved right, mane left) | what `--mirror-swap` drafts |
+| facing | she faces | near arm (labels) | the head must show | what the draft does |
 |---|---|---|---|---|
-| down_side_l | down-left | her left | mane over the near (screen-right) side and cheek; a strip of shaved side at the far, screen-left edge | mirror, stubble → hair, two columns of stubble kept at the far edge |
-| side_l | left | her left | all mane down to the jaw; face and visor at the front-left | mirror, all stubble → hair |
-| up_side_l | up-left | her right | shaved side with the ear nearest (screen-right), mane over the top and far side, visor tip at the far face edge | mirror, the shaved patch kept where it was on screen |
+| down_side_l | down-left | her left | mane over the near (screen-right) side to the jaw; a two-column strip of shaved side at the far (screen-left) edge; no hair overhanging that edge | mirror, stubble → hair, far overhang cleared, strip kept, lens caps |
+| side_l | left | her left (the far arm hides behind) | all mane down to the jaw; face and visor at the front-left; no ear | mirror, stubble → hair, ear → hair |
+| up_side_l | up-left | her left | mane over the near (screen-left) side and the top, the visor tip at the near face edge; shaved strip at the far (screen-right) edge | mirror, stubble → hair, strip kept |
 
-Without them `render_frame` mirrors the right grid and `compare` prints a warning; a one-sided
-haircut then lands on the wrong side in three of eight facings.
+The drafts are starting points: check the heads row of `just review` at 24× (a fringe mirrored
+into a forward overhang, a dark plum column next to the strip reading as a slot, a `w` at a lens
+end were all only visible there). A one-cell feature on the silhouette — the visor tip showing
+past the face from 3/4 behind — is dropped by the nearest-colour draft; `--hot` finds it, add it
+by hand.
 
 **Volume (hand-drawn grids only).** `--shift --chars kbHDi` probes a one-pixel move of the hair
 cells. A consistent direction across views (Juno: toward her left in 3/4, back and 3/4-back)
@@ -137,8 +137,12 @@ feet left/right` from the front and behind, `grow feet front` in the 3/4 views, 
 (the template's foot is already as long as the mockup's), `band foot_* at 0.0 anchor left/right`
 orange caps, `rows feet from bottom n=1 shoes.shade` pale sole. Not orange soles.
 
-Judge every trim change on `just crops NAME --box 17,31 --recipe variant.toml`: one row per
-recipe, all eight facings. A change that reads well from the front and breaks the 3/4 is the
+Judge every trim change on `just crops NAME --box 17,31 --diff --recipe variant.toml`: one row
+per recipe, all eight facings, changed pixels outlined. `compare --ablate` scores each rule
+removed: a rule that scores better gone is a Juno detail this mockup lacks (the elbow crease, the
+forearm glint from most angles) — confirm with `--hex` before deleting, the score alone is not a
+reason. Known trade: the mockup's hem and cuff sit one row higher than the template's; raising
+the hem scores +0.002 and merges hem and cuff into one bar from behind. Keep the template's rows. A change that reads well from the front and breaks the 3/4 is the
 normal failure.
 
 ## 4 · Silhouette

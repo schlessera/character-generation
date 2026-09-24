@@ -199,6 +199,7 @@ def cmd_step(name, message, snapshot=False, goal=None, amend=False):
 def cmd_heads(name):
     tpl = template()
     r = Recipe(CHARS / name / "recipe.toml")
+    frames = build_frames(tpl)
     from .ascii import tone_ascii
     for facing in FACINGS:
         base = facing[:-2] if facing.endswith("_l") else facing
@@ -207,7 +208,10 @@ def cmd_heads(name):
             t = t[:, ::-1]
         ta = tone_ascii(t)
         g = r.grids.get(facing)
-        print(f"[{facing}]  template | grid" + ("" if g is not None else "  (no grid)"))
+        fr = frames["idle"][facing][0]
+        _, hx, hy, _ = fr.head
+        print(f"[{facing}]  template | grid" + ("" if g is not None else "  (no grid)")
+              + f"   grid col = frame col - {hx - HEAD_PAD}, grid row = frame row - {hy - HEAD_PAD}")
         for y in range(len(ta)):
             gr = "".join(g[y]) if g is not None and y < len(g) else ""
             print(f"{y:2d} {ta[y].replace(' ', '_')} | {gr}")
@@ -234,7 +238,7 @@ def cmd_labels(anims=()):
 
 def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
                 split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False, mirror_swap=False, apply=False, clean=False, hot=0,
-                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015):
+                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
@@ -322,17 +326,16 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         print("== second pass: the placement changed with the grids, redrafting")
         return cmd_compare(name, mockup, recipe, anim, frame, text, fit, optimize, ceil, fit_grid, chars, widths_, digits_,
                            slack_, split_, shift_, fit_part_, draft, hex_, quiet, mirror_swap, apply, clean, hot, init_pal,
-                           goal, oracle_, _pass=2, min_gain=min_gain)
+                           goal, oracle_, _pass=2, min_gain=min_gain, ablate_=ablate_)
     if draft and apply:  # the right twins may have just been written: reload them
         r = Recipe(r.path)
     lefts = [f for f in ("down_side_l", "side_l", "up_side_l") if f in draft or ("all" in draft and f[:-2] in r.grids)]
     for facing in lefts:
-        g = mirror_grid(r, facing, tpl.heads[facing[:-2]].shape[1], swap=mirror_swap)
+        g, done = mirror_grid(r, facing, frames[anim][facing][frame], tpl.heads[facing[:-2]], swap=mirror_swap)
         if g is None:
             print(f"== {facing}: no {facing[:-2]} grid to mirror")
             continue
-        print(f"== {facing}: mirrored from {facing[:-2]}" + (" with hair and stubble swapped" if mirror_swap else "")
-              + " (check the near side against the playbook's table)")
+        print(f"== {facing}: {done} (look at the heads row of `just review`)")
         print(grid_text(g))
         if apply:
             apply_grid(r.path, facing, g)
@@ -341,6 +344,11 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
         print(f"== {hot} costliest pixels (single scattered pixels at cost ~1 mean nothing big is left)")
         print("\n".join(hot_spots(hot_views, hot)))
+    if ablate_:
+        from .mockup import ablate
+        idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
+        print("== ablation: score gain when a rule is removed")
+        print("\n".join(ablate(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle])))
     if oracle_:
         from .mockup import oracle
         print("== oracle: gain from a pixel copy of the mockup, per part")
@@ -429,6 +437,7 @@ def main():
     c.add_argument("--init-palette", action="store_true", help="median mockup colour per body part and tone (before grids)")
     c.add_argument("--goal", type=float, metavar="PCT", help="report the target as PCT percent below the palette ceiling")
     c.add_argument("--oracle", action="store_true", help="gain from a pixel copy of the mockup per body part: where the gap lives")
+    c.add_argument("--ablate", action="store_true", help="drop each rule in turn and score (candidates to confirm with --hex)")
     c.add_argument("--min-gain", type=float, default=0.0015, help="--optimize keeps a move only above this gain (0.0004 for the last thousandths; it raises the ceiling too)")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
     a = ap.parse_args()
@@ -450,7 +459,7 @@ def main():
         cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
                     slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part, draft=a.draft_grid,
                     hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet,
-                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain)
+                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate)
     else:
         cmd_labels(a.anims)
 
