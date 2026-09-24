@@ -72,7 +72,10 @@ the end. Human complaints outrank the score.
 ### Step 1 — all head grids in one command
 
 `just compare NAME --draft-grid all --all-slots --clean --apply --quiet` (`--mirror-swap` only
-for a five-view mockup of a one-sided haircut). Then `just review NAME`: the heads row at 24×.
+for a five-view mockup of a one-sided haircut), then `just compare NAME --fit-grid all --apply
+--quiet` (two minutes, the views in parallel): the draft leaves `.` cells inside the head where
+the mockup's head is a pixel off (the template's bald skin shows through) and the trace fills
+them, +0.003 mean on both runs that measured it. Then `just review NAME`: the heads row at 24×.
 Fix what you see by editing grid rows; `just heads NAME` shows the template alignment. `just
 step` says when a view's placement moved (after a grow, a shrink, a new head): re-draft THAT
 view then (`--draft-grid VIEW --all-slots --clean --apply`), not all — the others come back

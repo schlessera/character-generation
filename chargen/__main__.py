@@ -544,11 +544,12 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
             dc = after - before
             lines.append(f"{a}.{b} {c} -> {d} (score +{g:.4f}, ceiling {dc:+.4f}, net margin {g - dc * (1 - (goal or 3) / 100):+.4f})")
         print("optimize: " + ("; ".join(lines) or "no move gains") + ("" if not moves else "   (moves applied cumulatively for the ceiling column; nothing written)"))
-    if draft and apply:  # the scores above were taken before this pass wrote its grids: re-score the file
+    written = apply and (draft or fit_grid)
+    if written:  # the scores above were taken before the grids were written: re-score the file
         r2 = Recipe(r.path)
         scores = [similarity(sp, render_frame(r2, frames[anim][f][frame])) for sp, f in zip(sprites, MOCKUP_FACINGS)]
     print("similarity " + "  ".join(f"{f}={v:.4f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.4f}"
-          + ("  (after the grids were written)" if draft and apply else ""))
+          + ("  (after the grids were written)" if written else ""))
     if quiet:
         return
     # loss per body part, in score points (render side + mockup side), per view then mean
