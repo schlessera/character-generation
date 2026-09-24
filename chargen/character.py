@@ -81,6 +81,15 @@ def load_recipe_data(path: Path) -> dict:
     return data
 
 
+# What the head-grid tools may assume about legend characters: `hair` cells are the mane (kept
+# on the last drafted row, the volume `--shift` probes), `texture` a second surface treated like
+# hair when cleaning (a shaved side, a hat band), `lens` the row(s) of an eyepiece (its rows and
+# their neighbours are exempt from the visor cleanup), `rim` the eyepiece's frame characters (moved
+# off other rows by `--clean`), `caps` what `--mirror-swap` puts at a lens's ends. These are Juno's
+# characters; a recipe overrides any of them in `[head.classes]`.
+HEAD_CLASSES = {"hair": "kbHDi", "texture": "uUw", "lens": "v", "rim": "xf", "caps": "x"}
+
+
 class Recipe:
     def __init__(self, path: Path):
         self.path = path
@@ -92,6 +101,7 @@ class Recipe:
         self.outline = self.data.get("outline", {})
         head = self.data.get("head", {})
         self.legend = head.get("legend", {})
+        self.head_classes = {**HEAD_CLASSES, **head.get("classes", {})}
         self.grids = {f: _parse_grid(g) for f, g in head.get("grids", {}).items()}
         missing = [f + "_l" for f in ("down_side", "side", "up_side") if f in self.grids and f + "_l" not in self.grids]
         if missing:  # the mirrored fallback puts an asymmetric haircut on the wrong side
@@ -319,14 +329,16 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
         anchor = rule.get("anchor", "center")
         if anchor in ("front", "back"):  # the facing's front edge; left facings are mirrored
             anchor = "left" if (anchor == "front") == f.facing.endswith("_l") else "right"
-        rows = np.where(part.any(axis=1))[0][:rule.get("top")]
+        all_rows = np.where(part.any(axis=1))[0]
+        rows = all_rows[:rule.get("top")]
 
         def base_x(y):
             xs = np.where(part[y])[0]
             return {"left": xs[0], "right": xs[-1]}.get(anchor, int(round((xs[0] + xs[-1]) / 2)))
-        # `straight`: one column for the whole part (the median), so a zipper stays a
-        # straight line on twisted poses instead of zig-zagging row by row
-        fixed = int(np.median([base_x(y) for y in rows])) if rule.get("straight") and len(rows) else None
+        # `straight`: one column for the whole part (the median over ALL its rows, so stacked
+        # stripes with different `top`s form one strip even when a grow widens the top rows),
+        # so a zipper stays a straight line on twisted poses instead of zig-zagging row by row
+        fixed = int(np.median([base_x(y) for y in all_rows])) if rule.get("straight") and len(all_rows) else None
         for y in rows:
             base = fixed if fixed is not None else base_x(y)
             x = base + rule.get("offset", 0) * (-1 if f.facing.endswith("_l") else 1)

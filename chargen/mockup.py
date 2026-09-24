@@ -135,6 +135,17 @@ def _cost(src: np.ndarray, ref: np.ndarray) -> np.ndarray:
     return _cost_map(src, ref)[src[..., 3] > 0]
 
 
+def _shift(a: np.ndarray, dy: int, dx: int) -> np.ndarray:
+    """`a` moved by (dy, dx) with transparent fill: np.roll wrapped the sole row to the top of the
+    frame whenever the best placement was one row down (every view paid for it, ~0.01)."""
+    H, W = a.shape[:2]
+    out = np.zeros_like(a)
+    ys, yd = (slice(0, H - dy), slice(dy, H)) if dy >= 0 else (slice(-dy, H), slice(0, H + dy))
+    xs, xd = (slice(0, W - dx), slice(dx, W)) if dx >= 0 else (slice(-dx, W), slice(0, W + dx))
+    out[yd, xd] = a[ys, xs]
+    return out
+
+
 def cost_maps(sprite: np.ndarray, render: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """(mockup placed at the best shift, cost of each render pixel, cost of each mockup pixel).
 
@@ -144,7 +155,7 @@ def cost_maps(sprite: np.ndarray, render: np.ndarray) -> tuple[np.ndarray, np.nd
     best = None
     for dy in (-1, 0, 1):
         for dx in (-1, 0, 1):
-            m = np.roll(base, (dy, dx), axis=(0, 1))
+            m = _shift(base, dy, dx)
             cr, cm = _cost_map(render, m), _cost_map(m, render)
             n = (render[..., 3] > 0).sum() + (m[..., 3] > 0).sum()
             s = 1 - (cr.sum() + cm.sum()) / max(n, 1)
@@ -201,7 +212,7 @@ def similarity(sprite: np.ndarray, render: np.ndarray) -> float:
     best = 0.0
     for dy in (-1, 0, 1):
         for dx in (-1, 0, 1):
-            m = np.roll(base, (dy, dx), axis=(0, 1))
+            m = _shift(base, dy, dx)
             c1, c2 = _cost(m, render), _cost(render, m)
             best = max(best, 1 - (c1.sum() + c2.sum()) / max(len(c1) + len(c2), 1))
     return best
@@ -217,7 +228,7 @@ def palette_letters(recipe) -> list[tuple[tuple[int, int, int], str]]:
     used: dict[str, str] = {ch.upper(): "legend" for ch in recipe.legend if ch != "-"}  # legend chars are taken
     out = []
     for name, ramp in recipe.ramps.items():
-        key = next((c for c in name[0].upper() + name[1:] if c.upper() not in used), name[0])
+        key = next((c for c in name[0].upper() + name[1:] + "ABCDEFGHIJKLMNOPQRSTUVWXYZ" if c.upper() not in used), name[0])
         used[key.upper()] = name
         for slot, c in ramp.items():
             out.append((c, (key + marks.get(slot, "?")).ljust(2)))
@@ -501,7 +512,13 @@ def fit_part(pairs_by_letter: dict[str, list], pal) -> list[str]:
     return out
 
 
-STUBBLE_TO_HAIR = str.maketrans("uUw", "bHb")
+def _texture_to_hair(classes: dict) -> dict:
+    """Translation table: each texture character becomes the hair's base (or its second character
+    for the texture's second one, so a checker keeps two tones)."""
+    hair, tex = classes["hair"], classes["texture"]
+    base = hair[1] if len(hair) > 1 else hair[0]
+    alt = hair[2] if len(hair) > 2 else base
+    return str.maketrans(tex, "".join(alt if i == 1 else base for i in range(len(tex))))
 
 
 def near_side(frame) -> tuple[str, str]:
@@ -522,7 +539,7 @@ def near_side(frame) -> tuple[str, str]:
 
 
 def mirror_grid(recipe, facing: str, frame, head_tones: np.ndarray, swap: bool = False,
-                shaved: str = "R") -> tuple[np.ndarray, str] | tuple[None, str]:
+                shaved: str = "R", classes: dict | None = None) -> tuple[np.ndarray, str] | tuple[None, str]:
     """A left-facing grid drafted from its right-facing twin, mirrored about the head
     template's padded width (a drafted grid is wider than the template, so reversing the rows
     as strings misaligns). A mirror image swaps her left and right; with `swap` a one-sided
@@ -530,7 +547,9 @@ def mirror_grid(recipe, facing: str, frame, head_tones: np.ndarray, swap: bool =
     frame's labels: the mane covers the near side, the shaved side shows as a two-column strip
     at the far edge (none in profile), hair does not overhang the far edge, the lens keeps its
     dark caps, and the ear moves with the shaved side. Returns (grid, what was done)."""
-    from .character import HEAD_PAD
+    from .character import HEAD_CLASSES, HEAD_PAD
+    classes = classes or getattr(recipe, "head_classes", HEAD_CLASSES)
+    hair, tex, lens, caps = classes["hair"], classes["texture"], classes["lens"], classes["caps"]
     base = facing[:-2]
     g = recipe.grids.get(base)
     if g is None:
@@ -544,16 +563,17 @@ def mirror_grid(recipe, facing: str, frame, head_tones: np.ndarray, swap: bool =
     near, far_side = near_side(frame)
     head = np.pad(head_tones > 0, HEAD_PAD)[:, ::-1]  # the mirrored head silhouette
     H, W = out.shape
-    stub_rows = {int(y) for y in np.where(np.isin(g, list("uUw")).any(1))[0]}
+    stub_rows = {int(y) for y in np.where(np.isin(g, list(tex)).any(1))[0]}
     # the ear: outline cells drawn by the grid, and skin cells outside the head silhouette
     inside = np.zeros_like(out, dtype=bool)
     hh, hw = min(head.shape[0], H), min(head.shape[1], W)
     inside[:hh, :hw] = head[:hh, :hw]
     ear = (out == "o") | (np.isin(out, list("Ss")) & ~inside)
-    out = np.vectorize(lambda ch: ch.translate(STUBBLE_TO_HAIR))(out)
+    tr = _texture_to_hair(classes)
+    out = np.vectorize(lambda ch: ch.translate(tr))(out)
     done = f"mirrored about the head; near arm is her {'left' if near == 'L' else 'right'}, far side {far_side}"
     if near != shaved:  # the mane is nearest: shaved side = a far strip, no far overhang, no ear
-        out[ear] = "b"  # the ear sat on the shaved side; the mane covers it now (cleared below if past the edge)
+        out[ear] = hair[1] if len(hair) > 1 else hair[0]  # the ear sat on the shaved side; the mane covers it now
         cols_all = np.where(inside.any(0))[0]
         glo, ghi = (cols_all[0], cols_all[-1]) if len(cols_all) else (0, W - 1)
         for y in range(H):
@@ -561,25 +581,63 @@ def mirror_grid(recipe, facing: str, frame, head_tones: np.ndarray, swap: bool =
             lo, hi = (xs[0], xs[-1]) if len(xs) else (glo, ghi)
             for x in range(W):  # hair drawn past the far edge belonged to the mane on the other side
                 past = (far_side == "left" and x < lo) or (far_side == "right" and x > hi)
-                if past and out[y, x] in "bHDik":
+                if past and out[y, x] in hair:
                     out[y, x] = "."
             if far_side != "behind" and y in stub_rows and len(xs):
                 cols = (lo, lo + 1) if far_side == "left" else (hi - 1, hi)
                 for x in cols:
-                    if 0 <= x < W and out[y, x] in "bHDi":
-                        out[y, x] = "u" if (x + y) % 2 else "U"
+                    if 0 <= x < W and out[y, x] in hair:
+                        out[y, x] = tex[0] if (x + y) % 2 or len(tex) < 2 else tex[1]
         done += "; mane near, shaved strip at the far edge" if far_side != "behind" else "; all mane (profile)"
     for y in range(H):  # the lens keeps a dark cap at both ends
-        vs = np.where(out[y] == "v")[0]
+        vs = np.where(np.isin(out[y], list(lens)))[0]
         if len(vs) >= 3:
             for x in (vs[0] - 1, vs[-1] + 1):
-                if 0 <= x < W and out[y, x] not in ".v":
-                    out[y, x] = "x"
+                if 0 <= x < W and out[y, x] != "." and out[y, x] not in lens:
+                    out[y, x] = caps[0]
     return out, done
 
 
+def unlisted_slots(recipe) -> dict[str, str]:
+    """Palette slots whose colour no legend character references, each given a free letter:
+    the draft picks legend colours only, while the ceiling quantizes to every slot, so a short
+    legend is a built-in gap. Used by `--draft-grid --all-slots`; the letters are appended to
+    the legend by `apply_legend`."""
+    from .character import hex_rgb
+    have = set()
+    for ref in recipe.legend.values():
+        if ref != "clear":
+            have.add(hex_rgb(ref) if ref.startswith("#") else recipe.color(ref, 1))
+    taken = set(recipe.legend) | {"."}
+    free = [c for c in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" if c not in taken]
+    out = {}
+    for name, ramp in recipe.ramps.items():
+        for slot, col in ramp.items():
+            if col in have or not free:
+                continue
+            have.add(col)
+            pref = [c for c in (name[0], name[0].upper(), slot[0], slot[0].upper()) if c in free]
+            ch = pref[0] if pref else free[0]
+            free.remove(ch)
+            out[ch] = f"{name}.{slot}"
+    return out
+
+
+def apply_legend(recipe_path, entries: dict[str, str]) -> None:
+    """Append legend entries at the end of the [head.legend] block of the recipe file."""
+    text = recipe_path.read_text()
+    start = text.find("[head.legend]")
+    if start < 0:
+        return
+    nxt = text.find("\n[", start + 1)
+    end = len(text) if nxt < 0 else nxt
+    block = text[start:end].rstrip("\n")
+    lines = "".join(f'\n{ch} = "{ref}"' for ch, ref in entries.items())
+    recipe_path.write_text(text[:start] + block + lines + "\n" + text[end:])
+
+
 def draft_grid(recipe, facing: str, placed: np.ndarray, frame, rows: int | None = None,
-               chars: str | None = None) -> np.ndarray:
+               chars: str | None = None, extra: dict[str, str] | None = None) -> np.ndarray:
     """A head grid drafted from the mockup: every grid cell that lands on the head, the neck
     or beside them takes the legend character whose colour is nearest to the mockup pixel
     under it; cells over the mockup's background stay '.'. `rows` limits the grid's height
@@ -588,7 +646,7 @@ def draft_grid(recipe, facing: str, placed: np.ndarray, frame, rows: int | None 
     transcription; hand-clean it afterwards (isolated speckles, the lens ends, the ear)."""
     from .character import HEAD_PAD
     _, hx, hy, _ = frame.head
-    legend = {k: recipe.color(v, 1) for k, v in recipe.legend.items()
+    legend = {k: recipe.color(v, 1) for k, v in {**recipe.legend, **(extra or {})}.items()
               if v != "clear" and (chars is None or k in chars)}
     keys = list(legend)
     cols = np.array([legend[k] for k in keys], float)
@@ -623,17 +681,19 @@ def hex_box(placed: np.ndarray, y0: int, y1: int, x0: int, x1: int) -> list[str]
 
 # ---------------------------------------------------------------- drafts: clean and apply
 
-HAIR = "kbHDi"
-
-
-def clean_grid(g: np.ndarray, legend: dict, hair: str = HAIR, stubble: str = "uUw") -> np.ndarray:
-    """The mechanical part of cleaning a drafted grid: visor characters outside the lens rows
-    (a dark plum pixel is nearest to the rim greys), lone speckles inside the hair or stubble
-    (a cell unlike all its neighbours takes their majority), and the last row keeps hair
-    characters only (it is the row below the jaw: hanging tips yes, collar no)."""
+def clean_grid(g: np.ndarray, legend: dict, classes: dict | None = None, despeckle: bool = True,
+               last_row: bool = True) -> np.ndarray:
+    """The mechanical part of cleaning a drafted grid: rim characters outside the lens rows (a
+    dark pixel is nearest to the rim greys), lone speckles inside the hair or texture (a cell
+    unlike all its neighbours takes their majority), and the last row keeps hair characters only
+    (it is the row below the jaw: hanging tips yes, collar no). Which characters are hair, texture,
+    lens and rim comes from `[head.classes]` (see HEAD_CLASSES in character.py)."""
+    from .character import HEAD_CLASSES
+    classes = classes or HEAD_CLASSES
+    hair, stubble, lens = classes["hair"], classes["texture"], classes["lens"]
     g = g.copy()
-    vis = [ch for ch, ref in legend.items() if ref.startswith("visor")]  # not the lens: a lone `v` may be the tip past the face
-    lens_rows = {y for y in range(g.shape[0]) if sum(ch == "v" for ch in g[y]) >= 3}
+    vis = [ch for ch in classes["rim"] if ch in legend]  # not the lens: a lone lens cell may be the tip past the face
+    lens_rows = {y for y in range(g.shape[0]) if sum(ch in lens for ch in g[y]) >= 3}
     keep_rows = lens_rows | {y + 1 for y in lens_rows} | {y - 1 for y in lens_rows}  # the rims sit beside the lens
     tex = set(hair + stubble)
     H, W = g.shape
@@ -649,8 +709,8 @@ def clean_grid(g: np.ndarray, legend: dict, hair: str = HAIR, stubble: str = "uU
         for x in range(W):
             if g[y, x] in vis:  # a stray visor colour inside the hair: what surrounds it, never '.'
                 g[y, x] = majority(y, x)  # ('.' would show the template's skin as a tan dot)
-    for y in range(H):
-        for x in range(W):
+    for y in range(H if despeckle else 0):  # (on spiky light hair the "speckles" are the mockup's
+        for x in range(W):                   # strand texture: the caller scores both and keeps the better)
             if g[y, x] not in tex:
                 continue
             nb = [g[yy, xx] for yy, xx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)) if 0 <= yy < H and 0 <= xx < W]
@@ -662,8 +722,8 @@ def clean_grid(g: np.ndarray, legend: dict, hair: str = HAIR, stubble: str = "uU
     last = H - 1
     while last > 0 and (g[last] == ".").all():
         last -= 1
-    for x in range(W):  # the row below the jaw: hanging hair tips only, and not their outline
-        if g[last, x] != "." and g[last, x] not in hair.replace("k", ""):  # (k cells chop the collar into dashes)
+    for x in range(W if last_row else 0):  # the row below the jaw: hanging hair tips only, and not their outline
+        if g[last, x] != "." and g[last, x] not in hair[1:]:  # (the first hair char is its outline: it chops the collar into dashes)
             g[last, x] = "."
     return g
 

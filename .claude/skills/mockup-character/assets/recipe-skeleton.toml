@@ -437,6 +437,18 @@ color = "trim.base"
 # The five mockup views are drafted from the mockup; the three `_l` views are mirrored from
 # their twins (with mane and shaved side swapped for a one-sided cut; drop --mirror-swap for a
 # symmetric one) and must be checked against the playbook's near-side table.
+# Which legend characters the grid tools may treat as what. `--clean` moves `rim` characters off
+# rows that are not `lens` rows, despeckles inside `hair` and `texture`, keeps only `hair` (minus
+# its first character, the outline) on the row below the jaw; `--mirror-swap` swaps `texture`
+# and `hair` and caps a lens with `caps`. Anything not listed (a mask, an ear, skin) is left
+# alone. Change these with the legend: they are Juno's letters, not fixed ones.
+[head.classes]
+hair = "kbHDi"      # outline first, then the mane's base, shade, deep, light
+texture = "uUw"     # a second surface cleaned like hair (the shaved side); "" if the design has none
+lens = "v"
+rim = "xf"
+caps = "x"
+
 [head.legend]
 b = "hair.base"
 H = "hair.shade"    # strand lines

@@ -36,6 +36,13 @@ the template. Frame = 32×32 (rows 0..31); frame row = grid row + head_y − 3, 
 head_x − 3, and `just heads NAME` prints each facing's template rows next to its grid. For Juno the
 column offsets were −6 (down, up) and −7 (the side views), rows −4; they differ per facing.
 
+**The legend is yours; the classes tell the tools what it means.** `[head.classes]` (hair,
+texture, lens, rim, caps) says which legend characters `--clean` may despeckle, keep on the jaw
+row or move off non-lens rows and which `--mirror-swap` swaps; a design without a shaved side
+sets `texture = ""`, a mask or a hat band is simply a legend entry in no class, which the
+cleanup leaves alone. Keep each class's characters and the legend consistent, or the draft
+cleanup silently rewrites cells.
+
 **Draft, then clean.** `just compare NAME --draft-grid VIEW --quiet` prints a grid where every cell
 on the head (or beside it, down to one row below the jaw) takes the legend character nearest in
 colour to the mockup pixel under it. Paste it under `[head.grids]`, then clean:

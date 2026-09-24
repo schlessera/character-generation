@@ -263,13 +263,13 @@ def cmd_labels(anims=()):
 
 def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
                 split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False, mirror_swap=False, apply=False, clean=False, hot=0,
-                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False):
+                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False, all_slots=False):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
     from .mockup import (breakdown, cost_maps, digits, draft_grid, extract, fit_part, grid_text, heat,
                          hex_box, mirror_grid, mockup_facings, palette_fit, palette_letters, place, shift_probe, similarity, slack,
-                         split, text_view, widths, clean_grid, apply_grid, hot_spots, init_palette)
+                         split, text_view, widths, clean_grid, apply_grid, hot_spots, init_palette, unlisted_slots, apply_legend)
     tpl = template()
     r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
     src = Path(mockup) if mockup else CHARS / name / "concept" / f"{name}-pixel-mockup.png"
@@ -287,6 +287,10 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     pal_views: list = []
     oracle_views: list = []
     from .mockup import quantize
+    extra = unlisted_slots(r) if (draft and all_slots) else {}
+    if extra:
+        r.legend.update(extra)  # (the letters a drafted grid uses are written to the file after the loop)
+    used_extra: set = set()
     for i, (sprite, facing) in enumerate(zip(sprites, MOCKUP_FACINGS)):
         fr = frames[anim][facing][frame]
         rend = render_frame(r, fr)
@@ -313,11 +317,27 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
             dx, dy, gain = shift_probe(r, facing, sprite, fr, render_frame, chars)
             print(f"== {facing}: best grid shift{' of ' + chars if chars else ''} dx={dx:+d} dy={dy:+d} gain={gain:+.3f}")
         if facing in draft or "all" in draft:
-            g = draft_grid(r, facing, placed, fr, chars=chars)
-            if clean:
-                g = clean_grid(g, r.legend)
-            print(f"== {facing}: drafted grid ({'cleaned; ' if clean else ''}nearest legend colour per cell)")
+            g = draft_grid(r, facing, placed, fr, chars=chars)  # (extra slots are in r.legend by now)
+            note = ""
+            if clean:  # each optional pass (speckles, last row) is kept per view only where it does not
+                keep = r.grids.get(facing)  # cost: on spiky light hair the speckles are strand texture, and
+                cands = []                  # a collar in the legend makes the last row worth keeping
+                for despeckle in (True, False):
+                    for last_row in (True, False):
+                        r.grids[facing] = clean_grid(g, r.legend, r.head_classes, despeckle=despeckle, last_row=last_row)
+                        cands.append((similarity(sprite, render_frame(r, fr)), despeckle, last_row, r.grids[facing]))
+                if keep is None:
+                    del r.grids[facing]
+                else:
+                    r.grids[facing] = keep
+                full = cands[0][0]
+                best = max(cands, key=lambda c: (round(c[0], 6), c[1], c[2]))  # ties go to the fuller cleanup
+                g = best[3]
+                skipped = [n for n, on in (("speckle", best[1]), ("last-row", best[2])) if not on]
+                note = "cleaned; " if not skipped else f"cleaned without the {' and '.join(skipped)} pass ({full - best[0]:+.4f} with it); "
+            print(f"== {facing}: drafted grid ({note}nearest legend colour per cell)")
             print(grid_text(g))
+            used_extra |= set("".join("".join(row) for row in g)) & set(extra)
             if apply:
                 apply_grid(r.path, facing, g)
                 print(f"   written to {r.path.name}")
@@ -344,21 +364,22 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         hot_views.append((facing, placed, rend, cr, cm, pal))
         pal_views.append((facing, placed, fr.labels, fr.tones))
         oracle_views.append((facing, sprite, placed, rend, fr.labels))
-    for facing in draft:  # left facings: mirrored from their right-facing twin
-        if facing.endswith("_l") or (facing == "all" and False):
-            pass
+    if extra and used_extra:
+        print("== legend: slots the drafts used beyond the legend: " + " ".join(f"{c}={extra[c]}" for c in sorted(used_extra)))
+        if apply:
+            apply_legend(r.path, {c: extra[c] for c in sorted(used_extra)})
     if draft and apply and _pass == 1 and any(f in MOCKUP_FACINGS or f == "all" for f in draft):
         # the mockup's best placement moves once the head is covered: draft again against it
         print("== second pass: the placement changed with the grids, redrafting")
         return cmd_compare(name, mockup, recipe, anim, frame, text, fit, optimize, ceil, fit_grid, chars, widths_, digits_,
                            slack_, split_, shift_, fit_part_, draft, hex_, quiet, mirror_swap, apply, clean, hot, init_pal,
-                           goal, oracle_, _pass=2, min_gain=min_gain, ablate_=ablate_)
+                           goal, oracle_, _pass=2, min_gain=min_gain, ablate_=ablate_, all_slots=False)
     if draft and apply:  # the right twins may have just been written: reload them
         r = Recipe(r.path)
     lefts = [f for f in ("down_side_l", "side_l", "up_side_l") if f not in MOCKUP_FACINGS  # in the sheet: drafted above
              and (f in draft or ("all" in draft and f[:-2] in r.grids))]
     for facing in lefts:
-        g, done = mirror_grid(r, facing, frames[anim][facing][frame], tpl.heads[facing[:-2]], swap=mirror_swap)
+        g, done = mirror_grid(r, facing, frames[anim][facing][frame], tpl.heads[facing[:-2]], swap=mirror_swap, classes=r.head_classes)
         if g is None:
             print(f"== {facing}: no {facing[:-2]} grid to mirror")
             continue
@@ -469,6 +490,7 @@ def main():
     c.add_argument("--ablate", action="store_true", help="drop each rule in turn and score (candidates to confirm with --hex)")
     c.add_argument("--min-gain", type=float, default=0.0015, help="--optimize keeps a move only above this gain (0.0004 for the last thousandths; it raises the ceiling too)")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
+    c.add_argument("--all-slots", action="store_true", help="with --draft-grid: also offer every palette slot the legend lacks (letters appended to the legend with --apply)")
     a = ap.parse_args()
     if a.cmd == "build":
         cmd_build(a.names)
@@ -490,7 +512,7 @@ def main():
         cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
                     slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part, draft=a.draft_grid,
                     hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet,
-                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate)
+                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate, all_slots=a.all_slots)
     else:
         cmd_labels(a.anims)
 

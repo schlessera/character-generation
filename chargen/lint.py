@@ -60,6 +60,13 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
         if ref != "clear" and not ref.startswith("#") and "." not in ref:
             out.append(("warn", f"[head.legend] `{ch} = \"{ref}\"` is tone-relative: `--draft-grid` picks by colour and cannot "
                                 f"use it; make it a fixed slot like `{ref}.base`."))
+    classed = set("".join(r.head_classes.values()))
+    loose = [ch for ch in r.legend if ch not in classed and ch != "-" and r.legend[ch] != "clear"
+             and not r.legend[ch].startswith(("skin", "outline"))]
+    if loose:
+        out.append(("info", f"[head.legend] {' '.join(loose)}: in no [head.classes] class (hair, texture, lens, rim, caps); "
+                            f"--clean and --mirror-swap treat such cells as neither hair nor eyewear (fine for a mask or an ear; "
+                            f"list a second hair material under `hair`)."))
     used = set("".join("".join(row) for g in r.grids.values() for row in g))
     unused = [ch for ch in r.legend if ch not in used and ch != "-"]
     if unused and r.grids:
@@ -67,7 +74,8 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
 
     # grids
     if not r.grids:
-        out.append(("error", "[head.grids] no grids at all: `just compare NAME --draft-grid all --clean --apply --mirror-swap`."))
+        out.append(("error", "[head.grids] no grids at all: `just compare NAME --draft-grid all --clean --apply` "
+                             "(add `--mirror-swap` only for a five-view mockup of a one-sided haircut)."))
     missing = [f for f in ("down_side_l", "side_l", "up_side_l") if f[:-2] in r.grids and f not in r.grids]
     if missing:
         out.append(("warn", f"[head.grids] no grid for {', '.join(missing)}: the right-facing grid is mirrored, wrong for a "
