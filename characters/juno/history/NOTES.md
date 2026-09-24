@@ -46,4 +46,9 @@ grid) and `--fit` (the median mockup color under every render color).
 | 28 | palette refit from `--fit`: hair base/shade/light/deep, lighter shoe shade, skin and stubble nudged | 0.828 |
 | 29 | the collar is open from the front: flaps and zipper edges only, neck skin between (was a solid orange band) | 0.828 |
 | 30 | grey rim under the visor lens (was skin shade); high-tops one row taller, pale soles, orange toe and heel caps instead of orange soles; all animations checked | 0.836 |
+| 31 | profile grid redrawn from the mockup's text view: the whole back of the head is shaved down to the jaw, the hair sweeps from the crown forward, an outlined ear, the tip ends one row higher | 0.841 |
+| 32 | front grid redrawn the same way: a row of brow above the visor (the mockup's lens sits one row lower, the head is the same height), an 8-px dark rim, the stubble wider, the hair starts two columns later with deep pink along the part | 0.845 |
+| 33 | 3/4 grid redrawn the same way; the mockup's head is two columns wider on the shaved side there, the grid extends it by one | 0.848 |
+| 34 | the visor sits on the same head row in every facing (the mockup has it a row higher in profile than from the front; consistency wins in the turn-around); brow row over the eyes in profile and the left-facing grids | 0.848 |
+| 35 | all animations checked; snapshot | 0.848 |
 
