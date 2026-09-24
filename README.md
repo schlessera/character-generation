@@ -69,7 +69,7 @@ flowchart LR
 | 2 | [Teaching the AI anatomy](#2--teaching-the-ai-anatomy) | Labeling every pixel of every frame with the body part it belongs to |
 | 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
 | 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
-| 5 | [Closing the gap](#5--closing-the-gap) | 55 rounds of the agent comparing its render to the mockup: where it stopped paying off, what got it moving again, and where it converged |
+| 5 | [Closing the gap](#5--closing-the-gap) | 70 rounds against the mockup: where it stopped paying off, what got it moving again, where it converged, and what the score never saw |
 | 6 | [Debugging in plain text](#6--debugging-in-plain-text) | Bugs tracked down with a query and fixed with a few characters |
 | 7 | [Variations for free](#7--variations-for-free) | A new colorway is a ten-line file |
 | 8 | [The AI picks up the pencil](#8--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
@@ -239,7 +239,7 @@ flowchart LR
 Every five steps the recipe was saved to `characters/juno/history/step-NN.toml`, so each stage of the progression is
 rebuilt from source like every other image here:
 
-<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after every fifth iteration step from 0 to 55, in five views" width="920"></p>
+<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after every fifth iteration step from 0 to 70, in five views" width="920"></p>
 
 <p align="center"><img src="docs/images/juno-iteration-heads.png" alt="Head close-ups (front, profile, back) across the same steps" width="920"></p>
 
@@ -259,7 +259,7 @@ The similarity score is deliberately coarse. It lets every opaque pixel look for
 in the other image, so it forgives one-pixel drift but not a wrong shape or color. A perfect 1.0 is out of reach for
 reasons explained below.
 
-<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767, then 0.836, 0.848, 0.867, 0.872, 0.872, 0.872" width="720"></p>
+<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767, then 0.836, 0.848, 0.867, then flat at 0.872 from step 45 to 70" width="720"></p>
 
 The first 25 steps show the returns diminishing. Shape (steps 1–5) and color (6–10) were the big wins. After step 15
 the score was flat, and it's worth looking at why, because most of the remaining gap can't be closed by iterating the
@@ -310,7 +310,9 @@ Some details needed new capabilities in the generator, and the agent added them 
   `straight` on twisted poses;
 - `rule_facing = "head"` makes trim follow the tracked head through the spinning attack, so the zipper doesn't end up
   on her back;
-- `[outline] keep` lists the head-grid colors that keep their own color on the silhouette (the ear, the hair outline).
+- `[outline] keep` lists the head-grid colors that keep their own color on the silhouette (the ear, the hair outline);
+- a `grow` rule pushes a body part's outline outward into empty pixels (the sneakers are a pixel wider than the
+  template's feet on both sides), the only rule that changes the silhouette.
 
 All of these are opt-in, so the earlier snapshots still render exactly as they did.
 
@@ -360,6 +362,14 @@ and the outline and visor colors becoming ramps a colorway can swap.
 | 41–45 | **the last color and the ceiling.** Lens cyan, the optimizer and the ceiling instruments, a frame review at zoom | 0.872 |
 | 46–50 | **the recipe as a base for colorways.** Outline and visor rims as ramps, Glitch gets its own outline; converged | 0.872 |
 | 51–55 | **consistency.** Left-facing grids in the same strand vocabulary as the redrawn right-facing ones; final animation pass and figures | 0.872 |
+
+A fourth run (56–70) started from three complaints by the human watching, none of which the score measures: the
+visor sat too low on the side views, the collar bent, the shoes were too small. The visor now has a height per
+angle (the front keeps its brow row, the angled views sit at eye level, which is also what the mockup does). The
+collar bent because it was an *edge* against the neck, and the neck's boundary is a U; it is now the torso's
+straight top row, notched open by the zipper. The shoes needed something no rule could do: change the silhouette.
+A new `grow` rule pushes a part's outline outward, and the sneakers are three pixels wide instead of two. The score
+did not move. It was never looking there.
 
 ## 6 · Debugging in plain text
 

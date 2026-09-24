@@ -115,7 +115,6 @@ color = "shirt"
 type = "stripe"
 part = "torso"
 anchor = "front"
-straight = true
 offset = -1
 facings = ["side", "side_l"]
 color = "orange.base"

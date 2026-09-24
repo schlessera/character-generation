@@ -184,6 +184,9 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     for rule in r.rules:
         if "facings" in rule and f.facing not in rule["facings"]:
             continue
+        if rule["type"] == "grow":
+            f = _grow(rule, f, rgba, r)
+            continue
         mask = _rule_mask(rule, f)
         for y, x in zip(*np.where(mask)):
             c = r.color(rule["color"], f.tones[y, x])
@@ -200,6 +203,33 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
         edge = ink & a & ~_erode(a) & ~np.isin(painted, list(r.outline.get("keep", "")))
         rgba[edge, :3] = r.color(r.outline["color"], TONE_IDS["base"])
     return rgba
+
+
+def _grow(rule: dict, f: Frame, rgba: np.ndarray, r: Recipe) -> Frame:
+    """`grow`: push a part's silhouette out by `n` pixels on the given `sides` (default
+    all), into transparent pixels only. The part's edge pixel moves outward (so the
+    outline stays an outline) and the pixel it left becomes `color`. The frame's tones
+    and labels grow with it, so later rules see the bigger part. Bigger shoes on a
+    template whose feet are two pixels wide, for example."""
+    tones, lab = f.tones.copy(), f.labels.copy()
+    codes = list(part_codes(rule["part"]))
+    steps = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
+    H, W = tones.shape
+    for _ in range(rule.get("n", 1)):
+        part = np.isin(lab, codes) & (tones > 0)
+        for side in rule.get("sides", list(steps)):
+            dy, dx = steps[side]
+            for y, x in zip(*np.where(part)):
+                ny, nx = y + dy, x + dx
+                if not (0 <= ny < H and 0 <= nx < W) or tones[ny, nx] > 0:
+                    continue
+                rgba[ny, nx] = rgba[y, x]
+                tones[ny, nx], lab[ny, nx] = tones[y, x], lab[y, x]
+                if tones[y, x] == TONE_IDS["ink"]:  # the edge moved out: fill behind it
+                    c = r.color(rule["color"], TONE_IDS["base"])
+                    rgba[y, x] = (*c, 255)
+                    tones[y, x] = TONE_IDS["base"]
+    return replace(f, tones=tones, labels=lab)
 
 
 def _erode(a: np.ndarray) -> np.ndarray:

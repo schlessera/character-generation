@@ -77,3 +77,26 @@ grid) and `--fit` (the median mockup color under every render color).
 | 54 | final pass over every animation at contact-sheet scale: nothing to fix | 0.872 |
 | 55 | snapshot. Three runs: 0.614 → 0.767 (25 steps) → 0.867 (15) → 0.872 (15); ceiling for this palette 0.926, the rest is the mockup's wider body | 0.872 |
 
+## Fourth run (steps 56–70): three complaints from the human
+
+"The visor is too low on the side views and needs different heights for different angles. The
+collar bends. The shoes are too small."
+
+| step | change | similarity |
+|---|---|---|
+| 56 | visor heights per angle: profile lens back up to the eye's middle row (as in the mockup, which has it a row higher in profile than from the front); the 3/4-back tip with it | 0.872 |
+| 57 | collar: the `edge` against the neck followed the neck's U-shaped boundary (a curved band from behind, a W in front with the flaps and tips); now one straight `rows` band across the torso's top row, and the zipper rules notch it open at the front. Neck flaps and corner tips dropped | 0.873 |
+| 58 | new rule type `grow`: pushes a part's outline outward into transparent pixels on given sides, moving the edge and filling behind it, and grows the frame's labels so later rules see the bigger part. The sneakers are one pixel wider on both sides (three instead of two in the front view) | 0.873 |
+| 59 | 3/4 lens one row up as well (front 11, 3/4 10, profile 10 in grid rows): the front keeps its brow row, the angled views sit at eye level | 0.872 |
+| 60 | snapshot; walk, run, jump, attack and interact at 6× with the grown feet: no artifacts | 0.872 |
+| 61 | side view text check after the visor move: the 0.005 slip is the eye rows, not a misplacement | 0.872 |
+| 62 | profile zipper `straight = true`: one vertical line from the collar instead of following the torso's contour | 0.872 |
+| 63 | feet at 28×: each shoe is white with orange caps flanking a white middle pixel, as in the mockup | 0.872 |
+| 64 | a straight bottom-row hem was tried and rejected: it drops pixels wherever the torso ends diagonally (3/4, walk) | 0.872 |
+| 65 | snapshot | 0.872 |
+| 66 | README and notes | 0.872 |
+| 67 | playground smoke test with the wider feet | 0.872 |
+| 68 | all README media regenerated | 0.872 |
+| 69 | final animation pass | 0.872 |
+| 70 | snapshot | 0.872 |
+
