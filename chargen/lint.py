@@ -50,8 +50,9 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
                                 f"generator paints the ramp's shade there. `{col}.base` says so explicitly."))
         codes = set(_codes(rule.get("part", "none")))
         facings = rule.get("facings", [])
-        sided = bool(codes & ONE_SIDED) and (rule.get("anchor") in ("front", "back") or
-                                             any(s in ("front", "back") for s in rule.get("sides", [])))
+        one_side = bool(codes & {"R", "r"}) != bool(codes & {"L", "l"})  # a group like `hands` names both sides
+        sided = one_side and (rule.get("anchor") in ("front", "back") or
+                              any(s in ("front", "back") for s in rule.get("sides", [])))
         twins = [f for f in facings if f.endswith("_l") and f[:-2] in facings]
         if sided and twins:
             out.append(("warn", f"{tag}: a one-sided part with a front/back side lists both a facing and its mirror "

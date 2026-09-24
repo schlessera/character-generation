@@ -480,13 +480,22 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
             mean = float(np.mean(scores))
             print(f"goal       within {goal:g}% of the ceiling = {thr:.4f}; mean {mean:.4f} "
                   + (f"REACHED (+{mean - thr:.4f})" if mean >= thr else f"short by {thr - mean:.4f}"))
-    if fit_grid:  # trace the mockup with the head grids; prints the grids, applies nothing
+    if fit_grid:  # trace the mockup with the head grids; prints the grids; --apply writes those that gained
         from .mockup import fit_grid as _fit, grid_text
-        for facing in fit_grid:
+        views = [f for f in MOCKUP_FACINGS if f in r.grids] if "all" in fit_grid else list(fit_grid)
+        for facing in views:
             i = MOCKUP_FACINGS.index(facing)
             g, b, a = _fit(r, facing, sprites[i], frames[anim][facing][frame], render_frame, chars)
-            print(f"fit-grid {facing}: {b:.3f} -> {a:.3f}")
+            print(f"fit-grid {facing}: {b:.4f} -> {a:.4f}")
             print(grid_text(g))
+            if apply and a > b:
+                old_g = r.grids[facing]  # the row below the jaw stays as it was: the fit cannot tell a tip from a collar
+                last = max((y for y in range(old_g.shape[0]) if (old_g[y] != ".").any()), default=None)
+                if last is not None and last < g.shape[0]:
+                    g[last] = old_g[last]
+                apply_grid(r.path, facing, g)
+                r.grids[facing] = g
+                print(f"   written to {r.path.name} (last row kept)")
     if optimize:  # bounded palette search; prints the moves, applies nothing
         from .mockup import optimize_palette
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]

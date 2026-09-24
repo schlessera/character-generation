@@ -32,7 +32,7 @@ says what they mean for this recipe. All flags combine; `--quiet` drops the loss
 | `--widths` | per row: mockup vs render extents and the difference per side, labels at the edges | where to grow (≥2 only) |
 | `--digits VIEW…` | the cost maps as digits 0–9 per pixel, mockup side \| render side | hot spots, read against `--text` |
 | `--shift [--chars kbHDi]` | best one-pixel offset per head grid (of the given cells only) with its gain | hair volume direction; act by adding hair, not by shifting |
-| `--fit-grid VIEW… [--chars …]` | the head grid traced cell by cell to the mockup, only changes that gain | a diagnostic; look at the cells before applying |
+| `--fit-grid VIEW… / all [--chars …] [--apply]` | the head grid traced cell by cell to the mockup, only changes that gain; `--apply` writes the views that gained, the row below the jaw left as it was | on a drafted grid whose cleanup passes were all skipped (textured light hair) it is worth a step (+0.003 mean on Nyx); on a cleaned grid it finds speckles: look at the cells |
 | `--recipe PATH` | score a variant file instead of the character's recipe | every experiment |
 | `--oracle` | per part, the gain from copying the mockup's quantized pixels over the render | where the gap lives; the most any rule set could add |
 | `--try FILE` | a TOML file of `[[rules]]` candidates: each appended to the recipe alone, then all together, with the gain per view and the mean | the per-view scoring of phase 2 without a private script: write the candidates, read which facings each wants |
