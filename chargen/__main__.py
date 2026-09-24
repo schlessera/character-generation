@@ -70,6 +70,31 @@ def cmd_preview(name, anims):
     print(out / f"{name}_facings.png")
 
 
+def cmd_crops(name, recipes_, box):
+    """Rows of the eight idle facings cropped to `box` (y0,y1 in frame rows) at 16x, one row
+    per recipe: the current one first, then any --recipe variants. For judging a change
+    to the jacket or the shoes across every angle at once."""
+    tpl = template()
+    frames = build_frames(tpl)
+    y0, y1 = box
+    paths = [CHARS / name / "recipe.toml"] + [Path(p) for p in recipes_]
+    s, w, h = 16, 20, y1 - y0
+    cw, ch = w * s + 6, h * s + 6
+    from PIL import ImageDraw
+    out = Image.new("RGBA", (len(FACINGS) * cw, len(paths) * ch), (60, 62, 80, 255))
+    d = ImageDraw.Draw(out)
+    for j, p in enumerate(paths):
+        r = Recipe(p)
+        for i, f in enumerate(FACINGS):
+            im = Image.fromarray(render_frame(r, frames["idle"][f][0])).crop((6, y0, 6 + w, y1)).resize((w * s, h * s), Image.NEAREST)
+            out.alpha_composite(im, (i * cw, j * ch))
+        d.text((4, j * ch + 2), p.stem if j else "current", fill=(255, 255, 255, 255))
+    dest = BUILD / "preview" / f"{name}_crops.png"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    out.save(dest)
+    print(dest)
+
+
 def cmd_heads(name):
     tpl = template()
     r = Recipe(CHARS / name / "recipe.toml")
@@ -106,12 +131,13 @@ def cmd_labels(anims=()):
     print(out)
 
 
-def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None):
+def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
+                split_=False, shift_=False, fit_part_=None):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
-    from .mockup import (MOCKUP_FACINGS, breakdown, cost_maps, extract, heat, palette_fit, palette_letters,
-                         place, similarity, text_view)
+    from .mockup import (MOCKUP_FACINGS, breakdown, cost_maps, digits, extract, fit_part, heat, palette_fit,
+                         palette_letters, place, shift_probe, similarity, slack, split, text_view, widths)
     tpl = template()
     r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
     src = Path(mockup) if mockup else CHARS / name / "concept" / f"{name}-pixel-mockup.png"
@@ -123,6 +149,8 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     parts: dict[str, list] = {}
     pal = palette_letters(r)
     pairs: dict[tuple, list] = {}
+    part_pairs: dict[str, list] = {}
+    from .mockup import quantize
     for i, (sprite, facing) in enumerate(zip(sprites, MOCKUP_FACINGS)):
         fr = frames[anim][facing][frame]
         rend = render_frame(r, fr)
@@ -133,6 +161,25 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         if facing in text or "all" in text:
             print(f"== {facing}: mockup | render")
             print("\n".join(text_view(placed, rend, pal)))
+        if widths_:
+            print(f"== {facing}: widths (positive = mockup wider)")
+            print("\n".join(widths(placed, rend, fr.labels)))
+        if facing in digits_ or "all" in digits_:
+            print(f"== {facing}: cost digits")
+            print("\n".join(digits(placed, rend, cr, cm)))
+        if slack_:
+            sl = slack(placed, rend, fr.labels, pal)
+            print(f"== {facing}: slack   " + "  ".join(f"{p}={n:.3f}/{c:.3f}" for p, (n, c) in sl.items()))
+        if split_:
+            si, co = split(placed, rend)
+            print(f"== {facing}: silhouette={si:.3f} colour-loss={co:.3f}")
+        if shift_ and facing in r.grids:
+            dx, dy, gain = shift_probe(r, facing, sprite, fr, render_frame)
+            print(f"== {facing}: best grid shift dx={dx:+d} dy={dy:+d} gain={gain:+.3f}")
+        if fit_part_:
+            codes = list(fit_part_)
+            for y, x in zip(*np.where((rend[..., 3] > 0) & (placed[..., 3] > 0) & np.isin(fr.labels, codes))):
+                part_pairs.setdefault(quantize(rend[y, x, :3], pal), []).append((placed[y, x, :3], cr[y, x]))
         for y, x in zip(*np.where((rend[..., 3] > 0) & (placed[..., 3] > 0))):
             pairs.setdefault(tuple(rend[y, x, :3]), []).append(placed[y, x, :3])
         heads = []
@@ -154,6 +201,9 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
     if fit:
         print("\n".join(palette_fit(pairs, pal)))
+    if fit_part_:
+        print(f"== fit on parts {fit_part_} (all views)")
+        print("\n".join(fit_part(part_pairs, pal)))
     if ceil:  # what this palette could reach with the mockup's exact shapes
         from .mockup import ceiling
         cs = [ceiling(sp, pal) for sp in sprites]
@@ -184,6 +234,8 @@ def main():
     b = sub.add_parser("build"); b.add_argument("names", nargs="*")
     p = sub.add_parser("preview"); p.add_argument("name"); p.add_argument("anims", nargs="*")
     h = sub.add_parser("heads"); h.add_argument("name")
+    cr = sub.add_parser("crops"); cr.add_argument("name"); cr.add_argument("--recipe", action="append", default=[])
+    cr.add_argument("--box", default="17,32", help="frame rows y0,y1 (torso 17,31; feet 24,32; head 4,20)")
     lb = sub.add_parser("labels"); lb.add_argument("anims", nargs="*")
     c = sub.add_parser("compare"); c.add_argument("name"); c.add_argument("--mockup"); c.add_argument("--recipe")
     c.add_argument("--text", nargs="*", default=(), metavar="VIEW", help="print views as text (or 'all')")
@@ -191,6 +243,12 @@ def main():
     c.add_argument("--optimize", action="store_true", help="bounded palette search against the mockup (prints moves)")
     c.add_argument("--ceiling", action="store_true", help="score of the mockup quantized to the recipe's palette")
     c.add_argument("--fit-grid", nargs="*", default=(), metavar="VIEW", help="trace the mockup with the head grid (prints it)")
+    c.add_argument("--widths", action="store_true", help="per-row silhouette extents, mockup vs render")
+    c.add_argument("--digits", nargs="*", default=(), metavar="VIEW", help="cost maps as digits (or 'all')")
+    c.add_argument("--slack", action="store_true", help="per-part loss now / at the palette ceiling")
+    c.add_argument("--split", action="store_true", help="silhouette match vs colour loss per view")
+    c.add_argument("--shift", action="store_true", help="best whole-grid offset per head grid")
+    c.add_argument("--fit-part", metavar="CODES", help="fit table restricted to label codes, e.g. T or Rr")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
     a = ap.parse_args()
     if a.cmd == "build":
@@ -199,8 +257,11 @@ def main():
         cmd_preview(a.name, a.anims)
     elif a.cmd == "heads":
         cmd_heads(a.name)
+    elif a.cmd == "crops":
+        cmd_crops(a.name, a.recipe, tuple(int(v) for v in a.box.split(",")))
     elif a.cmd == "compare":
-        cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars)
+        cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
+                    slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part)
     else:
         cmd_labels(a.anims)
 

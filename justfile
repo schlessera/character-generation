@@ -33,8 +33,13 @@ heads name:
     uv run python -m chargen heads {{name}}
 
 # Pixel mockup (snapped to its grid) above the render, per view + head close-ups -> build/preview/NAME_compare.png
-compare name:
-    uv run python -m chargen compare {{name}}
+# Flags: --text VIEW --fit --optimize --ceiling --slack --split --widths --digits VIEW --shift --fit-grid VIEW --recipe FILE
+compare name *flags:
+    uv run python -m chargen compare {{name}} {{flags}}
+
+# The eight idle facings cropped to frame rows y0,y1 at 16x, one row per --recipe variant -> build/preview/NAME_crops.png
+crops name *flags:
+    uv run python -m chargen crops {{name}} {{flags}}
 
 # ---------------------------------------------------------------- template labels
 

@@ -345,3 +345,112 @@ def fit_grid(recipe, facing: str, sprite: np.ndarray, frame, render, chars: str 
 
 def grid_text(grid: np.ndarray) -> str:
     return "\n".join("".join(row) for row in grid)
+
+
+# ---------------------------------------------------------------- more instruments
+# Each of these answers one question the iteration loop kept asking. They print text,
+# because text is what the agent reads best.
+
+def widths(mockup: np.ndarray, render: np.ndarray, labels: np.ndarray) -> list[str]:
+    """Per row: the mockup's and the render's horizontal extent, the difference on each
+    side (positive = the mockup is wider there), and the labels at the render's edges.
+    Differences of 1 are free under the metric's tolerance; look for 2 and more."""
+    out = [" row  mockup    render    dL dR  edge labels"]
+    for y in range(mockup.shape[0]):
+        m = np.where(mockup[y, :, 3])[0]
+        n = np.where(render[y, :, 3])[0]
+        if not len(m) and not len(n):
+            continue
+        ms = f"[{m[0]:2d},{m[-1]:2d}]" if len(m) else "   --  "
+        ns = f"[{n[0]:2d},{n[-1]:2d}]" if len(n) else "   --  "
+        d = f"{n[0] - m[0]:+d} {m[-1] - n[-1]:+d}" if len(m) and len(n) else "     "
+        lab = "".join(sorted(set(labels[y][n]))) if len(n) else ""
+        out.append(f"  {y:2d}  {ms}   {ns}   {d}  {lab}")
+    return out
+
+
+def digits(mockup: np.ndarray, render: np.ndarray, cost_render: np.ndarray, cost_mockup: np.ndarray) -> list[str]:
+    """The cost maps as digits 0-9 per pixel: `mockup side | render side`. A 9 is a pixel
+    with nothing similar within one pixel in the other image."""
+    both = (mockup[..., 3] > 0) | (render[..., 3] > 0)
+    ys, xs = np.where(both.any(1))[0], np.where(both.any(0))[0]
+    out = [f"   cols {xs[0]}..{xs[-1]}   mockup-side | render-side"]
+    for y in range(ys[0], ys[-1] + 1):
+        a = "".join(str(min(9, int(cost_mockup[y, x] * 9.99))) if mockup[y, x, 3] else "." for x in range(xs[0], xs[-1] + 1))
+        b = "".join(str(min(9, int(cost_render[y, x] * 9.99))) if render[y, x, 3] else "." for x in range(xs[0], xs[-1] + 1))
+        out.append(f"{y:2d} {a} | {b}")
+    return out
+
+
+def quantized(mockup: np.ndarray, pal) -> np.ndarray:
+    cols = np.array([c for c, _ in pal], float)
+    q = mockup.copy()
+    a = mockup[..., 3] > 0
+    px = mockup[a, :3].astype(float)
+    d = np.stack([_redmean(px, np.repeat(c[None], len(px), 0)) for c in cols], 1)
+    q[a, :3] = cols[np.argmin(d, 1)].astype(np.uint8)
+    return q
+
+
+def slack(mockup: np.ndarray, render: np.ndarray, labels: np.ndarray, pal) -> dict[str, tuple[float, float]]:
+    """Per part: (loss now, loss of the mockup quantized to the palette). The difference is
+    the room left for placement; the second number is noise no recipe can remove."""
+    _, cr, cm = cost_maps_placed(mockup, render)
+    now = breakdown(cr, cm, labels, render, mockup)
+    q = quantized(mockup, pal)
+    cq, cm2 = _cost_map(q, mockup), _cost_map(mockup, q)
+    ceil = breakdown(cq, cm2, labels, q, mockup)
+    return {p: (now[p][0] + now[p][1], ceil[p][0] + ceil[p][1]) for p in now}
+
+
+def cost_maps_placed(placed: np.ndarray, render: np.ndarray):
+    """Like cost_maps, for a mockup that is already placed (no further shift)."""
+    return placed, _cost_map(render, placed), _cost_map(placed, render)
+
+
+def split(mockup: np.ndarray, render: np.ndarray) -> tuple[float, float]:
+    """(silhouette match, colour loss): the silhouette allows one pixel of drift; the
+    colour loss is the cost of pixels that do have a neighbour but the wrong colour."""
+    def dil(a):
+        p = np.pad(a, 1)
+        return (p[1:-1, 1:-1] | p[:-2, 1:-1] | p[2:, 1:-1] | p[1:-1, :-2] | p[1:-1, 2:]
+                | p[:-2, :-2] | p[:-2, 2:] | p[2:, :-2] | p[2:, 2:])
+    _, cr, cm = cost_maps_placed(mockup, render)
+    a, b = render[..., 3] > 0, mockup[..., 3] > 0
+    n = a.sum() + b.sum()
+    sil = 1 - ((a & ~dil(b)).sum() + (b & ~dil(a)).sum()) / n
+    col = (cr[a & dil(b)].sum() + cm[b & dil(a)].sum()) / n
+    return float(sil), float(col)
+
+
+def shift_probe(recipe, facing: str, sprite: np.ndarray, frame, render) -> tuple[int, int, float]:
+    """The best whole-grid offset for a facing's head grid (dx, dy, gain). A consistent
+    direction across views means the hair wants more volume on that side."""
+    g = recipe.grids[facing]
+    base = similarity(sprite, render(recipe, frame))
+    best = (0, 0, 0.0)
+    H, W = g.shape
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dx == dy == 0:
+                continue
+            sh = np.full_like(g, ".")
+            sh[max(0, dy):H + min(0, dy), max(0, dx):W + min(0, dx)] = g[max(0, -dy):H + min(0, -dy), max(0, -dx):W + min(0, -dx)]
+            recipe.grids[facing] = sh
+            gain = similarity(sprite, render(recipe, frame)) - base
+            if gain > best[2]:
+                best = (dx, dy, gain)
+    recipe.grids[facing] = g
+    return best
+
+
+def fit_part(pairs_by_letter: dict[str, list], pal) -> list[str]:
+    """Like palette_fit, but per palette letter and restricted by the caller to some body
+    parts, with the mean cost: which colours, on this part, sit where the mockup has
+    something else."""
+    out = [f"{'render':6} {'n':>4}  median mockup  as letter  mean cost  total"]
+    for k, v in sorted(pairs_by_letter.items(), key=lambda kv: -sum(c for _, c in kv[1])):
+        med = np.median(np.array([p for p, _ in v]), 0).astype(int)
+        out.append(f"{k:6} {len(v):4d}  #{med[0]:02x}{med[1]:02x}{med[2]:02x}        {quantize(med, pal):>4}      "
+                   f"{np.mean([c for _, c in v]):.2f}     {sum(c for _, c in v):.1f}")
+    return out

@@ -405,6 +405,11 @@ a generator bug fell out of the text view: the outline that `grow` pushes out ke
 score moved from 0.874 to 0.902, the last three thousandths from colour medians the fit table had been listing all
 along.
 
+Everything the 110 steps taught is written down as a project skill for the next character:
+[`.claude/skills/mockup-character/`](.claude/skills/mockup-character/SKILL.md), with the order of work that pays, the
+instruments and how to read them, the rule patterns per facing, a recipe skeleton, and the mistakes not to repeat.
+An agent given a new concept and mockup should reach the same result in a fraction of the steps.
+
 ## 6 · Debugging in plain text
 
 Because every layer of a character is text (the template's labels, the recipe, its head grids), a visual bug turns
