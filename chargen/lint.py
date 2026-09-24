@@ -66,7 +66,7 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
                                 f"use it; make it a fixed slot like `{ref}.base`."))
     classed = set("".join(r.head_classes.values()))
     loose = [ch for ch in r.legend if ch not in classed and ch != "-" and r.legend[ch] != "clear"
-             and not r.legend[ch].startswith(("skin", "outline"))]
+             and not r.legend[ch].startswith(("skin", "outline", "#"))]  # (hex literals: --all-slots colours, not a surface)
     if loose:
         out.append(("info", f"[head.legend] {' '.join(loose)}: in no [head.classes] class (hair, texture, lens, rim, caps); "
                             f"--clean and --mirror-swap treat such cells as neither hair nor eyewear (fine for a mask or an ear; "
