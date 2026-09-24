@@ -347,7 +347,7 @@ snapshots, final recipe and turntable in `characters/nyx/history-runN/`):
 
 <p align="center"><img src="docs/images/nyx-rounds.png" alt="Similarity per step for the five Nyx rounds, with the goal band" width="760"></p>
 
-<p align="center"><img src="docs/images/nyx-runs.png" alt="Nyx's eight-view mockup above the first and the fourth build, in every facing" width="920"></p>
+<p align="center"><img src="docs/images/nyx-runs.png" alt="Nyx's eight-view mockup above the first, the fourth (shipped) and the fifth build, in every facing" width="920"></p>
 
 **What was Juno's.** More than expected, and mostly invisible from inside her replays. The skeleton shipped her
 rules as "the rule set", so the first run spent its steps deleting them. The draft cleanup treated `kbHDi` as hair

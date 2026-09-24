@@ -409,12 +409,13 @@ def nyx_chart():
 
 
 def nyx_figure():
-    """Nyx's eight-view mockup above the first and the shipped build, in every facing."""
+    """Nyx's eight-view mockup above the first, the shipped (run 4) and the last build, in every facing."""
     from chargen.mockup import TURNAROUND_FACINGS, extract, place
     sprites = extract(ROOT / "characters/nyx/concept/nyx-pixel-mockup.png")
     mock = dict(zip(TURNAROUND_FACINGS, sprites))
     rows = [("mockup (image generation)", None), ("run 1, 18 steps", Recipe(ROOT / "characters/nyx/history-run1/final.toml")),
-            ("run 4, 13 steps (shipped)", Recipe(ROOT / "characters/nyx/history-run4/final.toml"))]
+            ("run 4, 13 steps (shipped)", Recipe(ROOT / "characters/nyx/history-run4/final.toml")),
+            ("run 5, 9 steps", Recipe(ROOT / "characters/nyx/history-run5/final.toml"))]
     s, lw = 4, 190
     cw = 32 * s
     out = Image.new("RGBA", (lw + len(FACINGS) * cw, 30 + len(rows) * (32 * s + 10)), BG)
