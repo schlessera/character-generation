@@ -16,6 +16,48 @@ relaunches. Per round: `history-runN/` (NOTES.md, AGENT-LOG.md, snapshots, `fina
 
 | 4 | v4 (--try, per_facing, each, shift, gated re-draft, crops mockup row) | 13 of 30 | 0.9151 | 0.9380 | 2.44% | step 8 (+0.0004), step 10 with margin | `--try` on 21 library lines answered phase 2 in one call (+0.032); the library's `;` snippets were not TOML (the loader accepts them now); grows must be scored before the trim (--try does); the draft leaves `.` cells inside the head that `--fit-grid all` fills (+0.003, now in step 1, parallel); `--optimize` lifted the ceiling more than the score (it prints the net margin now); chrome on a leg lives in `shade`; leg rules that depict the coat swing in the run |
 
+| 5 | v5 (--try limited columns and before, parallel fit-grid, optimize net margin, `just grid`) | 9 of 30 | 0.9084 | 0.9340 | 2.74% | step 5 (+0.0014) | one `--try` of 33 library lines written without facings did phase 2 in one call (+0.037 summed); the library's facing lists were wrong for a third of the rules again; the pocket rule must precede the hem-over-hands row; `--ablate` wanted per-view gains; `band` had no `n`/`w`; profile trim always needs `anims` without attack; `--optimize`'s net-margin column made the refusal a one-line decision |
+
+## Preliminary findings after five rounds (2026-09-24)
+
+**F1. The skill was Juno's recipe in disguise.** Run 1 started at 0.41 with Juno's palette and
+had to rewrite every rule; the skeleton's rules, its legend letters (hard-coded in the cleanup),
+its `[outline] keep`, its "no `_l` twins" advice and its 0.90-in-one-command claim were all
+five-view, one-character facts. The fix that held was structural: a skeleton with no rules, a
+rule library per garment feature with both characters' answers, and every "answer" reframed as a
+candidate to score per view.
+
+**F2. Steps to the goal: 18 → 14 → 11 → 13 → 9.** Reached at step 14, then 8, 8, 8, 5. Final
+gaps 2.96, 2.63, 2.73, 2.44, 2.74% below the ceiling (the ceiling itself moves with each run's
+palette: 0.934–0.940). The curve flattened after run 2: what remains is the design's own
+distance from the mannequin (the front hands, a 2-px narrower body), not the skill.
+
+**F3. The instruments did the work, not the prose.** Each run's biggest single gains came from a
+tool: the one-command draft (+0.22), `--all-slots` (+0.003), `--try` on the library (+0.03 in one
+call from run 4), `--fit-grid all` (+0.003), `--sweep` (+0.002–0.006), `--widths` for every
+silhouette rule. Nine generator or metric defects were found by agents reading their own text
+views (np.roll wrap, straight-stripe median, grow corners, two shrink outline cases, letter
+collision, the stale post-apply print, the optimizer leaving moves applied, the `each` mapping).
+
+**F4. Recipe-format gaps closed on the way:** `shrink`, `shift` (with `over`), `each`,
+`per_facing`, per-rule `anims`, stripe `offsets`/`skip`/`bottom`, band `n`/`w`, `[head.classes]`,
+`keep = "*"`, hex-literal legend letters. Still open: a rule that differs per animation frame
+group ("hands inside the coat" as one concept), and the metric's tolerance rewards dithering and
+punished an outlined corner the picture needed.
+
+**F5. Eight-view mockups pay.** Every left view scored and drafted from its own image removed the
+whole mirror/near-side argument that cost three replica runs; the price is one more finding class
+(symmetric features need a rule per 3/4 view, with the mirrored label name).
+
+**F6. Image generation is the weak link.** gpt-image-2 hit the template's pixel scale once in
+twelve draws; it anchors on detail, not on a stated pitch, a reference's pixel size or a
+mannequin grid (concept/LOG.md). A 2:1 downscale path from a 60-px sheet is untested.
+
+**F7. The goal definition works but is thin at the line.** Three runs first crossed by
++0.0004–0.0008 and were re-scored under the line by a generator fix; the 0.001 margin rule and
+the `--optimize` net-margin column came from that. Palette moves are net losses more often than
+not once the goal is relative to the ceiling.
+
 ## Revision after run 4 (skill v5)
 
 Tooling: the recipe loader and `--try` accept the library's one-line shorthand, TOML errors name
