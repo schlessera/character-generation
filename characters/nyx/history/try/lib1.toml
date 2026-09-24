@@ -1,0 +1,131 @@
+[[rules]]  # 1 open coat: tee strip, first 4 rows
+type = "stripe"
+straight = true
+part = "torso"
+offsets = [-2, -1, 0, 1]
+top = 4
+color = "shirt"
+[[rules]]  # 2 belt row
+type = "stripe"
+straight = true
+part = "torso"
+offsets = [-2, -1, 0, 1]
+skip = 4
+top = 1
+color = "outline.base"
+[[rules]]  # 3 pants below
+type = "stripe"
+straight = true
+part = "torso"
+offsets = [-2, -1, 0, 1]
+skip = 5
+color = "pants.shade"
+[[rules]]  # 4 lapel inner edges
+type = "stripe"
+straight = true
+part = "torso"
+offsets = [-2, 1]
+top = 4
+color = "outline.base"
+[[rules]]  # 5 coat over thighs
+type = "rows"
+part = "legs"
+from = "top"
+n = 2
+ink = true
+color = "jacket"
+[[rules]]  # 6 hem band on first leg row
+type = "rows"
+part = "legs"
+from = "top"
+n = 1
+ink = true
+color = "trim.base"
+[[rules]]  # 7 hands in pockets
+type = "all"
+part = "hands"
+color = "jacket"
+[[rules]]  # 8 sleeve over hand's top row
+type = "rows"
+part = "hands"
+from = "top"
+n = 1
+color = "jacket"
+[[rules]]  # 9 forearm band
+type = "band"
+part = "arms"
+at = 0.5
+color = "trim.base"
+[[rules]]  # 10 emblem 1
+type = "band"
+part = "torso"
+at = 0.25
+anchor = "center"
+straight = true
+color = "trim.base"
+[[rules]]  # 11 emblem 2
+type = "band"
+part = "torso"
+at = 0.375
+anchor = "center"
+straight = true
+color = "trim.base"
+[[rules]]  # 12 knee seam
+type = "band"
+part = "leg_l"
+at = 0.0
+color = "glow.base"
+[[rules]]  # 13 shin back edge
+type = "stripe"
+part = "leg_l"
+anchor = "back"
+color = "chrome.light"
+[[rules]]  # 14 lace each boot
+type = "band"
+part = "feet"
+each = true
+at = 0.0
+anchor = "center"
+color = "trim.base"
+[[rules]]  # 15 collar row
+type = "rows"
+part = "torso"
+from = "top"
+n = 1
+color = "trim.base"
+[[rules]]  # 16 shoulder seam
+type = "rows"
+part = "arms"
+from = "top"
+n = 1
+color = "outline.base"
+[[rules]]  # 17 sleeve open end
+type = "rows"
+part = "hands"
+from = "bottom"
+n = 1
+color = "outline.base"
+[[rules]]  # 18 boot one row up the leg
+type = "rows"
+part = "legs"
+from = "bottom"
+n = 1
+color = "shoes.base"
+[[rules]]  # 19 profile back fold
+type = "region"
+part = "torso"
+anchor = "back"
+n = 1
+color = "outline.base"
+[[rules]]  # 20 profile front piping
+type = "stripe"
+part = "torso"
+anchor = "front"
+offset = -1
+color = "trim.base"
+[[rules]]  # 21 soles grey
+type = "rows"
+part = "feet"
+from = "bottom"
+n = 1
+color = "shirt"

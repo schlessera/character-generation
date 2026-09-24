@@ -1,0 +1,22 @@
+[[rules]]  # 1 hem over the hands' last row
+type = "rows"
+part = "hands"
+from = "bottom"
+n = 1
+facings = ["down_side", "side", "side_l"]
+color = "trim.base"
+[[rules]]  # 2 hem band first leg row in profile / up_side (already in hem rule for up*, side_l)
+type = "rows"
+part = "legs"
+from = "top"
+n = 1
+ink = true
+facings = ["side"]
+color = "trim.base"
+[[rules]]  # 3 hem legs top no ink
+type = "rows"
+part = "legs"
+from = "top"
+n = 1
+facings = ["side"]
+color = "trim.base"
