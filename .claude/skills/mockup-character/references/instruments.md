@@ -21,7 +21,7 @@ says what they mean for this recipe. All flags combine; `--quiet` drops the loss
 | `--text VIEW…` / `all` | mockup \| render, every pixel as a palette letter (`H` hair base, `H-` shade, `H=` deep, `H#` ink, `##` outline, `??` no colour close) | drawing grids; finding structure that is off; the first thing to look at for any complaint |
 | `--fit` | per render colour: pixel count, median mockup colour under it, distance, spread (`~` = wide: the median is not a colour the mockup uses much) | palette moves for large flat areas, **after** the grids exist |
 | `--fit-part CODES` | the same restricted to label codes (`T` torso, `Rr` cyber-arm, `PQpq` legs+feet, `H.` head) with mean cost | which colours on a part are misplaced |
-| `--optimize` | bounded coordinate descent over ramp slots, moves with gains, applies nothing | end of a phase; accept moves with a reading |
+| `--optimize [--min-gain 0.0004]` | bounded coordinate descent over ramp slots, moves with gains, applies nothing (the default threshold 0.0015 is coarse; a finer one finds more, and lifts the ceiling too) | end of a phase; accept moves with a reading |
 | `--ceiling` | the mockup quantized to the recipe's palette, scored against itself | the target; ~0.92 for a 30-colour palette |
 | `--slack` | per view and part: loss now / loss at the ceiling | where there is still room |
 | `--split` | silhouette match (one-pixel drift allowed) and colour loss per view | whether shape work is done (0.99+) |
