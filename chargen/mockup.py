@@ -608,12 +608,15 @@ def unlisted_slots(recipe) -> dict[str, str]:
     for ref in recipe.legend.values():
         if ref != "clear":
             have.add(hex_rgb(ref) if ref.startswith("#") else recipe.color(ref, 1))
+
+    def near(col):  # a slot within a few RGB steps of a legend colour adds a coupling, not a colour
+        return any(_redmean(np.array(col, float), np.array(h, float)) < 30 for h in have)
     taken = set(recipe.legend) | {"."}
     free = [c for c in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" if c not in taken]
     out = {}
     for name, ramp in recipe.ramps.items():
         for slot, col in ramp.items():
-            if col in have or not free:
+            if col in have or near(col) or not free:
                 continue
             have.add(col)
             pref = [c for c in (name[0], name[0].upper(), slot[0], slot[0].upper()) if c in free]

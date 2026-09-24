@@ -34,6 +34,12 @@ Semantics that held for the mockup's palette:
 - the lens colour is what the mockup paints, not the hex from the concept (`#44e4e8`, not
   `#3ff0ff`); it also drives the emissive glow, so keep it saturated enough to read as a light.
 
+Which tones a part carries decides which slots show: the template's legs have only `shade` and
+`ink` (so `pants.shade` is the trousers' main colour and `pants.base` shows only where a rule
+paints it); the torso and arms have `base`, `shade` and `light`. `--init-palette` lists the
+tones per part; on a part that carries an opening or trim its medians are mixtures (`~`), and
+`--hex` on a flat box is the read that works.
+
 `--optimize` moves each slot within ±28 per channel (±20/step 4 at the end). It agrees with the
 fit table when both are right; when it proposes a drift you cannot explain, leave it.
 

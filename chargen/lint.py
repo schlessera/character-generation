@@ -78,7 +78,7 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
 
     # grids
     if not r.grids:
-        out.append(("error", "[head.grids] no grids at all: `just compare NAME --draft-grid all --clean --apply` "
+        out.append(("error", "[head.grids] no grids at all: `just compare NAME --draft-grid all --all-slots --clean --apply` "
                              "(add `--mirror-swap` only for a five-view mockup of a one-sided haircut)."))
     missing = [f for f in ("down_side_l", "side_l", "up_side_l") if f[:-2] in r.grids and f not in r.grids]
     if missing:

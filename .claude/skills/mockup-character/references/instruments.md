@@ -39,7 +39,7 @@ says what they mean for this recipe. All flags combine; `--quiet` drops the loss
 | `--goal PCT` | the ceiling, the threshold PCT percent below it, and whether the mean reaches it | the definition of done |
 | `--hot N` | the N costliest pixels: view, row, col, mockup letter, render letter, cost | a "nothing big is left" check: scattered singles at cost ~1 mean done |
 | `--init-palette` | median mockup colour per template tone for each line of the recipe's own `[parts]` (body only; the head needs grids); `~` marks two populations | a new design's palette, after `[parts]` names its parts and before the grids |
-| `--draft-grid … --all-slots` | the draft may also pick every palette slot the legend does not reference (a coat collar in the head's last rows, skin light, trim); with `--apply` the new letters are appended to `[head.legend]`. The ceiling quantizes to every slot, so a short legend is a built-in gap | step 1, on any design whose legend was written before the mockup was read |
+| `--draft-grid … --all-slots` | the draft may also pick every palette slot the legend does not reference and is not within a few RGB steps of a legend colour; a body ramp can land inside the hair when it is the nearest colour, which couples the grid to that ramp (a colorway swapping it recolours the strands): give the hair its own slot for that colour if that matters (a coat collar in the head's last rows, skin light, trim); with `--apply` the new letters are appended to `[head.legend]`. The ceiling quantizes to every slot, so a short legend is a built-in gap | step 1, on any design whose legend was written before the mockup was read |
 | `--draft-grid … --clean --apply` | `--clean`: rim chars off the non-lens rows, then lone speckles and the hair-only last row — each of those two kept per view only where it does not lower the score (the print says what it skipped); `--apply`: write into the recipe, in two passes (the placement moves once the head is covered) | step 1 in one command |
 
 Other commands:
@@ -58,8 +58,9 @@ Other commands:
 - `just heads NAME` — each facing's head template rows beside its grid, with the grid↔frame
   column and row offsets in the header.
 - `just crops NAME --box y0,y1 [--recipe v.toml …] [--diff]` — the eight idle facings cropped to
-  frame rows y0..y1 at 16×, one row per recipe (`17,31` torso, `24,32` feet, `4,20` head); `--diff`
-  outlines every pixel a variant changes. The fastest way to judge a trim change from every angle.
+  frame rows y0..y1 at 16×; the current recipe is always the first row, one more row per
+  `--recipe` variant (`17,31` torso, `24,32` feet, `4,20` head); `--diff` outlines every pixel a
+  variant changes. The fastest way to judge a trim change from every angle.
 - `just preview NAME [anims…]` — contact sheet of every animation × facing (`build/preview/NAME.png`,
   or `NAME_walk_run.png` when animations are given), plus 12× idle facings
   (`build/preview/NAME_facings.png`); crop and zoom the sheet to review, it is tall.

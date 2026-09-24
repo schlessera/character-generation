@@ -88,9 +88,9 @@ type = "stripe"; straight = true; part = "torso"; offset = 2; ink = true; facing
 type = "stripe"; part = "torso"; anchor = "front"; offset = -1; facings = ["side", "side_l"]; color = "trim.base"
 [[rules]]  # an OPEN COAT to mid-thigh (Nyx): a four-column strip showing the tee (first 4 rows), a
 # belt (row 5) and the pants below, in front and 3/4 front. `skip`/`top`/`bottom` pick the rows:
-type = "stripe"; straight = true; part = "torso"; offset = -2; top = 4; facings = ["down", "down_side", "down_side_l"]; color = "shirt"   # ... offsets -2..1
-type = "stripe"; straight = true; part = "torso"; offset = -2; skip = 4; top = 1; facings = ["down", "down_side", "down_side_l"]; color = "outline.base"
-type = "stripe"; straight = true; part = "torso"; offset = -2; skip = 5; facings = ["down", "down_side", "down_side_l"]; color = "pants.base"
+type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; top = 4; facings = ["down", "down_side", "down_side_l"]; color = "shirt"
+type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; skip = 4; top = 1; facings = ["down", "down_side", "down_side_l"]; color = "outline.base"
+type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; skip = 5; facings = ["down", "down_side", "down_side_l"]; color = "pants.base"
 ```
 A straight stripe's column is the median over the whole part, so stacked stripes stay one strip.
 

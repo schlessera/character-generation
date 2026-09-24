@@ -393,11 +393,13 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
         # stripes with different `top`s form one strip even when a grow widens the top rows),
         # so a zipper stays a straight line on twisted poses instead of zig-zagging row by row
         fixed = int(np.median([base_x(y) for y in all_rows])) if rule.get("straight") and len(all_rows) else None
+        offsets = rule["offsets"] if "offsets" in rule else [rule.get("offset", 0)]  # `offsets`: several columns in one rule
         for y in rows:
             base = fixed if fixed is not None else base_x(y)
-            x = base + rule.get("offset", 0) * (-1 if f.facing.endswith("_l") else 1)
-            if 0 <= x < part.shape[1] and part[y, x]:
-                out[y, x] = True
+            for off in offsets:
+                x = base + off * (-1 if f.facing.endswith("_l") else 1)
+                if 0 <= x < part.shape[1] and part[y, x]:
+                    out[y, x] = True
         return out
     if kind == "region":
         # the first `n` pixels of every row from the anchored side ("left"/"right", or the
