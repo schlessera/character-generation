@@ -271,6 +271,22 @@ def text_view(mockup: np.ndarray, render: np.ndarray, pal) -> list[str]:
     return lines
 
 
+def labels_view(mockup: np.ndarray, render: np.ndarray, frame, pal) -> list[str]:
+    """Rows of `mockup | labels | tones`: what body part and template tone lie under every
+    mockup pixel, so a feature that crosses a part boundary (a coat's skirt over the hand, a
+    boot over the leg's last row) is named by the label the rule needs."""
+    both = (mockup[..., 3] > 0) | (render[..., 3] > 0)
+    ys, xs = np.where(both.any(1))[0], np.where(both.any(0))[0]
+    tone_ch = {0: " ", 1: ".", 2: "s", 3: "l", 4: "b", 5: "#"}
+    lines = [f"   cols {xs[0]}..{xs[-1]}   mockup | labels (H head N neck T torso R/L arms r/l hands P/Q legs p/q feet) | tones (. lit s shade l light b blush # ink)"]
+    for y in range(ys[0], ys[-1] + 1):
+        a = "".join(quantize(mockup[y, x, :3], pal) if mockup[y, x, 3] else ". " for x in range(xs[0], xs[-1] + 1))
+        lab = "".join(frame.labels[y, x] if frame.tones[y, x] else " " for x in range(xs[0], xs[-1] + 1))
+        ton = "".join(tone_ch.get(int(frame.tones[y, x]), "?") for x in range(xs[0], xs[-1] + 1))
+        lines.append(f"{y:2d} {a}| {lab} | {ton}")
+    return lines
+
+
 def palette_fit(pairs: dict[tuple[int, int, int], list[np.ndarray]], pal) -> list[str]:
     """For every render color: how many pixels, the median mockup color under them and the
     mean distance. Suggests palette moves; an edge color (outline) is unreliable because

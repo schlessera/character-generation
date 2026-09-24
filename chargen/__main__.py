@@ -266,13 +266,13 @@ def cmd_labels(anims=()):
 
 def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
                 split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False, mirror_swap=False, apply=False, clean=False, hot=0,
-                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False, all_slots=False, sweep_=0, sweep_parts=None):
+                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False, all_slots=False, sweep_=0, sweep_parts=None, labels_=()):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
     from .mockup import (breakdown, cost_maps, digits, draft_grid, extract, fit_part, grid_text, heat,
                          hex_box, mirror_grid, mockup_facings, palette_fit, palette_letters, place, shift_probe, similarity, slack,
-                         split, text_view, widths, clean_grid, apply_grid, hot_spots, init_palette, unlisted_slots, apply_legend)
+                         split, text_view, widths, clean_grid, apply_grid, hot_spots, init_palette, unlisted_slots, apply_legend, labels_view)
     tpl = template()
     r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
     src = Path(mockup) if mockup else CHARS / name / "concept" / f"{name}-pixel-mockup.png"
@@ -304,6 +304,9 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         if facing in text or "all" in text:
             print(f"== {facing}: mockup | render")
             print("\n".join(text_view(placed, rend, pal)))
+        if facing in labels_ or "all" in labels_:
+            print(f"== {facing}: mockup | labels | tones")
+            print("\n".join(labels_view(placed, rend, fr, pal)))
         if widths_:
             print(f"== {facing}: widths (positive = mockup wider)")
             print("\n".join(widths(placed, rend, fr.labels)))
@@ -498,6 +501,7 @@ def main():
     c.add_argument("--ablate", action="store_true", help="drop each rule in turn and score (candidates to confirm with --hex)")
     c.add_argument("--min-gain", type=float, default=0.0015, help="--optimize keeps a move only above this gain (0.0004 for the last thousandths; it raises the ceiling too)")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
+    c.add_argument("--labels", nargs="*", default=(), metavar="VIEW", help="print the frame's body-part labels and tones beside the mockup (or 'all')")
     c.add_argument("--sweep", type=int, default=0, metavar="N", help="forward rule search: score simple rule shapes on every part in every ramp, print the N best with per-view gains")
     c.add_argument("--sweep-parts", metavar="P,P", help="with --sweep: only these parts (default: every part and group)")
     c.add_argument("--all-slots", action="store_true", help="with --draft-grid: also offer every palette slot the legend lacks (letters appended to the legend with --apply)")
@@ -522,7 +526,7 @@ def main():
         cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
                     slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part, draft=a.draft_grid,
                     hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet,
-                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate, all_slots=a.all_slots, sweep_=a.sweep, sweep_parts=a.sweep_parts)
+                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate, all_slots=a.all_slots, sweep_=a.sweep, sweep_parts=a.sweep_parts, labels_=a.labels)
     else:
         cmd_labels(a.anims)
 
