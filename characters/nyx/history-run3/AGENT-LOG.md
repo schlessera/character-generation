@@ -60,3 +60,9 @@ Gap 2.73% below the ceiling (goal 3%, margin +0.0024). Steps per phase: palette 
 What still looks off to a person, accepted: in front the template's hands are 2-pixel tan blocks at the hips (the mockup's are 1 pixel and a row higher; every treatment lost 0.003-0.006 and there is no rule to move a hand up a row); the right profile's head has the mockup's own grey strap patch; the back emblem is a 2-pixel bar where the concept has a winged mark.
 
 What the recipe format could not express: moving a part (the front hands one row up); a stripe per member of a group (one per foot needed two rules); a rule that differs in one parameter per facing other than `offset(s)` (the sleeve band's `at`, the grow's `n`); "the hands inside the coat" as one concept (it took hand rules with `anims` in four facings).
+
+## After the run: the fixes that landed, checked on copies (no step taken)
+
+- `stripe part="feet" each=true` in place of the two per-foot rules: identical in six views; up_side -0.0009 and up -0.0010 only because my foot_l rule had a facings list that `each` does not have (mean 0.9137 vs 0.9140). The fix does what it says. The recipe keeps the two rules.
+- `--fit-grid all` now traces every view: on the finished grids it finds down_side +0.0008, side +0.0013, down_side_l +0.0009 (mean +0.0004). Not applied: the run is done and the goal is met with margin.
+- `--try FILE` would have replaced my private helper for steps 4-10; it still cannot change an existing rule's parameter (the step-9 grow n=2 -> 1 needed a copied file).
