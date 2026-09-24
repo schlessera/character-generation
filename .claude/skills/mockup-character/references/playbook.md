@@ -169,7 +169,10 @@ general jacket-bulk grow dropped the score 0.007). Grow only for ≥2, with a na
   jacket.shade` — the mockup's near arm stands out with a dark seam before the torso; growing
   without the seam makes a fat chrome arm and loses.
 
-Grow rules go first in the rule list; later rules see the grown labels. `--split` after: the
+`shrink` is the inverse (`type = "shrink"`, `part`, `sides`, `n`): the part's edge pixels on
+that side are erased and the pixel behind becomes the new outline, for a mockup narrower than
+the mannequin (Nyx's sleeves from behind). Grow and shrink rules go first in the rule list;
+later rules see the changed labels. `--split` after: the
 silhouette number should be 0.99+ in every view; if colour loss dominates, the silhouette is done.
 
 ## 5 · Last thousandths

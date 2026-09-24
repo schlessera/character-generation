@@ -208,6 +208,9 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
         if rule["type"] == "grow":
             f = _grow(rule, f, rgba, r)
             continue
+        if rule["type"] == "shrink":
+            f = _shrink(rule, f, rgba)
+            continue
         mask = _rule_mask(rule, f)
         for y, x in zip(*np.where(mask)):
             t = f.tones[y, x]
@@ -284,6 +287,39 @@ def _grow(rule: dict, f: Frame, rgba: np.ndarray, r: Recipe) -> Frame:
                     c = r.color(rule["color"], TONE_IDS["base"])
                     rgba[y, x] = (*c, 255)
                     tones[y, x] = TONE_IDS["base"]
+    return replace(f, tones=tones, labels=lab)
+
+
+def _shrink(rule: dict, f: Frame, rgba: np.ndarray) -> Frame:
+    """`shrink`: the inverse of `grow`. Pull a part's silhouette in by `n` pixels on the given
+    `sides` (default all): the part's edge pixels on that side (a transparent neighbour in the
+    side's direction) are erased, and the pixel behind each becomes ink, so the outline pass
+    still finds an edge. Tones and labels shrink with it. A mockup two pixels narrower than the
+    mannequin at the sleeves, for example."""
+    tones, lab = f.tones.copy(), f.labels.copy()
+    codes = list(part_codes(rule["part"]))
+    steps = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
+    H, W = tones.shape
+    sides = []
+    for side in rule.get("sides", list(steps)):
+        if side in ("front", "back"):  # the facing's front side; left facings are mirrored
+            side = "left" if (side == "front") == f.facing.endswith("_l") else "right"
+        sides.append(side)
+    for _ in range(rule.get("n", 1)):
+        for side in sides:
+            dy, dx = steps[side]
+            part = np.isin(lab, codes) & (tones > 0)
+            op = tones > 0  # a snapshot: the edge is judged before anything is erased, or it cascades inward
+            edge = [(y, x) for y, x in zip(*np.where(part))
+                    if not (0 <= y + dy < H and 0 <= x + dx < W and op[y + dy, x + dx])]
+            for y, x in edge:
+                rgba[y, x] = 0
+                tones[y, x], lab[y, x] = 0, "."
+            for y, x in edge:
+                by, bx = y - dy, x - dx  # the pixel behind becomes the new edge: ink
+                if 0 <= by < H and 0 <= bx < W and tones[by, bx] > 0 and lab[by, bx] in codes:
+                    tones[by, bx] = TONE_IDS["ink"]
+                    rgba[by, bx] = (47, 37, 34, 255)
     return replace(f, tones=tones, labels=lab)
 
 
