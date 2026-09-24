@@ -33,7 +33,7 @@ jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#2321
 pants   = { base = "#34353a", shade = "#323338", light = "#3c3d42", ink = "#141417" }
 shirt   = { base = "#2e2f2b", shade = "#222320" }
 shoes   = { base = "#dcdcde", shade = "#d9d6d6", light = "#d6d6da" }
-chrome  = { base = "#b2b6bc", shade = "#7a7e80", light = "#dfe2e6", ink = "#34383f" }
+chrome  = { base = "#b2b6bc", shade = "#7a7e80", light = "#dfe2e6", ink = "#34383f" }   # on a LEG the template paints only shade and ink: put the metal's main colour in `shade`
 trim    = { base = "#f06a1e", shade = "#e86218" }
 glow    = { base = "#44e4e8", shade = "#1aa6c4", light = "#c6fdff" }                  # what the mockup paints for the lit part, not the concept's hex
 fx      = { base = "#8ff8ff", shade = "#3cc4e6", light = "#c8fcff" }                  # the attack's swing smears

@@ -112,7 +112,7 @@ def cmd_crops(name, recipes_, box, diff=False):
                 dm = (px != base[f]).any(-1)
                 for y, x in zip(*np.where(dm[y0:y1, 6:6 + w])):
                     d.rectangle([i * cw + x * s, jj * ch + y * s, i * cw + (x + 1) * s - 1, jj * ch + (y + 1) * s - 1],
-                                outline=(255, 64, 200, 255), width=2)
+                                outline=(255, 64, 200, 255), width=1)
         d.text((4, jj * ch + 2), p.stem if j else "current", fill=(255, 255, 255, 255))
     dest = BUILD / "preview" / f"{name}_crops.png"
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -239,8 +239,8 @@ def cmd_step(name, message, snapshot=False, goal=None, amend=False):
         print(f"snapshot history/step-{n:02d}.toml")
     print(f"step {n}: {mean:.4f}  (" + "  ".join(f"{f}={v:.4f}" for f, v in zip(MOCKUP_FACINGS, scores)) + ")")
     if moved:
-        print("placement moved since the last step in " + ", ".join(moved) + ": re-draft those grids "
-              "(`--draft-grid VIEW --all-slots --clean --apply`), the old draft is a pixel off")
+        print("placement moved since the last step in " + ", ".join(moved) + ": candidates for a re-draft "
+              "(`--draft-grid VIEW --all-slots --clean --apply` keeps the new grid only where it scores)")
     if goal is not None:
         from .mockup import ceiling, palette_letters
         cs = float(np.mean([ceiling(sp, palette_letters(r)) for sp in sprites]))
@@ -447,18 +447,25 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
         base = [similarity(sp, render_frame(r, fr)) for sp, fr in zip(sprites, idle)]
         rules0 = r.rules
-        rows = []
+        rows, limited = [], []
         for i, rule in enumerate(extra_rules):  # each rule alone, then all together
             r.rules = rules0 + [rule]
             d = [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)]
-            rows.append((f"rule {i + 1}: {rule.get('type')} {rule.get('part')} {rule.get('color', '')}", d))
+            pos = [f for f, v in zip(MOCKUP_FACINGS, d) if v > 0.0005]
+            rows.append((f"rule {i + 1}: {rule.get('type')} {rule.get('part')} {rule.get('color', '')}", d, pos))
+            if pos:
+                limited.append({**rule, "facings": pos} if "facings" not in rule else rule)
         if len(extra_rules) > 1:
             r.rules = rules0 + extra_rules
-            rows.append(("all together", [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)]))
+            rows.append(("all together", [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)], []))
+            r.rules = rules0 + limited
+            rows.append(("all, each limited to its gaining views", [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)], []))
         r.rules = rules0
-        print(f"{'':44}" + "".join(f"{f:>12}" for f in MOCKUP_FACINGS) + f"{'mean':>10}")
-        for label, d in rows:
-            print(f"{label[:44]:44}" + "".join(f"{v:+12.4f}" for v in d) + f"{np.mean(d):+10.4f}")
+        print(f"{'':44}" + "".join(f"{f:>12}" for f in MOCKUP_FACINGS) + f"{'mean':>10}{'if limited':>12}  gains in")
+        for label, d, pos in rows:
+            lim = sum(max(v, 0) for v in d) / len(d)
+            print(f"{label[:44]:44}" + "".join(f"{v:+12.4f}" for v in d) + f"{np.mean(d):+10.4f}"
+                  + (f"{lim:+12.4f}  {','.join(pos) or '-'}" if pos or label.startswith("rule") else ""))
     if sweep_:
         from .mockup import sweep
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
