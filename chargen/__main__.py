@@ -247,8 +247,10 @@ def cmd_step(name, message, snapshot=False, goal=None, amend=False):
     pl_file = hist / "placement.json"
     pl_now = {f: list(placement(sp, im)) + [f in r.grids] for f, sp, im in zip(MOCKUP_FACINGS, sprites, renders)}
     pl_old = json.loads(pl_file.read_text()) if pl_file.exists() else {}
-    moved = [f for f in pl_now if f in pl_old and pl_old[f][:2] != pl_now[f][:2] and pl_now[f][2]
-             and len(pl_old[f]) > 2 and pl_old[f][2]]  # (a view drafted since the last step moved by design)
+    refused = pl_old.get("refused", {})
+    moved = [f for f in pl_now if f in pl_old and f != "refused" and pl_old[f][:2] != pl_now[f][:2] and pl_now[f][2]
+             and len(pl_old[f]) > 2 and pl_old[f][2] and refused.get(f) != pl_now[f][:2]]  # (a refused re-draft at this placement stays quiet)
+    pl_now["refused"] = refused
     pl_file.write_text(json.dumps(pl_now))
     notes = hist / "NOTES.md"
     text = notes.read_text() if notes.exists() else ""
@@ -412,6 +414,12 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
                 r.grids[facing] = old_g
                 if s_new < s_old - 1e-9:
                     print(f"   kept the existing grid: the draft scores {s_new - s_old:+.4f} here (edit rows by hand, or --draft-grid without --apply to read it)")
+                    pl_file = CHARS / name / "history" / "placement.json"  # remember: the step warning stays quiet for this placement
+                    if pl_file.exists():
+                        from .mockup import placement as _placement
+                        pl = json.loads(pl_file.read_text())
+                        pl.setdefault("refused", {})[facing] = list(_placement(sprite, rend))
+                        pl_file.write_text(json.dumps(pl))
                     continue
             if apply:
                 apply_grid(r.path, facing, g)
@@ -481,13 +489,18 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         rows, limited = [], []
         SIL = ("grow", "shrink", "shift")  # silhouette rules go first, so the recipe's trim sees their labels
 
-        def with_(cands):
-            return [c for c in cands if c.get("type") in SIL] + rules0 + [c for c in cands if c.get("type") not in SIL]
+        def with_(cands):  # a candidate may say `before = N` (1-based rule number) to sit before that rule
+            out = list(rules0)
+            placed = [(int(c["before"]) - 1, {k: v for k, v in c.items() if k != "before"}) for c in cands if "before" in c]
+            for idx, c in sorted(placed, key=lambda t: -t[0]):
+                out.insert(max(0, idx), c)
+            rest = [c for c in cands if "before" not in c]
+            return [c for c in rest if c.get("type") in SIL] + out + [c for c in rest if c.get("type") not in SIL]
         for i, rule in enumerate(extra_rules):  # each rule alone, then all together
             r.rules = with_([rule])
             d = [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)]
             pos = [f for f, v in zip(MOCKUP_FACINGS, d) if v > 0.0005]
-            rows.append((f"rule {i + 1}: {rule.get('type')} {rule.get('part')} {rule.get('color', '')}", d, pos))
+            rows.append((f"rule {i + 1}: {rule.get('type')} {rule.get('part')} {rule.get('color', '')}" + (f" before {rule['before']}" if "before" in rule else ""), d, pos))
             if pos:
                 limited.append({**rule, "facings": pos} if "facings" not in rule else rule)
         if len(extra_rules) > 1:
@@ -509,8 +522,8 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     if ablate_:
         from .mockup import ablate
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
-        print("== ablation: score gain when a rule is removed")
-        print("\n".join(ablate(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle])))
+        print("== ablation: score gain when a rule is removed (per view: a rule can be right in one facing and wrong in another)")
+        print("\n".join(ablate(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle], MOCKUP_FACINGS)))
     if oracle_:
         from .mockup import oracle
         print("== oracle: gain from a pixel copy of the mockup, per part")

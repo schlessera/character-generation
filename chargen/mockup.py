@@ -893,21 +893,29 @@ def oracle(views, pal, groups=None) -> list[str]:
     return out
 
 
-def ablate(recipe, sprites, renders_for) -> list[str]:
+def ablate(recipe, sprites, renders_for, facings=None) -> list[str]:
     """Drop each rule in turn and score: a rule that scores better removed is a detail this
-    mockup lacks (confirm with --hex before deleting; the score alone is not a reason)."""
-    base = float(np.mean([similarity(sp, im) for sp, im in zip(sprites, renders_for(recipe))]))
+    mockup lacks (confirm with --hex before deleting; the score alone is not a reason). With
+    `facings`, the gain per view too: a rule may be right in one facing and wrong in another."""
+    base_v = [similarity(sp, im) for sp, im in zip(sprites, renders_for(recipe))]
+    base = float(np.mean(base_v))
     rows = []
     rules = recipe.rules
     for i, rule in enumerate(rules):
         recipe.rules = rules[:i] + rules[i + 1:]
-        s = float(np.mean([similarity(sp, im) for sp, im in zip(sprites, renders_for(recipe))]))
-        rows.append((s - base, i + 1, rule.get("type"), rule.get("part"), rule.get("color", ""), rule.get("facings", "")))
+        v = [similarity(sp, im) - b for sp, im, b in zip(sprites, renders_for(recipe), base_v)]
+        rows.append((float(np.mean(v)), i + 1, rule.get("type"), rule.get("part"), rule.get("color", ""), rule.get("facings", ""), v))
     recipe.rules = rules
-    rows.sort(reverse=True)
-    out = [f"{'without':>8}  rule  (gain when removed; base {base:.4f})"]
-    for d, i, t, p, c, f in rows:
-        out.append(f"{d:+8.4f}  {i:3d}  {t} {p} {c} {f if f else ''}")
+    rows.sort(key=lambda r: -r[0])
+    head = f"{'without':>8}  rule  (gain when removed; base {base:.4f})"
+    if facings:
+        head += "   per view: " + " ".join(f"{f:>9}" for f in facings)
+    out = [head]
+    for d, i, t, p, c, f, v in rows:
+        line = f"{d:+8.4f}  {i:3d}  {t} {p} {c} {f if f else ''}"
+        if facings:
+            line = f"{line:60} " + " ".join(f"{x:+9.4f}" for x in v)
+        out.append(line)
     return out
 
 

@@ -83,9 +83,10 @@ type = "rows"; part = "torso"; from = "top"; n = 1; facings = ["down", "down_sid
 type = "all"; part = "neck"; ink = true; facings = ["up", "up_side", "up_side_l"]; color = "trim.base"   # redundant when the drafted grids already paint the neck rows
 [[rules]]  # profile: the collar's back panel behind the neck (Juno)
 type = "region"; part = "neck"; anchor = "back"; n = 2; ink = true; facings = ["side", "side_l"]; color = "trim.base"
-[[rules]]  # profile: a coat's collar row plus piping down the front edge (Nyx; one pixel inside the edge)
-type = "rows"; part = "torso"; from = "top"; n = 1; facings = ["side", "side_l"]; color = "trim.base"
-type = "stripe"; part = "torso"; anchor = "front"; offset = -1; facings = ["side_l"]; color = "trim.base"
+[[rules]]  # profile: a coat's collar row plus piping down the front edge (Nyx; one pixel inside the edge).
+# Profile trim ALWAYS stacks into hooks in the attack's spin: keep `anims` without attack on it from the start
+type = "rows"; part = "torso"; from = "top"; n = 1; facings = ["side", "side_l"]; anims = ["idle", "walk", "run", "jump", "rotate", "interact"]; color = "trim.base"
+type = "stripe"; part = "torso"; anchor = "front"; offset = -1; facings = ["side_l"]; anims = ["idle", "walk", "run", "jump", "rotate", "interact"]; color = "trim.base"
 ```
 Not `edge torso touching neck`: the neck's boundary is a U and the band bends. A neck shown as
 skin in the coat's V is `neck = "skin"` in `[parts]` (after `body`).
@@ -142,7 +143,8 @@ type = "edge"; part = "arm_l"; touching = "hand_l"; color = "trim.shade"
 [[rules]]  # long sleeves, fingertips only: the hand's inner side per facing (Juno)
 type = "region"; part = "hand_l"; anchor = "left"; n = 1; facings = ["down", "down_side_l"]; color = "jacket.base"
 type = "region"; part = "hand_l"; anchor = "right"; n = 1; facings = ["up", "up_side", "up_side_l"]; color = "jacket.base"
-[[rules]]  # hands in the pockets (Nyx's pose): the sleeve over the hand where the mockup shows none
+[[rules]]  # hands in the pockets (Nyx's pose): the sleeve over the hand where the mockup shows none.
+# ORDER: this goes BEFORE the hem's "hem across the pocketed hands" row, or it overpaints it (run 5 lost the hem that way)
 type = "all"; part = "hands"; facings = ["down_side", "side_l"]; color = "jacket"
 type = "rows"; part = "hands"; from = "top"; n = 1; facings = ["side", "up_side", "up_side_l", "down_side_l"]; color = "jacket"
 [[rules]]  # a band round the forearm (Nyx): per facing, the height differs (0.5 in front, 0.3 in profile-left)
