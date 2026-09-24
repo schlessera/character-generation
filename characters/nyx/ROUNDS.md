@@ -28,6 +28,31 @@ it; a rule-key table in the library; profile-trim snippets carry `anims` without
 rule before the hem-over-hands row; the per-hand dark column; skeleton notes on neck, hands,
 chrome on a leg, the dead `o` letter.
 
+## The human look (2026-09-24, after run 5)
+
+**F8. The score rewards noise, and the tooling optimized for it.** The 3/4 front views of the
+shipped recipe are a blob below the waist (`docs/images/nyx-diagonals.png`): no leg separation,
+no readable boot, the open-coat strip a four-column tower on a five-pixel torso, tan fragments
+on a flat grown sleeve, grey singles in the hair. The metric is local (one-pixel tolerance,
+colour only), so colours roughly in place score like a coherent drawing. The score-gated
+`--clean` kept speckles because they scored; per-view `--try`/`--sweep` picks accepted +0.001
+to +0.005 gains that were single pixels on single pixels.
+**F9. The review pass was too weak.** Eight facings at 12× and "nothing to complain about";
+nobody asked to count the legs. The 3/4 back views are fine; the fronts are not.
+**F10. The gap measures the wrong thing for the last stretch.** Once colours are placed, what
+remains is structure, which neither the score nor the ceiling sees.
+
+## Plan for round 6 (not started)
+
+Three scores instead of one, each in total and per angle: (1) the gap to the palette ceiling,
+as before; (2) a coherence measure, structure rather than colour (edges and neighbour
+agreement versus the mockup's own), so a speckled blob and a clean silhouette stop scoring
+alike; (3) a review pass per angle answering plain questions (recognizable? two legs? a boot
+each? coat edge distinct from pants? no isolated pixels?) logged as a number. Equal weights to
+start; the agent optimizes the weighted total, and as returns diminish it may move the weights
+and must say why. Tooling to build before the run: the coherence measure in `compare` and
+`step`, the per-angle review with its questions as a command, the weighted total in `--goal`.
+
 ## Preliminary findings after five rounds (2026-09-24)
 
 **F1. The skill was Juno's recipe in disguise.** Run 1 started at 0.41 with Juno's palette and

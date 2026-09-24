@@ -381,12 +381,31 @@ the sole row to the top of the frame, a straight stripe took its column from its
 corner without an outline, the first `shrink` inked only the pixel behind it.
 
 **Where it stands.** Eighteen steps became nine, and the step at which the goal is first met went from 14 to 5.
-The final gap stopped improving after the second round, at 2.4–2.7% below the ceiling, and what remains is the
-design's distance from the mannequin (hands the template draws two pixels wide, a body two pixels narrower than
-the template's), not the skill. Two things are still open: image generation does not take a pixel scale from a
-stated size, a same-scale reference or a mannequin grid, so a usable eight-view mockup is a matter of draws; and
-the metric still rewards single dithered pixels and once punished an outlined corner the picture needed, so the
-human review pass stays part of "done".
+The final gap stopped improving after the second round, at 2.4–2.7% below the ceiling. Then a human looked at the
+3/4 front views at 16× and did not see a person:
+
+<p align="center"><img src="docs/images/nyx-diagonals.png" alt="The two 3/4 front views at 16x: the mockup, the mannequin, and the shipped render, whose lower body is a blob" width="920"></p>
+
+**Where the number lied.** The 3/4 back views are fine; the 3/4 fronts are not. The lower body is a blob of olive,
+indigo and black with no leg separation and no readable boot, the open-coat strip is a tower of tee, belt and
+pants pixels on a torso five pixels wide, the grown far sleeve is a flat rectangle with tan fragments floating on
+it, and the hair carries scattered grey singles. The score said 2.4% from the best this palette could do, and it
+was telling the truth about what it measures: colours in roughly the right place, one pixel of tolerance, no
+notion of an edge. Three things followed from that. The metric rewards noise, and two of the tools built during
+the rounds optimized for it: the score-gated cleanup kept the hair's speckles because they scored, and the per-view
+candidate scoring accepted gains of a thousandth that were single pixels landing on single pixels; the agents' own
+logs had said "the metric rewards dithering" from run 1. The review pass was too weak: eight facings at 12× and
+"nothing a person would complain about", with nobody asked to count the legs. And the gap to the ceiling measures
+the wrong thing for the last stretch: once the colours are placed, what is left is structure, which the ceiling
+cannot see either.
+
+**What comes next.** A sixth round on the same mockup, with one score replaced by three. The gap to the ceiling
+stays, in total and per angle. A coherence measure joins it, in total and per angle: how much of the render's
+structure survives, read off edges and neighbour agreement rather than colour, so a speckled blob and a clean
+silhouette stop scoring alike. And a review pass per angle asks, in plain questions, whether the view is
+recognizable and anatomically sensible, and logs the answer as a number. The three start at equal weight; the
+agent optimizes the weighted total, and as the returns diminish it may change the weights and say why, so the
+weighting itself becomes part of what the rounds test.
 
 ## 6 · Debugging in plain text
 

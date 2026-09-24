@@ -431,6 +431,28 @@ def nyx_figure():
     save(out, "nyx-runs.png")
 
 
+def nyx_diagonals():
+    """The 3/4 front views at 16x: mockup, mannequin, shipped render. Where the score said 2.4%
+    below the ceiling and the picture said no."""
+    from chargen.mockup import TURNAROUND_FACINGS, extract, place
+    rec = Recipe(ROOT / "characters/nyx/history-run4/final.toml")
+    sprites = dict(zip(TURNAROUND_FACINGS, extract(ROOT / "characters/nyx/concept/nyx-pixel-mockup.png")))
+    s, cw, ch = 14, 26, 30
+    views = ["down_side", "down_side_l"]
+    cols = [("mockup", None), ("mannequin", "tpl"), ("render", rec)]
+    out = Image.new("RGBA", (len(views) * (len(cols) * cw * s + 24) - 24, ch * s + 26), BG)
+    d = ImageDraw.Draw(out)
+    for i, f in enumerate(views):
+        fr = frames["idle"][f][0]
+        rend = render_frame(rec, fr)
+        for j, (label, what) in enumerate(cols):
+            im = place(sprites[f], rend) if what is None else (_tones(fr) if what == "tpl" else rend)
+            x = i * (len(cols) * cw * s + 24) + j * cw * s
+            out.alpha_composite(up(Image.fromarray(im).crop((3, 2, 3 + cw, 2 + ch)), s), (x, 26))
+            d.text((x + 6, 6), f"{f.replace('_side', '-side').replace('_l', ' (left)')}: {label}", font=FS, fill=DIM)
+    save(out, "nyx-diagonals.png")
+
+
 SSS_STAGES = [("template", "the animated template"), ("labels", "every pixel labeled"),
               ("shaded", "labels, with the template's shading"), ("first", "the first recipe"),
               ("final", "the recipe after 25 steps")]
@@ -967,6 +989,7 @@ if __name__ == "__main__":
     replica_figure()
     nyx_chart()
     nyx_figure()
+    nyx_diagonals()
     semantic_gif()
     debugging_figures()
     variants_figure()
