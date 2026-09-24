@@ -25,7 +25,7 @@ emissive_strength = 0.5
 # this list lacks (a mask, a coat, a tee): add one. Every legend entry below is a FIXED slot
 # (`hair.base`), never a tone-relative ramp name: `--draft-grid` picks legend characters by colour.
 [palette]
-skin    = { base = "#ad7043", shade = "#96603a", light = "#95593a", blush = "#a8653f" }  # a mockup's face is lit evenly: shade close to base
+skin    = { base = "#ad7043", shade = "#96603a", light = "#95593a", blush = "#a8653f", ink = "#241a17" }  # a mockup's face is lit evenly: shade close to base; `ink` = the outline, or the template's hand ink shows as a stray colour
 hair    = { base = "#c22e6e", shade = "#9e2a5f", light = "#cc3276", deep = "#83254f", ink = "#261b19" }
 jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#232120" }  # image-generated fabric is flat: shade near base
 pants   = { base = "#34353a", shade = "#323338", light = "#3c3d42", ink = "#141417" }

@@ -14,7 +14,9 @@ list `facings` and `anims`.
 
 A `stripe` or `band` on a group part (`feet`, `hands`) is ONE stripe through the group's centre
 unless the rule says `each = true`, which runs it once per single part (a lace column on each
-boot). Facings are the eight template views. `front`/`back` anchors and sides resolve by facing and flip
+boot). Any parameter may differ per facing through `per_facing = { side_l = { at = 0.3 },
+down_side_l = { n = 1 } }` (overrides merged into the rule for that facing), so a band's height
+or a grow's depth need not be a second rule. Facings are the eight template views. `front`/`back` anchors and sides resolve by facing and flip
 for `*_l`; mirroring also swaps the anatomical labels, so a rule on `arm_l` hits the near arm in
 one 3/4 view and the far arm in the other. Name facings explicitly whenever near/far matters.
 With an eight-view mockup every view is scored, so a feature that is symmetric on the body (the
@@ -44,6 +46,8 @@ type = "grow"; part = "legs"; sides = ["front"]; n = 2; facings = ["down_side_l"
 [[rules]]  # a mockup NARROWER than the mannequin: sleeves a column in from behind (Nyx, --widths -2)
 type = "shrink"; part = "arms+hands"; sides = ["left"]; facings = ["up", "up_side"]
 type = "shrink"; part = "arms+hands"; sides = ["right"]; facings = ["up", "up_side_l"]
+[[rules]]  # ...which narrows the two-pixel hands to one inked pixel from straight behind: put the hands back
+type = "rows"; part = "arms"; from = "bottom"; n = 1; facings = ["up"]; color = "skin.base"   # (+0.005 in up on run 3)
 ```
 
 A grow placed before a straight stripe moves the stripe: the median column is taken over the
@@ -100,6 +104,7 @@ type = "stripe"; part = "torso"; anchor = "front"; offset = -1; facings = ["side
 type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; top = 4; facings = ["down", "down_side", "down_side_l"]; color = "shirt"
 type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; skip = 4; top = 1; facings = ["down", "down_side", "down_side_l"]; color = "outline.base"
 type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; skip = 5; facings = ["down", "down_side", "down_side_l"]; color = "pants.base"
+type = "stripe"; straight = true; part = "torso"; offsets = [-2, 1]; top = 4; facings = ["down"]; color = "outline.base"   # the lapels' dark inner edges, front only (+0.003; lost in 3/4)
 ```
 A straight stripe's column is the median over the whole part, so stacked stripes stay one strip.
 `offset` and `offsets` may be a table keyed by facing with `"*"` as the default (Nyx's strip sits

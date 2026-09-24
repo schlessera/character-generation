@@ -216,6 +216,8 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
             continue
         if "anims" in rule and f.anim not in rule["anims"]:  # e.g. profile trim that stacks up in the attack's spin
             continue
+        if "per_facing" in rule:  # parameter overrides for this facing: { side_l = { at = 0.3 }, down_side_l = { n = 1 } }
+            rule = {**rule, **rule["per_facing"].get(f.facing, {})}
         if rule["type"] == "grow":
             f = _grow(rule, f, rgba, r)
             continue
