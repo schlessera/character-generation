@@ -71,4 +71,9 @@ grid) and `--fit` (the median mockup color under every render color).
 | 48 | outline and visor rims are ramps (`outline`, `visor`) that the legend and `[outline]` reference, so a colorway swaps them with the palette; `[outline] color` may name a ramp | 0.872 |
 | 49 | the 3/4 view's cost map: every remaining hot spot is the mockup's wider torso edge and far arm, none on the head; the optimizer's second pass only repeats the rejected plum move. Converged on the mockup | 0.872 |
 | 50 | snapshot; playground smoke test | 0.872 |
+| 51 | left-facing grids (not in the mockup) in the same strand vocabulary as the redrawn right-facing ones: shade strands instead of deep, a single highlight; checked on the turn-around | 0.872 |
+| 52 | README: the third run, its two instruments and where the loop converged | 0.872 |
+| 53 | all README media regenerated, including the hero loop and the browser captures | 0.872 |
+| 54 | final pass over every animation at contact-sheet scale: nothing to fix | 0.872 |
+| 55 | snapshot. Three runs: 0.614 → 0.767 (25 steps) → 0.867 (15) → 0.872 (15); ceiling for this palette 0.926, the rest is the mockup's wider body | 0.872 |
 

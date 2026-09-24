@@ -69,7 +69,7 @@ flowchart LR
 | 2 | [Teaching the AI anatomy](#2--teaching-the-ai-anatomy) | Labeling every pixel of every frame with the body part it belongs to |
 | 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
 | 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
-| 5 | [Closing the gap](#5--closing-the-gap) | 40 rounds of the agent comparing its render to the mockup: where it stopped paying off, and what got it moving again |
+| 5 | [Closing the gap](#5--closing-the-gap) | 55 rounds of the agent comparing its render to the mockup: where it stopped paying off, what got it moving again, and where it converged |
 | 6 | [Debugging in plain text](#6--debugging-in-plain-text) | Bugs tracked down with a query and fixed with a few characters |
 | 7 | [Variations for free](#7--variations-for-free) | A new colorway is a ten-line file |
 | 8 | [The AI picks up the pencil](#8--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
@@ -239,7 +239,7 @@ flowchart LR
 Every five steps the recipe was saved to `characters/juno/history/step-NN.toml`, so each stage of the progression is
 rebuilt from source like every other image here:
 
-<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after 0, 5, 10, 15, 20, 25, 30, 35 and 40 iteration steps, in five views" width="920"></p>
+<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after every fifth iteration step from 0 to 55, in five views" width="920"></p>
 
 <p align="center"><img src="docs/images/juno-iteration-heads.png" alt="Head close-ups (front, profile, back) across the same steps" width="920"></p>
 
@@ -259,7 +259,7 @@ The similarity score is deliberately coarse. It lets every opaque pixel look for
 in the other image, so it forgives one-pixel drift but not a wrong shape or color. A perfect 1.0 is out of reach for
 reasons explained below.
 
-<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767, then 0.836, 0.848, 0.867" width="720"></p>
+<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767, then 0.836, 0.848, 0.867, 0.872, 0.872, 0.872" width="720"></p>
 
 The first 25 steps show the returns diminishing. Shape (steps 1–5) and color (6–10) were the big wins. After step 15
 the score was flat, and it's worth looking at why, because most of the remaining gap can't be closed by iterating the
@@ -342,10 +342,24 @@ redrawn from the text view, offset by offset.
 | 31–35 | **head grids read off the text view.** Profile, front and 3/4 redrawn: shaved side down to the jaw, hair from the crown, an outlined ear, a brow row over the visor; the visor on the same head row in every facing | 0.848 |
 | 36–40 | **the back views and the trim.** Back grids redrawn, the hem painted over the template's ink edge, collar tips at the jacket's corners, a second palette pass | 0.867 |
 
-The ceiling argument still holds: the mockup reduced to its own best 30 colors scores about 0.88, and step 40 is at
-0.867. What changed is that the agent could now find the rest of the way by itself, because the reference was in a
-form it reads well. The human-flagged issues of the first run (strand direction, a visor too wide) were all things a
-text diff makes obvious.
+What changed is that the agent could now find the rest of the way by itself, because the reference was in a form it
+reads well. The human-flagged issues of the first run (strand direction, a visor too wide) were all things a text
+diff makes obvious.
+
+A third run (steps 41–55) added two more instruments and then stopped. `compare --optimize` is a bounded palette
+search (each ramp slot may move up to 28 per channel, and only if the score gains); it confirmed the one color still
+off, the lens cyan, and proposed one drift, a stubble shade sliding toward the hair's shadow, which is why it prints
+its moves instead of applying them. `compare --ceiling` scores the mockup quantized to the recipe's own palette:
+0.926, against 0.872 for the render. The cost maps put all of that remaining gap on the mockup's wider torso and far
+arm, none of it on the head. With the palette and the head grids converged, the last steps went to what the metric
+can't see: a collar tab that drew a "T" down the spine in the jump, the profile shoe, the Glitch colorway's outline,
+and the outline and visor colors becoming ramps a colorway can swap.
+
+| steps | focus | similarity |
+|---|---|---|
+| 41–45 | **the last color and the ceiling.** Lens cyan, the optimizer and the ceiling instruments, a frame review at zoom | 0.872 |
+| 46–50 | **the recipe as a base for colorways.** Outline and visor rims as ramps, Glitch gets its own outline; converged | 0.872 |
+| 51–55 | **consistency.** Left-facing grids in the same strand vocabulary as the redrawn right-facing ones; final animation pass and figures | 0.872 |
 
 ## 6 · Debugging in plain text
 
