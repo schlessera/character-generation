@@ -275,6 +275,7 @@ def _grow(rule: dict, f: Frame, rgba: np.ndarray, r: Recipe) -> Frame:
         sides.append(side)
     for _ in range(rule.get("n", 1)):
         part = np.isin(lab, codes) & (tones > 0)
+        vacated = []
         for side in sides:
             dy, dx = steps[side]
             for y, x in zip(*np.where(part)):
@@ -287,6 +288,12 @@ def _grow(rule: dict, f: Frame, rgba: np.ndarray, r: Recipe) -> Frame:
                     c = r.color(rule["color"], TONE_IDS["base"])
                     rgba[y, x] = (*c, 255)
                     tones[y, x] = TONE_IDS["base"]
+                    vacated.append((y, x))
+        for y, x in vacated:  # a corner: the vacated pixel is still on the silhouette in another
+            if any(not (0 <= y + dy < H and 0 <= x + dx < W) or tones[y + dy, x + dx] == 0  # direction, so it
+                   for dy, dx in steps.values()):                                            # stays an outline pixel
+                tones[y, x] = TONE_IDS["ink"]
+                rgba[y, x] = (47, 37, 34, 255)
     return replace(f, tones=tones, labels=lab)
 
 
