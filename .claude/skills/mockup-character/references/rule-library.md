@@ -88,8 +88,8 @@ Judge every silhouette change on `just crops NAME --box 17,31 --diff`.
 type = "region"; part = "torso"; anchor = "back"; n = 1; facings = ["down_side", "down_side_l"]; color = "jacket.shade"
 [[rules]]  # the waistband's shadow above a hem (Juno)
 type = "rows"; part = "torso"; from = "bottom"; n = 2; color = "jacket.shade"
-[[rules]]  # profile: a coat's back fold, a dark line inside the back edge (Nyx)
-type = "region"; part = "torso"; anchor = "left"; n = 1; facings = ["side"]; color = "outline.base"
+[[rules]]  # profile: a coat's back fold, a dark line inside the back edge (Nyx; profile trim: no attack)
+type = "region"; part = "torso"; anchor = "left"; n = 1; facings = ["side"]; anims = ["idle", "walk", "run", "jump", "rotate", "interact"]; color = "outline.base"
 ```
 
 ## Collar
@@ -165,10 +165,12 @@ type = "region"; part = "hand_l"; anchor = "right"; n = 1; facings = ["up", "up_
 # ORDER: this goes BEFORE the hem's "hem across the pocketed hands" row, or it overpaints it (run 5 lost the hem that way)
 type = "all"; part = "hands"; facings = ["down_side", "side_l"]; color = "jacket"
 type = "rows"; part = "hands"; from = "top"; n = 1; facings = ["side", "up_side", "up_side_l", "down_side_l"]; color = "jacket"
-[[rules]]  # a band round the forearm (Nyx): per facing, the height differs (0.5 in front, 0.3 in profile-left)
-type = "band"; part = "arms"; at = 0.5; facings = ["down", "down_side_l", "side"]; color = "trim.base"
+[[rules]]  # a band round the forearm (Nyx): per facing, the height differs (0.5 in front, 0.3 in profile-left);
+type = "band"; part = "arms"; at = 0.5; facings = ["down", "down_side_l", "side"]; anims = ["idle", "walk", "run", "jump", "rotate", "interact"]; color = "trim.base"   # profile trim: no attack
 [[rules]]  # 3/4 back: on one sleeve only, the screen-right arm (arm_r in up_side, arm_l in up_side_l)
 type = "band"; part = "arm_r"; at = 0.3; facings = ["up_side"]; color = "trim.base"
+[[rules]]  # a hand resting beside a pocket: one skin pixel and a dark pocket edge (Nyx run 5's top sweep pick, +0.002;
+type = "stripe"; part = "hands"; straight = true; each = true; facings = ["down", "down_side", "down_side_l"]; color = "outline.base"   # `shift hands dy = -1` lost in 7 of 8 views)
 [[rules]]  # a sleeve's dark open end over the hand from behind and in profile (Nyx)
 type = "rows"; part = "hands"; from = "bottom"; n = 1; facings = ["side", "up_side", "up_side_l"]; color = "outline.base"
 [[rules]]  # the shoulder seam in front (Nyx)

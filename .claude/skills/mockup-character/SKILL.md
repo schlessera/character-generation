@@ -84,11 +84,15 @@ at step 5.
 
 ### Step 2 — silhouette and the garment, feature by feature (3–10 steps)
 
-`--widths` per view; grow or shrink only for 2+, each with a name, in both 3/4 views when the
-feature is symmetric. Then one feature at a time from the rule library (collar, opening, hem,
-sleeves, shoes, limb details), each as a variant scored across the views (`--recipe`), each
-kept where it has a reading and looks right on `just crops NAME --box 17,31 --diff`. `--split`
-should show silhouettes at 0.99+ when this is done.
+`just compare NAME --try .claude/skills/mockup-character/assets/try-library.toml`: every library
+rule without its facings, scored on your recipe in one call (3 s), with the views where each
+gains. Keep a rule only where it gains AND the picture agrees on `just crops NAME --box 17,31
+--diff`, with those views as its `facings`; prune by meaning (a rule for a feature the design
+lacks scores by accident). Run 5 did all of phase 2 that way in one step (+0.037). Then
+`--widths` per view for the silhouette: grow or shrink only for 2+, each with a name, in both
+3/4 views when the feature is symmetric (`--try` scores those before the trim). Order matters
+inside the recipe: grows first, pockets before a hem across the hands, shading before trim.
+`--split` at 0.99+ is necessary, not sufficient.
 
 ### Step 3 — the last thousandths (1–4 steps)
 

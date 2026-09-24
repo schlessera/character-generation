@@ -36,11 +36,20 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
 
     # rules
     known = {"edge", "rows", "stripe", "band", "all", "region", "grow", "shrink", "shift"}
+    common = {"type", "part", "color", "facings", "anims", "per_facing", "each", "ink", "only_if_ink", "before"}
+    keys_of = {"all": set(), "rows": {"from", "n"}, "edge": {"touching", "sides"},
+               "stripe": {"anchor", "offset", "offsets", "straight", "skip", "top", "bottom"},
+               "band": {"at", "n", "anchor", "w", "offset", "straight"}, "region": {"anchor", "n", "skip", "top"},
+               "grow": {"sides", "n"}, "shrink": {"sides", "n"}, "shift": {"dy", "dx", "over"}}
     for i, rule in enumerate(r.rules):
         tag = f"rule {i + 1} ({rule.get('type')} {rule.get('part')})"
         if rule.get("type") not in known:
             out.append(("error", f"{tag}: unknown rule type; known: {', '.join(sorted(known))}."))
             continue
+        stray = sorted(set(rule) - common - keys_of[rule["type"]])
+        if stray:
+            out.append(("warn", f"{tag}: key(s) {', '.join(stray)} mean nothing to a `{rule['type']}` rule (it takes "
+                                f"{', '.join(sorted(keys_of[rule['type']])) or 'no extra keys'}); silently ignored."))
         col = rule.get("color", "")
         ramp = col.partition(".")[0]
         if col and not col.startswith("#") and col != "clear" and ramp not in r.ramps:
