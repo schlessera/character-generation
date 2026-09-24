@@ -498,17 +498,23 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
             out[y, sel] = True
         return out
     if kind == "band":
-        # one row at fraction `at` (0 = top, 1 = bottom) of the part's vertical extent;
-        # with `anchor` only one pixel of that row (placed like a stripe)
+        # `n` rows (default 1) starting at fraction `at` (0 = top, 1 = bottom) of the part's
+        # vertical extent; with `anchor` only `w` pixels (default 1) of those rows, placed like
+        # a stripe (a 3-wide crossbar on an emblem: anchor = "center", w = 3)
         ys = np.where(part.any(axis=1))[0]
         out = np.zeros_like(part)
         if len(ys):
-            y = ys[0] + int(round(rule.get("at", 0.5) * (ys[-1] - ys[0])))
+            y0 = ys[0] + int(round(rule.get("at", 0.5) * (ys[-1] - ys[0])))
+            rows_ = [y for y in range(y0, y0 + rule.get("n", 1)) if y <= ys[-1]]
             if "anchor" in rule:
-                row = np.zeros_like(part)
-                row[y] = part[y]
-                return _rule_mask({**rule, "type": "stripe", "top": None}, f) & row
-            out[y] = part[y]
+                band = np.zeros_like(part)
+                for y in rows_:
+                    band[y] = part[y]
+                w = rule.get("w", 1)
+                offs = [rule.get("offset", 0) + k for k in range(-(w // 2), w - w // 2)]
+                return _rule_mask({**rule, "type": "stripe", "top": None, "offsets": offs}, f) & band
+            for y in rows_:
+                out[y] = part[y]
         return out
     if kind == "all":
         return part

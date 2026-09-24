@@ -95,7 +95,7 @@ S = "skin.base"
 s = "skin.shade"
 x = "visor.base"    # eyewear rim (and the lens' end caps)
 v = "glow.base"     # lens
-o = "outline.base"  # outline drawn by the grid (an ear beside the head)
+o = "outline.base"  # outline drawn by the grid (an ear beside the head); dead when hair.ink is the outline colour: the draft picks the hair's letter, delete this one then
 "-" = "clear"
 
 [head.grids]

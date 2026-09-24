@@ -1,5 +1,23 @@
 # Rule library: what each garment feature was, on two characters
 
+## Rule types and their keys
+
+Common to all: `part` (a part, a group, or `a+b`), `color` (`ramp` tone-relative, `ramp.slot`
+fixed, `#hex`, `clear`), `facings`, `anims`, `per_facing`, `each`, `ink` (also paint the
+template's ink pixels), `only_if_ink` (only in frames where the part is all ink).
+
+| type | keys | what it paints |
+|---|---|---|
+| `all` | | every pixel of the part |
+| `rows` | `from` (`top`/`bottom`), `n` | the part's first/last n rows |
+| `edge` | `touching` (a part or `none`), `sides` (up/down/left/right) | part pixels next to `touching` on those sides |
+| `stripe` | `anchor` (center/left/right/front/back), `offset` or `offsets` (list, or a table per facing), `straight`, `skip`, `top`, `bottom` | a vertical line through the part, one column per offset |
+| `band` | `at` (0..1 of the part's height), `n` rows, and with `anchor`: `w` columns, `offset` | horizontal rows at that height, or a w-wide dot on them |
+| `region` | `anchor` (left/right/front/back), `n` columns, `skip` rows from the top, `top` rows to keep | the first n columns of the part from that side |
+| `grow` | `sides`, `n` | the silhouette pushed out into transparent pixels |
+| `shrink` | `sides`, `n` | the silhouette pulled in, the new edge inked |
+| `shift` | `dy`, `dx`, `over` | the part moved, landing on transparent pixels or `over` parts |
+
 Snippets here put a rule's keys on one line separated by `; `; the recipe loader and `--try`
 accept that shorthand as it is (each `; ` becomes a line), so a line can be pasted under its
 own `[[rules]]` header unchanged. Every rule here held in all 248 frames of a finished
