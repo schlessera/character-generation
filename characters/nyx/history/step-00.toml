@@ -1,0 +1,104 @@
+# NAME: one line on who they are. Concept art and pixel mockup: concept/
+#
+# Start: copy to characters/NAME/recipe.toml, set `name`. This file is the STRUCTURE of a recipe
+# with no design in it: refit every palette slot from the mockup, map the parts the design has,
+# then add rules from references/rule-library.md, one garment feature at a time, each judged on
+# `just crops NAME --diff`. Every rule you keep says why it exists: the next reader is an agent
+# with the text view open.
+#
+# Facings: down, down_side, side, up_side, up, and the mirrored down_side_l, side_l, up_side_l.
+# Mirroring swaps the anatomical labels and the meaning of front/back. A ONE-SIDED LIMB is a
+# [parts] line (leg_l, "arm_r+hand_r"), never a rule on a side: labels follow the mirror. A rule
+# on a one-sided trim names its facings explicitly; a symmetric feature seen from both 3/4 views
+# needs a rule per view with the part name that view's labels give it.
+name = "nyx"
+rule_facing = "body"    # trim follows the body through spinning poses: side from the tracked head, front/back from the arms
+emissive = ["glow"]     # ramps that stay lit in the dark
+emissive_strength = 0.5
+# emissive_parts = { "arm_r+hand_r" = 1.0 }      # a part that glows fully (Juno's cyber-arm)
+# light = { color = "#3ff0ff", radius = 24, intensity = 0.2, anchor = "arm_r+hand_r" }   # a light the part casts
+
+# Ramps. Template tones pick slots: base, shade, light, blush, ink. Without `ink` the template's
+# ink stays (outlines, eyes). These values are placeholders in the shape of a real palette (Juno's);
+# read the mockup's colours (`--hex VIEW y0,y1,x0,x1` on flat areas, `--init-palette` after
+# [parts]) and replace every slot. A ramp the design lacks: delete it. A material it has and
+# this list lacks (a mask, a coat, a tee): add one. Every legend entry below is a FIXED slot
+# (`hair.base`), never a tone-relative ramp name: `--draft-grid` picks legend characters by colour.
+[palette]
+skin    = { base = "#ad7043", shade = "#96603a", light = "#95593a", blush = "#a8653f" }  # a mockup's face is lit evenly: shade close to base
+hair    = { base = "#c22e6e", shade = "#9e2a5f", light = "#cc3276", deep = "#83254f", ink = "#261b19" }
+jacket  = { base = "#36363d", shade = "#232328", light = "#2e2e34", ink = "#232120" }  # image-generated fabric is flat: shade near base
+pants   = { base = "#34353a", shade = "#323338", light = "#3c3d42", ink = "#141417" }
+shirt   = { base = "#2e2f2b", shade = "#222320" }
+shoes   = { base = "#dcdcde", shade = "#d9d6d6", light = "#d6d6da" }
+chrome  = { base = "#b2b6bc", shade = "#7a7e80", light = "#dfe2e6", ink = "#34383f" }
+trim    = { base = "#f06a1e", shade = "#e86218" }
+glow    = { base = "#44e4e8", shade = "#1aa6c4", light = "#c6fdff" }                  # what the mockup paints for the lit part, not the concept's hex
+fx      = { base = "#8ff8ff", shade = "#3cc4e6", light = "#c8fcff" }                  # the attack's swing smears
+outline = { base = "#241a17" }                       # silhouette and the legend's `o`; read it from the mockup (warm brown on Juno, near black on Nyx)
+visor   = { base = "#1a191d", shade = "#3b3839" }    # eyewear rims; delete if the design has none
+
+# Part/group -> ramp. LATER LINES WIN: groups first, specific parts after (a `neck` line before
+# `body` is silently overridden). `fx` unmapped renders the attack smears as blobs.
+[parts]
+head = "skin"
+body = "jacket"
+neck = "skin"
+hands = "skin"
+legs = "pants"
+feet = "shoes"
+# "arm_r+hand_r" = "chrome"    # a one-sided limb: anatomical side, every frame
+# leg_l = "chrome"
+fx = "fx"
+
+[outline]
+color = "outline"
+keep = "*"          # every grid cell keeps its colour on the silhouette edge: a drafted grid carries the mockup's
+                    # own outline cells ("kSs" for hand-drawn grids where only the hair outline and the ear should)
+# parts = { legs = "pants.ink" }   # selective outlining: a part edged in its own dark
+
+# ---- rules: none yet. Order: grow/shrink -> shading -> collar -> hem -> opening -> sleeves ->
+# shoes -> limb details. Take each from references/rule-library.md; `--widths` before any grow.
+# Example of the syntax (a cuff):
+# [[rules]]
+# type = "edge"
+# part = "arm_l"
+# touching = "hand_l"
+# color = "trim.shade"
+
+# ---- head grids: `just compare NAME --draft-grid all --all-slots --clean --apply` -------------
+# (add --mirror-swap only for a FIVE-view mockup of a one-sided haircut). Grid = head template
+# padded by 3, '.' keeps the template. `just heads NAME` prints alignment.
+
+# Which legend characters the grid tools may treat as what. `--clean` moves `rim` characters off
+# rows that are not `lens` rows, despeckles inside `hair` and `texture` and keeps only `hair`
+# (minus its first character, the outline) on the row below the jaw, each of those two passes
+# only where it does not lower the view's score; `--mirror-swap` swaps `texture` and `hair` and
+# caps a lens with `caps`. Anything not listed (a mask, an ear, skin) is left alone.
+[head.classes]
+hair = "kbHDi"      # outline first, then the mane's base, shade, deep, light
+texture = ""        # a second surface cleaned like hair (a shaved side): "uUw" on Juno; "" if none
+lens = "v"
+rim = "x"
+caps = "x"
+
+# The legend: every material the mockup paints on the head AND in the grid's rows beside and
+# below it (a collar, a mask, a hat) — the draft picks legend colours only; `--all-slots` adds
+# the missing ones itself.
+[head.legend]
+b = "hair.base"
+H = "hair.shade"    # strand lines
+D = "hair.deep"
+i = "hair.light"
+k = "hair.ink"      # hair outline
+S = "skin.base"
+s = "skin.shade"
+x = "visor.base"    # eyewear rim (and the lens' end caps)
+v = "glow.base"     # lens
+o = "outline.base"  # outline drawn by the grid (an ear beside the head)
+"-" = "clear"
+
+[head.grids]
+# down = """
+# ...
+# """
