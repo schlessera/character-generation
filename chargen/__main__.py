@@ -36,6 +36,8 @@ def cmd_build(names):
     export(tpl, None, DATA / "characters/template")
     print("built template")
     for p in recipes(names):
+        if not p.exists() or p.parent.name.startswith("zz"):  # a selftest scratch copy may come and go while we run
+            continue
         export(tpl, Recipe(p), DATA / "characters" / p.parent.name)
         print("built", p.parent.name)
     index = sorted(d.name for d in (DATA / "characters").iterdir() if (d / "sheet.json").exists())
