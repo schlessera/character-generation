@@ -149,7 +149,7 @@ type = "all"
 part = "neck"
 ink = true
 facings = ["up", "up_side", "up_side_l"]
-color = "trim"
+color = "trim.base"
 
 [[rules]]  # profile: its back panel behind the neck
 type = "region"
@@ -158,7 +158,7 @@ anchor = "back"
 n = 2
 ink = true
 facings = ["side", "side_l"]
-color = "trim"
+color = "trim.base"
 
 [[rules]]  # back: a short collar tab
 type = "stripe"
@@ -224,7 +224,7 @@ part = "torso"
 offset = 1
 ink = true
 facings = ["down_side", "down_side_l"]
-color = "shirt"
+color = "shirt.base"
 
 [[rules]]
 type = "stripe"
@@ -390,11 +390,11 @@ at = 0.0
 anchor = "right"
 color = "trim.base"
 
-# ---- head grids: one per facing, drafted with `just compare NAME --draft-grid VIEW` -----------
+# ---- head grids: `just compare NAME --draft-grid all --clean --apply --mirror-swap` -----------
 # Grid = head template padded by 3, '.' keeps the template. `just heads NAME` prints alignment.
-# The five mockup views are drafted; the three `_l` views are drawn by hand from the design (see
-# the playbook's near-side table) — without them the right grid is mirrored, which puts a
-# one-sided haircut on the wrong side.
+# The five mockup views are drafted from the mockup; the three `_l` views are mirrored from
+# their twins (with mane and shaved side swapped for a one-sided cut; drop --mirror-swap for a
+# symmetric one) and must be checked against the playbook's near-side table.
 [head.legend]
 b = "hair.base"
 H = "hair.shade"    # strand lines

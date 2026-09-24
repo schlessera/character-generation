@@ -30,13 +30,23 @@ says what they mean for this recipe. All flags combine; `--quiet` drops the loss
 | `--shift [--chars kbHDi]` | best one-pixel offset per head grid (of the given cells only) with its gain | hair volume direction; act by adding hair, not by shifting |
 | `--fit-grid VIEW… [--chars …]` | the head grid traced cell by cell to the mockup, only changes that gain | a diagnostic; look at the cells before applying |
 | `--recipe PATH` | score a variant file instead of the character's recipe | every experiment |
+| `--goal PCT` | the ceiling, the threshold PCT percent below it, and whether the mean reaches it | the definition of done |
+| `--hot N` | the N costliest pixels: view, row, col, mockup letter, render letter, cost | where to look, without reading digit maps |
+| `--init-palette` | median mockup colour per body part and template tone (body only; the head needs grids) | a new design's palette before the grids |
+| `--draft-grid … --clean --apply` | `--clean`: visor chars off the rim/lens rows, lone speckles, hair-only last row; `--apply`: write into the recipe | step 1 in one command |
 
 Other commands:
 
+- `just lint NAME` — parts order, unknown ramps, one-sided rules with mirrored facings, tone-relative
+  legend entries, missing left grids, grid cells on the body, unused characters.
+- `just review NAME` — one image: eight facings at 12×, torso and feet crops at 16×, the turn-around
+  and walk/run/jump/attack in the angled views at 6× → `build/preview/NAME_review.png`.
+- `just step NAME "message" [--goal PCT] [--snapshot]` — score, append the NOTES row, snapshot every
+  fifth step; with `--goal`, the ceiling and the threshold.
 - `just heads NAME` — each facing's head template rows beside its grid, for alignment.
-- `just crops NAME --box y0,y1 [--recipe v.toml …]` — the eight idle facings cropped to frame rows
-  y0..y1 at 16×, one row per recipe (`17,31` torso, `24,32` feet, `4,20` head). The fastest way to
-  judge a trim change from every angle at once.
+- `just crops NAME --box y0,y1 [--recipe v.toml …] [--diff]` — the eight idle facings cropped to
+  frame rows y0..y1 at 16×, one row per recipe (`17,31` torso, `24,32` feet, `4,20` head); `--diff`
+  outlines every pixel a variant changes. The fastest way to judge a trim change from every angle.
 - `just preview NAME [anims…]` — contact sheet of every animation × facing (`build/preview/NAME.png`,
   or `NAME_walk_run.png` when animations are given), plus 12× idle facings
   (`build/preview/NAME_facings.png`); crop and zoom the sheet to review, it is tall.

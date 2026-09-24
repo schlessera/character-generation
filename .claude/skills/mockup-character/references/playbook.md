@@ -63,8 +63,9 @@ shifted a correct draft).
 **Left-facing grids** are not in the mockup. `--draft-grid down_side_l --mirror-swap` (and
 `side_l`, `up_side_l`) mirrors the right-facing grid about the head template's padded width — a
 drafted grid is 20 columns wide while the side templates are 18–19, so reversing the rows as
-strings misaligns by one or two — and swaps mane and shaved side for a one-sided cut (without
-`--mirror-swap` for a symmetric one). Then clean and, above all, look: the mirrored fringe of the
+strings misaligns by one or two — and, because a mirror image swaps her left and right, puts a
+one-sided cut back on her own side: the shaved patch stays where it was on screen, its mirror
+image becomes hair (drop `--mirror-swap` for a symmetric cut). Then clean and, above all, look: the mirrored fringe of the
 profile becomes a forward overhang on the other side. Which side is nearest:
 
 | facing | she faces | nearest side | for Juno's undercut (shaved right, mane left) |

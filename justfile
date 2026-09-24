@@ -37,9 +37,21 @@ heads name:
 compare name *flags:
     uv run python -m chargen compare {{name}} {{flags}}
 
-# The eight idle facings cropped to frame rows y0,y1 at 16x, one row per --recipe variant -> build/preview/NAME_crops.png
+# The eight idle facings cropped to frame rows y0,y1 at 16x, one row per --recipe variant (--diff marks changes) -> build/preview/NAME_crops.png
 crops name *flags:
     uv run python -m chargen crops {{name}} {{flags}}
+
+# Static checks on a recipe: parts order, one-sided rules with mirrored facings, legend, grids
+lint name:
+    uv run python -m chargen lint {{name}}
+
+# One image to look at after a change: facings, torso and feet crops, turn-around, angled animations -> build/preview/NAME_review.png
+review name:
+    uv run python -m chargen review {{name}}
+
+# Score, append a row to history/NOTES.md, snapshot every fifth step (or --snapshot)
+step name message *flags:
+    uv run python -m chargen step {{name}} "{{message}}" {{flags}}
 
 # ---------------------------------------------------------------- template labels
 
