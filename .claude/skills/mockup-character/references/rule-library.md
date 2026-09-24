@@ -12,7 +12,9 @@ syntax: `chargen/character.py` (`_rule_mask`, `_grow`, `_shrink`). Rules run in 
 rules paint over earlier ones; `grow`/`shrink` change the labels later rules see. Every rule may
 list `facings` and `anims`.
 
-Facings are the eight template views. `front`/`back` anchors and sides resolve by facing and flip
+A `stripe` or `band` on a group part (`feet`, `hands`) is ONE stripe through the group's centre
+unless the rule says `each = true`, which runs it once per single part (a lace column on each
+boot). Facings are the eight template views. `front`/`back` anchors and sides resolve by facing and flip
 for `*_l`; mirroring also swaps the anatomical labels, so a rule on `arm_l` hits the near arm in
 one 3/4 view and the far arm in the other. Name facings explicitly whenever near/far matters.
 With an eight-view mockup every view is scored, so a feature that is symmetric on the body (the

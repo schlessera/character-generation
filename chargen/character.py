@@ -203,7 +203,16 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
         if r.data.get("rule_facing") == "body":
             facing = _body_facing(f, facing)
         f = replace(f, facing=facing)
-    for rule in r.rules:
+    rules = []
+    for rule in r.rules:  # `each = true` on a group part: the rule runs once per single part (a stripe
+        if rule.get("each"):  # on `feet` is otherwise one stripe through both feet)
+            from .labels import PARTS
+            names = {v: k for k, v in PARTS.items()}
+            for code in part_codes(rule["part"]):
+                rules.append({**rule, "part": names.get(code, rule["part"]), "each": False})
+        else:
+            rules.append(rule)
+    for rule in rules:
         if "facings" in rule and f.facing not in rule["facings"]:
             continue
         if "anims" in rule and f.anim not in rule["anims"]:  # e.g. profile trim that stacks up in the attack's spin

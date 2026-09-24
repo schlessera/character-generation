@@ -906,8 +906,9 @@ def sweep_candidates(recipe, parts=None) -> list[dict]:
             if shape["type"] == "shrink":
                 out.append({**shape, "part": part})
                 continue
+            each = shape["type"] in ("stripe", "band") and part in ("arms", "hands", "legs", "feet")
             for ramp, _ in colours:
-                out.append({**shape, "part": part, "color": f"{ramp}.base"})
+                out.append({**shape, "part": part, "color": f"{ramp}.base", **({"each": True} if each else {})})
     return out
 
 
