@@ -69,7 +69,7 @@ flowchart LR
 | 2 | [Teaching the AI anatomy](#2--teaching-the-ai-anatomy) | Labeling every pixel of every frame with the body part it belongs to |
 | 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
 | 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
-| 5 | [Closing the gap](#5--closing-the-gap) | 70 rounds against the mockup: where it stopped paying off, what got it moving again, where it converged, and what the score never saw |
+| 5 | [Closing the gap](#5--closing-the-gap) | 85 rounds against the mockup: where it stopped paying off, what got it moving again, where it converged, and what the score never saw |
 | 6 | [Debugging in plain text](#6--debugging-in-plain-text) | Bugs tracked down with a query and fixed with a few characters |
 | 7 | [Variations for free](#7--variations-for-free) | A new colorway is a ten-line file |
 | 8 | [The AI picks up the pencil](#8--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
@@ -239,7 +239,7 @@ flowchart LR
 Every five steps the recipe was saved to `characters/juno/history/step-NN.toml`, so each stage of the progression is
 rebuilt from source like every other image here:
 
-<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after every fifth iteration step from 0 to 70, in five views" width="920"></p>
+<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after every fifth iteration step from 0 to 85, in five views" width="920"></p>
 
 <p align="center"><img src="docs/images/juno-iteration-heads.png" alt="Head close-ups (front, profile, back) across the same steps" width="920"></p>
 
@@ -259,7 +259,7 @@ The similarity score is deliberately coarse. It lets every opaque pixel look for
 in the other image, so it forgives one-pixel drift but not a wrong shape or color. A perfect 1.0 is out of reach for
 reasons explained below.
 
-<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767, then 0.836, 0.848, 0.867, then flat at 0.872 from step 45 to 70" width="720"></p>
+<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767, then 0.836, 0.848, 0.867, then flat around 0.872 from step 45 to 85" width="720"></p>
 
 The first 25 steps show the returns diminishing. Shape (steps 1–5) and color (6–10) were the big wins. After step 15
 the score was flat, and it's worth looking at why, because most of the remaining gap can't be closed by iterating the
@@ -312,7 +312,9 @@ Some details needed new capabilities in the generator, and the agent added them 
   on her back;
 - `[outline] keep` lists the head-grid colors that keep their own color on the silhouette (the ear, the hair outline);
 - a `grow` rule pushes a body part's outline outward into empty pixels (the sneakers are a pixel wider than the
-  template's feet on both sides), the only rule that changes the silhouette.
+  template's feet on both sides), the only rule that changes the silhouette;
+- a `region` rule selects the first n columns of a part from one side, the facing's front or back included, so the
+  torso's far flank can be a shade darker in the 3/4 views.
 
 All of these are opt-in, so the earlier snapshots still render exactly as they did.
 
@@ -370,6 +372,15 @@ collar bent because it was an *edge* against the neck, and the neck's boundary i
 straight top row, notched open by the zipper. The shoes needed something no rule could do: change the silhouette.
 A new `grow` rule pushes a part's outline outward, and the sneakers are three pixels wide instead of two. The score
 did not move. It was never looking there.
+
+A fifth run (71–85) went after the jacket from the angles the mockup barely shows. The 3/4 views were the worst:
+the zipper sat on the torso's centre column, next to the template's own shade column, so a five-pixel-wide torso
+showed four colours in a row; the sleeve cuff and the hem, both orange and one row apart, merged into a stepped band;
+a side-shading rule added dark columns beside every sleeve. The fix was mostly geometry: the chest front projects
+toward the facing side, so the open edge moved there; the hem is painted after the zipper so it runs under the
+opening; the cuff is a darker orange; the shading rule went. A `region` rule (the first n columns of a part from
+its front or back) shades the far flank in the 3/4 views, and the back chevron shows its near half from 3/4 behind.
+The turn-around now reads as one jacket seen from eight sides.
 
 ## 6 · Debugging in plain text
 

@@ -164,24 +164,6 @@ offset = 0
 facings = ["up"]
 color = "logo"
 
-[[rules]]  # the chevron seen from 3/4 behind: its near half, shifted toward the back-facing side
-type = "band"
-part = "torso"
-at = 0.4
-anchor = "center"
-offset = -2
-facings = ["up_side", "up_side_l"]
-color = "logo"
-
-[[rules]]
-type = "band"
-part = "torso"
-at = 0.55
-anchor = "center"
-offset = -1
-facings = ["up_side", "up_side_l"]
-color = "logo"
-
 [[rules]]  # sleeve cuff
 type = "edge"
 part = "arm_l"

@@ -100,3 +100,24 @@ collar bends. The shoes are too small."
 | 69 | final animation pass | 0.872 |
 | 70 | snapshot | 0.872 |
 
+## Fifth run (steps 71–85): the jacket from every angle
+
+"Focus on the jacket, especially from other angles than the front. The rotation does not seem well
+handled, and most diagonal and side angles look broken."
+
+| step | change | similarity |
+|---|---|---|
+| 71 | 3/4 zipper where the chest front projects: the open edge at +1 and the shirt at +2 from the torso's centre, toward the facing side (it sat on the centre column, next to the template's own shade column: five columns, four colours) | 0.873 |
+| 72 | the `edge torso touching arms → shade` rule dropped: the template already shades the flank, the rule only added dark columns beside every sleeve | 0.873 |
+| 73 | sleeve cuff in the darker orange, so it no longer merges with the hem where the hand hangs beside it (3/4 and 3/4-back) | 0.873 |
+| 74 | hem painted after the zipper: one continuous band under the opening, instead of the shirt column cutting its far end | 0.873 |
+| 75 | new rule type `region`: the first `n` columns of a part from an anchored side (`left`/`right`, or the facing's `front`/`back`), per row. The torso's far flank is one shade darker in the 3/4 views; snapshot | 0.873 |
+| 76 | the back chevron's near half shows from 3/4 behind (bands shifted toward the back-facing side) | 0.873 |
+| 77 | turn-around and 3/4 walks at 10×: the zipper, collar, hem and cuff now progress coherently through the eight facings | 0.873 |
+| 78 | jump, attack and interact at 8× in the angled views | 0.873 |
+| 79 | playground smoke test | 0.873 |
+| 80 | snapshot | 0.873 |
+| 81 | README and notes | 0.873 |
+| 82 | all README media regenerated | 0.873 |
+| 83–85 | final pass; snapshot | 0.873 |
+

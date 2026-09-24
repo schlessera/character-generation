@@ -288,6 +288,19 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
             if 0 <= x < part.shape[1] and part[y, x]:
                 out[y, x] = True
         return out
+    if kind == "region":
+        # the first `n` pixels of every row from the anchored side ("left"/"right", or the
+        # facing's "front"/"back"): a panel of the part, e.g. the far flank of the torso
+        anchor = rule.get("anchor", "back")
+        if anchor in ("front", "back"):
+            anchor = "left" if (anchor == "front") == f.facing.endswith("_l") else "right"
+        out = np.zeros_like(part)
+        n = rule.get("n", 1)
+        for y in np.where(part.any(axis=1))[0][:rule.get("top")]:
+            xs = np.where(part[y])[0]
+            sel = xs[:n] if anchor == "left" else xs[-n:]
+            out[y, sel] = True
+        return out
     if kind == "band":
         # one row at fraction `at` (0 = top, 1 = bottom) of the part's vertical extent;
         # with `anchor` only one pixel of that row (placed like a stripe)
