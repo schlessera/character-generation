@@ -2,6 +2,9 @@
 
 `compare` snaps the mockup to its pixel grid, places each view over the render, scores it and
 writes `build/preview/NAME_compare.png` (rows: mockup, render, head close-ups, heat maps). The
+views are matched to facings by their count: five (down, down_side, side, up_side, up) or eight
+(the turn-around: down, down_side, side, up_side, up, up_side_l, side_l, down_side_l); any other
+count is an extraction problem (a figure split by a light row) and an error. The
 score is symmetric: every opaque pixel of either image looks for a same-colour pixel within one
 pixel in the other; a missing or clearly different one costs 1. `mean` over the five views is the
 number in the notes. The printed **loss table** splits it per body part (render side / mockup
@@ -41,6 +44,8 @@ Other commands:
 
 - `just lint NAME` — parts order, unknown ramps, one-sided rules with mirrored facings, tone-relative
   legend entries, missing left grids, grid cells on the body, unused characters.
+- `just turntable NAME [anims…]` — a GIF of the character turning through the eight facings (idle
+  by default) → `build/preview/NAME_turntable.gif`.
 - `just review NAME` — one image, every cell labelled with its facing: eight facings at 12×, the
   heads at 24× (look here first), torso and feet crops at 16×, the turn-around and walk/run/jump/
   attack in the angled views at 6× → `build/preview/NAME_review.png`.

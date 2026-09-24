@@ -7,8 +7,11 @@ description: Turn a character's concept art and pixel mockup into a finished rec
 
 A character here is a recipe: colour ramps per body part, geometric trim rules keyed to body-part
 labels, and per-facing head grids, skinned onto every frame of the labelled template. The mockup
-(five views: down, down_side, side, up_side, up, stacked vertically) is the reference; `just compare
-NAME` snaps it to its pixel grid and scores it against the render. Measured path: the skeleton
+is the reference: five views stacked vertically (down, down_side, side, up_side, up), or eight in
+the turn-around's order (down, down_side, side, up_side, up, up_side_l, side_l, down_side_l).
+`just compare NAME` counts the views, snaps them to their pixel grid and scores each against its
+facing's render. With eight views the three left-facing views are scored and drafted from the
+mockup like the others; nothing is mirrored and `--mirror-swap` does nothing. Measured path: the skeleton
 recipe plus one `--draft-grid all` command reaches 0.90; a review pass, a trim check from all
 eight angles and the last thousandths take three to five steps more.
 

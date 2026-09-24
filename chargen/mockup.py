@@ -11,6 +11,19 @@ import numpy as np
 from PIL import Image
 
 MOCKUP_FACINGS = ["down", "down_side", "side", "up_side", "up"]
+# an eight-view mockup is a full turn-around, the rotate animation's order: the three left-facing
+# views are then scored and drafted like the others instead of being mirrored from their twins
+TURNAROUND_FACINGS = ["down", "down_side", "side", "up_side", "up", "up_side_l", "side_l", "down_side_l"]
+
+
+def mockup_facings(n: int) -> list[str]:
+    """Which template facing each extracted view is, by the number of views in the sheet."""
+    if n == len(MOCKUP_FACINGS):
+        return MOCKUP_FACINGS
+    if n == len(TURNAROUND_FACINGS):
+        return TURNAROUND_FACINGS
+    raise ValueError(f"a mockup has 5 views ({', '.join(MOCKUP_FACINGS)}) or 8 ({', '.join(TURNAROUND_FACINGS)}); "
+                     f"this one extracted as {n} (a figure split by a light row, or two touching?)")
 
 
 def _pitch(im: np.ndarray) -> float:

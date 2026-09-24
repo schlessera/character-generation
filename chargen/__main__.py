@@ -163,13 +163,38 @@ def cmd_review(name):
     print(dest, out.size)
 
 
+def cmd_turntable(name, scale=8, ms=220, anims=("idle",)):
+    """A GIF of the character turning: the idle frame of each facing in the turn-around's order
+    (then any further animation given, all facings in the same order), for a quick visual
+    check of a build -> build/preview/NAME_turntable.gif."""
+    from .mockup import TURNAROUND_FACINGS
+    tpl = template()
+    r = Recipe(CHARS / name / "recipe.toml")
+    frames = build_frames(tpl)
+    imgs = []
+    for anim in anims:
+        for facing in TURNAROUND_FACINGS:
+            fr = frames[anim][facing]
+            for f in (fr[:1] if anim == "idle" else fr):
+                im = Image.new("RGBA", (32 * scale, 32 * scale), (60, 62, 80, 255))
+                im.alpha_composite(Image.fromarray(render_frame(r, f)).resize((32 * scale, 32 * scale), Image.NEAREST))
+                imgs.append(im.convert("RGB"))
+    pal = imgs[0].quantize(colors=255, method=Image.Quantize.MEDIANCUT)
+    q = [im.quantize(palette=pal, dither=Image.Dither.NONE) for im in imgs]
+    dest = BUILD / "preview" / f"{name}_turntable.gif"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    q[0].save(dest, save_all=True, append_images=q[1:], duration=ms, loop=0, optimize=True)
+    print(dest, len(q), "frames")
+
+
 def cmd_step(name, message, snapshot=False, goal=None, amend=False):
     """Score the recipe, append a row to history/NOTES.md, snapshot every fifth step."""
-    from .mockup import MOCKUP_FACINGS, extract, similarity
+    from .mockup import extract, mockup_facings, similarity
     tpl = template()
     r = Recipe(CHARS / name / "recipe.toml")
     frames = build_frames(tpl)
     sprites = extract(CHARS / name / "concept" / f"{name}-pixel-mockup.png")
+    MOCKUP_FACINGS = mockup_facings(len(sprites))
     scores = [similarity(sp, render_frame(r, frames["idle"][f][0])) for sp, f in zip(sprites, MOCKUP_FACINGS)]
     mean = float(np.mean(scores))
     hist = CHARS / name / "history"
@@ -242,8 +267,8 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
-    from .mockup import (MOCKUP_FACINGS, breakdown, cost_maps, digits, draft_grid, extract, fit_part, grid_text, heat,
-                         hex_box, mirror_grid, palette_fit, palette_letters, place, shift_probe, similarity, slack,
+    from .mockup import (breakdown, cost_maps, digits, draft_grid, extract, fit_part, grid_text, heat,
+                         hex_box, mirror_grid, mockup_facings, palette_fit, palette_letters, place, shift_probe, similarity, slack,
                          split, text_view, widths, clean_grid, apply_grid, hot_spots, init_palette)
     tpl = template()
     r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
@@ -251,6 +276,7 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     frames = build_frames(tpl)
     cell, gap = 32 * 12, 16
     sprites = extract(src)
+    MOCKUP_FACINGS = mockup_facings(len(sprites))  # 5 views, or 8 with the left facings in the sheet
     scores = []
     sheet = Image.new("RGBA", (gap + len(sprites) * (cell + gap), gap + 6 * (cell + gap)), (60, 62, 80, 255))
     parts: dict[str, list] = {}
@@ -329,7 +355,8 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
                            goal, oracle_, _pass=2, min_gain=min_gain, ablate_=ablate_)
     if draft and apply:  # the right twins may have just been written: reload them
         r = Recipe(r.path)
-    lefts = [f for f in ("down_side_l", "side_l", "up_side_l") if f in draft or ("all" in draft and f[:-2] in r.grids)]
+    lefts = [f for f in ("down_side_l", "side_l", "up_side_l") if f not in MOCKUP_FACINGS  # in the sheet: drafted above
+             and (f in draft or ("all" in draft and f[:-2] in r.grids))]
     for facing in lefts:
         g, done = mirror_grid(r, facing, frames[anim][facing][frame], tpl.heads[facing[:-2]], swap=mirror_swap)
         if g is None:
@@ -411,6 +438,8 @@ def main():
     cr.add_argument("--diff", action="store_true", help="outline pixels that differ from the current recipe")
     ln = sub.add_parser("lint"); ln.add_argument("name")
     rv = sub.add_parser("review"); rv.add_argument("name")
+    tt = sub.add_parser("turntable"); tt.add_argument("name"); tt.add_argument("anims", nargs="*", default=["idle"])
+    tt.add_argument("--scale", type=int, default=8); tt.add_argument("--ms", type=int, default=220)
     st = sub.add_parser("step"); st.add_argument("name"); st.add_argument("message"); st.add_argument("--snapshot", action="store_true")
     st.add_argument("--goal", type=float, metavar="PCT", help="also report the target PCT percent below the ceiling")
     st.add_argument("--amend", action="store_true", help="replace the last NOTES row instead of adding one")
@@ -453,6 +482,8 @@ def main():
         cmd_lint(a.name)
     elif a.cmd == "review":
         cmd_review(a.name)
+    elif a.cmd == "turntable":
+        cmd_turntable(a.name, a.scale, a.ms, a.anims or ["idle"])
     elif a.cmd == "step":
         cmd_step(a.name, a.message, a.snapshot, a.goal, a.amend)
     elif a.cmd == "compare":

@@ -49,6 +49,10 @@ lint name:
 review name:
     uv run python -m chargen review {{name}}
 
+# GIF of the character turning through the eight facings (idle; add anims for more) -> build/preview/NAME_turntable.gif
+turntable name *flags:
+    uv run python -m chargen turntable {{name}} {{flags}}
+
 # Score, append a row to history/NOTES.md, snapshot every fifth step (or --snapshot); --amend replaces the last row
 step name message *flags:
     uv run python -m chargen step {{name}} "{{message}}" {{flags}}
