@@ -441,9 +441,9 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         print(f"== {hot} costliest pixels (single scattered pixels at cost ~1 mean nothing big is left)")
         print("\n".join(hot_spots(hot_views, hot)))
     if try_:
-        import tomllib
+        from .character import load_toml
         print(f"== try: rules from {try_} appended after the recipe's, per-view gain vs the recipe")
-        extra_rules = tomllib.loads(Path(try_).read_text()).get("rules", [])
+        extra_rules = load_toml(Path(try_)).get("rules", [])
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
         base = [similarity(sp, render_frame(r, fr)) for sp, fr in zip(sprites, idle)]
         rules0 = r.rules

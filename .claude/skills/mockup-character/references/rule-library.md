@@ -1,6 +1,9 @@
 # Rule library: what each garment feature was, on two characters
 
-Every rule here held in all 248 frames of a finished character, and its `facings` list is the
+Snippets here put a rule's keys on one line separated by `; `; the recipe loader and `--try`
+accept that shorthand as it is (each `; ` becomes a line), so a line can be pasted under its
+own `[[rules]]` header unchanged. Every rule here held in all 248 frames of a finished
+character, and its `facings` list is the
 answer one run found on one mockup: on the same mockup the next run's answer differed for a
 third of them (a forearm band gained in `up_side_l`, not `down_side_l`; the pocket rule lost
 in `down_side_l`). Take each rule as a candidate, score it as a variant across the views, and

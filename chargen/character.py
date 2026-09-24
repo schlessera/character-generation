@@ -70,10 +70,45 @@ def _merge(base: dict, over: dict) -> dict:
     return out
 
 
+def expand_semicolons(text: str) -> str:
+    """The rule library writes a rule's keys on one line separated by `; ` (not TOML): split
+    such lines, outside quotes, so the snippets paste into a recipe or a --try file as they are."""
+    out = []
+    for line in text.split("\n"):
+        if "; " not in line or not line.lstrip().startswith(("type", "[[")):
+            out.append(line)
+            continue
+        parts, cur, q = [], "", False
+        i = 0
+        while i < len(line):
+            ch = line[i]
+            if ch == '"':
+                q = not q
+            if ch == "#" and not q:
+                cur += line[i:]
+                break
+            if ch == ";" and not q and line[i + 1:i + 2] == " ":
+                parts.append(cur)
+                cur, i = "", i + 2
+                continue
+            cur += ch
+            i += 1
+        parts.append(cur)
+        out.extend(p.strip() for p in parts if p.strip())
+    return "\n".join(out)
+
+
+def load_toml(path: Path) -> dict:
+    try:
+        return tomllib.loads(expand_semicolons(path.read_text()))
+    except tomllib.TOMLDecodeError as e:
+        raise SystemExit(f"{path}: not valid TOML: {e}") from None
+
+
 def load_recipe_data(path: Path) -> dict:
     """TOML recipe; `extends = "other"` deep-merges on top of characters/other/recipe.toml.
     Tables merge key by key, arrays (rules) replace unless `extra_rules` appends."""
-    data = tomllib.loads(path.read_text())
+    data = load_toml(path)
     if "extends" in data:
         base = load_recipe_data(path.parent.parent / data.pop("extends") / "recipe.toml")
         extra = data.pop("extra_rules", [])
