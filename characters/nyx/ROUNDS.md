@@ -18,6 +18,16 @@ relaunches. Per round: `history-runN/` (NOTES.md, AGENT-LOG.md, snapshots, `fina
 
 | 5 | v5 (--try limited columns and before, parallel fit-grid, optimize net margin, `just grid`) | 9 of 30 | 0.9084 | 0.9340 | 2.74% | step 5 (+0.0014) | one `--try` of 33 library lines written without facings did phase 2 in one call (+0.037 summed); the library's facing lists were wrong for a third of the rules again; the pocket rule must precede the hem-over-hands row; `--ablate` wanted per-view gains; `band` had no `n`/`w`; profile trim always needs `anims` without attack; `--optimize`'s net-margin column made the refusal a one-line decision |
 
+## Revision after run 5 (skill v6, not yet replayed)
+
+Tooling: `--try` candidates take `before = N`; `--ablate` per view; a refused re-draft silences
+the placement warning; `band` takes `n` rows and `w` columns; lint warns on keys a rule type
+ignores; `--all-slots` letters from a class's ramp join that class.
+Skill: `assets/try-library.toml` (every library rule without facings) and step 2 built around
+it; a rule-key table in the library; profile-trim snippets carry `anims` without attack; pocket
+rule before the hem-over-hands row; the per-hand dark column; skeleton notes on neck, hands,
+chrome on a leg, the dead `o` letter.
+
 ## Preliminary findings after five rounds (2026-09-24)
 
 **F1. The skill was Juno's recipe in disguise.** Run 1 started at 0.41 with Juno's palette and
