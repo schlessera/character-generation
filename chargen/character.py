@@ -322,11 +322,15 @@ def _shrink(rule: dict, f: Frame, rgba: np.ndarray) -> Frame:
             for y, x in edge:
                 rgba[y, x] = 0
                 tones[y, x], lab[y, x] = 0, "."
-            for y, x in edge:
-                by, bx = y - dy, x - dx  # the pixel behind becomes the new edge: ink
-                if 0 <= by < H and 0 <= bx < W and tones[by, bx] > 0 and lab[by, bx] in codes:
-                    tones[by, bx] = TONE_IDS["ink"]
-                    rgba[by, bx] = (47, 37, 34, 255)
+            # every part pixel now on the silhouette becomes ink, whatever direction exposed it
+            # (the template outlines its whole silhouette; the pixel behind, a stair step above, a
+            # row left alone after its neighbours went): the outline pass then draws the edge
+            op = tones > 0
+            part = np.isin(lab, codes) & op
+            for y, x in zip(*np.where(part & (tones != TONE_IDS["ink"]))):
+                if any(not (0 <= y + ey < H and 0 <= x + ex < W) or not op[y + ey, x + ex] for ey, ex in steps.values()):
+                    tones[y, x] = TONE_IDS["ink"]
+                    rgba[y, x] = (47, 37, 34, 255)
     return replace(f, tones=tones, labels=lab)
 
 
