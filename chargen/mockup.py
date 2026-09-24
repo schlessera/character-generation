@@ -88,9 +88,9 @@ def _redmean(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.sqrt((2 + r / 256) * d[..., 0] ** 2 + 4 * d[..., 1] ** 2 + (2 + (255 - r) / 256) * d[..., 2] ** 2)
 
 
-def _cost(src: np.ndarray, ref: np.ndarray) -> np.ndarray:
-    """Per opaque `src` pixel: its best match among `ref`'s 3x3 neighborhood (0 = same
-    color, 1 = missing or clearly different)."""
+def _cost_map(src: np.ndarray, ref: np.ndarray) -> np.ndarray:
+    """Per pixel: the best match of `src` among `ref`'s 3x3 neighborhood (0 = same color,
+    1 = missing or clearly different); 0 where `src` is transparent."""
     H, W = src.shape[:2]
     pad = np.pad(ref, ((1, 1), (1, 1), (0, 0)))
     best = np.ones((H, W))
@@ -99,7 +99,65 @@ def _cost(src: np.ndarray, ref: np.ndarray) -> np.ndarray:
             n = pad[dy:dy + H, dx:dx + W]
             c = np.where(n[..., 3] > 0, np.minimum(1, _redmean(src[..., :3], n[..., :3]) / 150), 1)
             best = np.minimum(best, c)
-    return best[src[..., 3] > 0]
+    return np.where(src[..., 3] > 0, best, 0)
+
+
+def _cost(src: np.ndarray, ref: np.ndarray) -> np.ndarray:
+    return _cost_map(src, ref)[src[..., 3] > 0]
+
+
+def cost_maps(sprite: np.ndarray, render: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """(mockup placed at the best shift, cost of each render pixel, cost of each mockup pixel).
+
+    The per-pixel view of `similarity`: where the render loses score, and where the mockup
+    has pixels the render never matches. Used by `compare`'s heat-map rows."""
+    base = place(sprite, render)
+    best = None
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            m = np.roll(base, (dy, dx), axis=(0, 1))
+            cr, cm = _cost_map(render, m), _cost_map(m, render)
+            n = (render[..., 3] > 0).sum() + (m[..., 3] > 0).sum()
+            s = 1 - (cr.sum() + cm.sum()) / max(n, 1)
+            if best is None or s > best[0]:
+                best = (s, m, cr, cm)
+    return best[1], best[2], best[3]
+
+
+def heat(cost: np.ndarray, under: np.ndarray) -> np.ndarray:
+    """RGBA heat map: the image `under` dimmed, with its cost painted red on top."""
+    out = under.copy()
+    a = under[..., 3] > 0
+    out[a, :3] = (under[a, :3] * 0.35).astype(np.uint8)
+    c = np.clip(cost, 0, 1)
+    out[a, 0] = np.clip(out[a, 0] + c[a] * 220, 0, 255).astype(np.uint8)
+    out[a, 1] = np.clip(out[a, 1] + c[a] * 40, 0, 255).astype(np.uint8)
+    return out
+
+
+def breakdown(cost_render: np.ndarray, cost_mockup: np.ndarray, labels: np.ndarray,
+              render: np.ndarray, mockup: np.ndarray) -> dict[str, tuple[float, float, int]]:
+    """Per label group: (render-side loss, mockup-side loss, pixels), the losses in score
+    points (so all groups sum to 1 - similarity). A mockup pixel takes the label of the
+    render pixel under it, or, off the render, of the nearest render pixel within 2 px."""
+    total = (render[..., 3] > 0).sum() + (mockup[..., 3] > 0).sum()
+    # nearest label for mockup pixels outside the render's silhouette
+    lab = labels.copy()
+    a = render[..., 3] > 0
+    for _ in range(2):
+        pad = np.pad(lab, 1, constant_values=".")
+        for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+            n = pad[1 + dy:lab.shape[0] + 1 + dy, 1 + dx:lab.shape[1] + 1 + dx]
+            fill = (lab == ".") & (n != ".")
+            lab[fill] = n[fill]
+    lab[a] = labels[a]
+    groups = {"head": "H", "neck": "N", "torso": "T", "arm_r": "Rr", "arm_l": "Ll", "legs": "PQ", "feet": "pq", "none": "."}
+    out = {}
+    for g, codes in groups.items():
+        m = np.isin(lab, list(codes))
+        n = int((m & a).sum())
+        out[g] = (cost_render[m].sum() / max(total, 1e-9), cost_mockup[m].sum() / max(total, 1e-9), n)
+    return out
 
 
 def similarity(sprite: np.ndarray, render: np.ndarray) -> float:
@@ -118,3 +176,60 @@ def similarity(sprite: np.ndarray, render: np.ndarray) -> float:
             c1, c2 = _cost(m, render), _cost(render, m)
             best = max(best, 1 - (c1.sum() + c2.sum()) / max(len(c1) + len(c2), 1))
     return best
+
+
+# ---------------------------------------------------------------- text views
+
+def palette_letters(recipe) -> list[tuple[tuple[int, int, int], str]]:
+    """Two-character codes for every recipe color: ramp initial + slot mark
+    (base '', shade '-', light '+', deep '=', ink '#', blush '~'), plus the outline."""
+    from .character import hex_rgb
+    marks = {"base": "", "shade": "-", "light": "+", "deep": "=", "ink": "#", "blush": "~"}
+    used: dict[str, str] = {}
+    out = []
+    for name, ramp in recipe.ramps.items():
+        key = next((c for c in name[0].upper() + name[1:] if c.upper() not in used), name[0])
+        used[key.upper()] = name
+        for slot, c in ramp.items():
+            out.append((c, (key + marks.get(slot, "?")).ljust(2)))
+    if "color" in recipe.outline:
+        out.append((hex_rgb(recipe.outline["color"]), "##"))
+    for ref in recipe.legend.values():  # fixed colors in the head legend
+        if ref.startswith("#"):
+            out.append((hex_rgb(ref), "x "))
+    return out
+
+
+def quantize(rgb: np.ndarray, pal: list[tuple[tuple[int, int, int], str]], limit: float = 60) -> str:
+    cols = np.array([p[0] for p in pal])
+    d = _redmean(np.asarray(rgb)[None].repeat(len(cols), 0), cols)
+    i = int(np.argmin(d))
+    return pal[i][1] if d[i] < limit else "??"
+
+
+def text_view(mockup: np.ndarray, render: np.ndarray, pal) -> list[str]:
+    """Rows of `mockup | render`, both written in the recipe's palette letters ('??' =
+    no recipe color within reach), so the mockup can be read like a head grid."""
+    both = (mockup[..., 3] > 0) | (render[..., 3] > 0)
+    ys, xs = np.where(both.any(1))[0], np.where(both.any(0))[0]
+    lines = [f"   cols {xs[0]}..{xs[-1]}"]
+    for y in range(ys[0], ys[-1] + 1):
+        a = "".join(quantize(mockup[y, x, :3], pal) if mockup[y, x, 3] else ". " for x in range(xs[0], xs[-1] + 1))
+        b = "".join(quantize(render[y, x, :3], pal) if render[y, x, 3] else ". " for x in range(xs[0], xs[-1] + 1))
+        lines.append(f"{y:2d} {a}| {b}")
+    return lines
+
+
+def palette_fit(pairs: dict[tuple[int, int, int], list[np.ndarray]], pal) -> list[str]:
+    """For every render color: how many pixels, the median mockup color under them and the
+    mean distance. Suggests palette moves; an edge color (outline) is unreliable because
+    of one-pixel drift, so read it next to the text view."""
+    names = {c: l.strip() for c, l in pal}
+    lines = ["render color         n   mockup median   dist"]
+    for c, lst in sorted(pairs.items(), key=lambda kv: -len(kv[1])):
+        a = np.array(lst)
+        med = np.median(a, 0).astype(int)
+        d = _redmean(np.array(c)[None].repeat(len(a), 0), a).mean()
+        lines.append(f"#{c[0]:02x}{c[1]:02x}{c[2]:02x} {names.get(tuple(c), '?'):14} {len(a):4d}   "
+                     f"#{med[0]:02x}{med[1]:02x}{med[2]:02x}        {d:4.0f}")
+    return lines

@@ -32,3 +32,18 @@ after step NN. Similarity: mean over the five mockup views (see `chargen/mockup.
 | 23 | visor narrowed to the mockup's lens widths (front 7 px, 3/4 6 px, profile 5 px); it spanned the whole face (flagged by the human watching) | 0.767 |
 | 24 | the lens runs under the hair with a dark end cap instead of stopping short | 0.768 |
 | 25 | stubble continues down the temple beside the visor to the ear; the 3/4-left lens re-anchored to the front of the face (step 23 had trimmed the wrong end there; flagged by the human watching); from behind, the visor tip no longer pokes out past the head, just one dim lens pixel on the cheek edge (flagged too) | 0.767 |
+
+## Second run (steps 26–40)
+
+Same loop, with new instruments in `just compare`: per-body-part loss, heat maps of where
+the score leaks, `--text VIEW` (mockup | render as palette letters, editable like a head
+grid) and `--fit` (the median mockup color under every render color).
+
+| step | change | similarity |
+|---|---|---|
+| 26 | outline and hair outline in the mockup's warm dark brown (`#241a17`, `#261b19`) instead of near-black; the single biggest leak the fit table showed | 0.800 |
+| 27 | pants in the jacket's grey (the mockup draws them the same) | 0.803 |
+| 28 | palette refit from `--fit`: hair base/shade/light/deep, lighter shoe shade, skin and stubble nudged | 0.828 |
+| 29 | the collar is open from the front: flaps and zipper edges only, neck skin between (was a solid orange band) | 0.828 |
+| 30 | grey rim under the visor lens (was skin shade); high-tops one row taller, pale soles, orange toe and heel caps instead of orange soles; all animations checked | 0.836 |
+

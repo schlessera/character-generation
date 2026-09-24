@@ -106,9 +106,12 @@ def cmd_labels(anims=()):
     print(out)
 
 
-def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0):
-    """Mockup (snapped to its pixel grid) above the render: whole figures, then head close-ups."""
-    from .mockup import MOCKUP_FACINGS, extract, place, similarity
+def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False):
+    """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
+    then heat maps of where the score is lost. `text` prints the given views as text,
+    mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
+    from .mockup import (MOCKUP_FACINGS, breakdown, cost_maps, extract, heat, palette_fit, palette_letters,
+                         place, similarity, text_view)
     tpl = template()
     r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
     src = Path(mockup) if mockup else CHARS / name / "concept" / f"{name}-pixel-mockup.png"
@@ -116,24 +119,47 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0):
     cell, gap = 32 * 12, 16
     sprites = extract(src)
     scores = []
-    sheet = Image.new("RGBA", (gap + len(sprites) * (cell + gap), gap + 4 * (cell + gap)), (60, 62, 80, 255))
+    sheet = Image.new("RGBA", (gap + len(sprites) * (cell + gap), gap + 6 * (cell + gap)), (60, 62, 80, 255))
+    parts: dict[str, list] = {}
+    pal = palette_letters(r)
+    pairs: dict[tuple, list] = {}
     for i, (sprite, facing) in enumerate(zip(sprites, MOCKUP_FACINGS)):
-        rend = render_frame(r, frames[anim][facing][frame])
+        fr = frames[anim][facing][frame]
+        rend = render_frame(r, fr)
         scores.append(similarity(sprite, rend))
+        placed, cr, cm = cost_maps(sprite, rend)
+        for g, v in breakdown(cr, cm, fr.labels, rend, placed).items():
+            parts.setdefault(g, []).append(v)
+        if facing in text or "all" in text:
+            print(f"== {facing}: mockup | render")
+            print("\n".join(text_view(placed, rend, pal)))
+        for y, x in zip(*np.where((rend[..., 3] > 0) & (placed[..., 3] > 0))):
+            pairs.setdefault(tuple(rend[y, x, :3]), []).append(placed[y, x, :3])
         heads = []
         for im in (sprite, rend):  # top 16 rows around the figure's center column
             ys = np.where(im[..., 3].any(1))[0]
             xs = np.where(im[..., 3].any(0))[0]
             cx = (xs[0] + xs[-1]) // 2
             heads.append(Image.fromarray(im).crop((cx - 8, ys[0], cx + 8, ys[0] + 16)))
+        # rows 5/6: where the render loses score (red = unmatched), and the mockup pixels it never matches
         cells = [Image.fromarray(place(sprite, rend)), Image.fromarray(rend)] + heads
+        cells += [Image.fromarray(heat(cr, rend)), Image.fromarray(heat(cm, placed))]
         for j, im in enumerate(cells):
             sheet.alpha_composite(im.resize((cell, cell), Image.NEAREST), (gap + i * (cell + gap), gap + j * (cell + gap)))
     out = BUILD / "preview" / f"{name}_compare.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(out)
     print(out)
+    if text:
+        print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
+    if fit:
+        print("\n".join(palette_fit(pairs, pal)))
     print("similarity " + "  ".join(f"{f}={v:.3f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.3f}")
+    # loss per body part, in score points (render side + mockup side), per view then mean
+    print("loss      " + "  ".join(f"{f:>10}" for f in MOCKUP_FACINGS) + "        mean")
+    for g, vs in parts.items():
+        cells = [f"{a + b:.3f}({a:.2f}/{b:.2f})" for a, b, _ in vs]
+        print(f"{g:9} " + "  ".join(f"{c:>10}" for c in cells) + f"  {np.mean([a + b for a, b, _ in vs]):.3f}")
 
 
 def main():
@@ -144,6 +170,8 @@ def main():
     h = sub.add_parser("heads"); h.add_argument("name")
     lb = sub.add_parser("labels"); lb.add_argument("anims", nargs="*")
     c = sub.add_parser("compare"); c.add_argument("name"); c.add_argument("--mockup"); c.add_argument("--recipe")
+    c.add_argument("--text", nargs="*", default=(), metavar="VIEW", help="print views as text (or 'all')")
+    c.add_argument("--fit", action="store_true", help="suggest palette moves from the mockup's colors")
     a = ap.parse_args()
     if a.cmd == "build":
         cmd_build(a.names)
@@ -152,7 +180,7 @@ def main():
     elif a.cmd == "heads":
         cmd_heads(a.name)
     elif a.cmd == "compare":
-        cmd_compare(a.name, a.mockup, a.recipe)
+        cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit)
     else:
         cmd_labels(a.anims)
 
