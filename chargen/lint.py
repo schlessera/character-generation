@@ -35,8 +35,21 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
         out.append(("warn", "[parts] `fx` is not mapped: the attack's swing smears render as dark blobs. Add `fx = \"...\"`."))
 
     # rules
+    known = {"edge", "rows", "stripe", "band", "all", "region", "grow", "shrink", "shift"}
+    common = {"type", "part", "color", "facings", "anims", "per_facing", "each", "ink", "only_if_ink", "before"}
+    keys_of = {"all": set(), "rows": {"from", "n"}, "edge": {"touching", "sides"},
+               "stripe": {"anchor", "offset", "offsets", "straight", "skip", "top", "bottom"},
+               "band": {"at", "n", "anchor", "w", "offset", "straight"}, "region": {"anchor", "n", "skip", "top"},
+               "grow": {"sides", "n"}, "shrink": {"sides", "n"}, "shift": {"dy", "dx", "over"}}
     for i, rule in enumerate(r.rules):
         tag = f"rule {i + 1} ({rule.get('type')} {rule.get('part')})"
+        if rule.get("type") not in known:
+            out.append(("error", f"{tag}: unknown rule type; known: {', '.join(sorted(known))}."))
+            continue
+        stray = sorted(set(rule) - common - keys_of[rule["type"]])
+        if stray:
+            out.append(("warn", f"{tag}: key(s) {', '.join(stray)} mean nothing to a `{rule['type']}` rule (it takes "
+                                f"{', '.join(sorted(keys_of[rule['type']])) or 'no extra keys'}); silently ignored."))
         col = rule.get("color", "")
         ramp = col.partition(".")[0]
         if col and not col.startswith("#") and col != "clear" and ramp not in r.ramps:
@@ -46,8 +59,9 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
                                 f"generator paints the ramp's shade there. `{col}.base` says so explicitly."))
         codes = set(_codes(rule.get("part", "none")))
         facings = rule.get("facings", [])
-        sided = bool(codes & ONE_SIDED) and (rule.get("anchor") in ("front", "back") or
-                                             any(s in ("front", "back") for s in rule.get("sides", [])))
+        one_side = bool(codes & {"R", "r"}) != bool(codes & {"L", "l"})  # a group like `hands` names both sides
+        sided = one_side and (rule.get("anchor") in ("front", "back") or
+                              any(s in ("front", "back") for s in rule.get("sides", [])))
         twins = [f for f in facings if f.endswith("_l") and f[:-2] in facings]
         if sided and twins:
             out.append(("warn", f"{tag}: a one-sided part with a front/back side lists both a facing and its mirror "
@@ -60,6 +74,13 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
         if ref != "clear" and not ref.startswith("#") and "." not in ref:
             out.append(("warn", f"[head.legend] `{ch} = \"{ref}\"` is tone-relative: `--draft-grid` picks by colour and cannot "
                                 f"use it; make it a fixed slot like `{ref}.base`."))
+    classed = set("".join(r.head_classes.values()))
+    loose = [ch for ch in r.legend if ch not in classed and ch != "-" and r.legend[ch] != "clear"
+             and not r.legend[ch].startswith(("skin", "outline", "#"))]  # (hex literals: --all-slots colours, not a surface)
+    if loose:
+        out.append(("info", f"[head.legend] {' '.join(loose)}: in no [head.classes] class (hair, texture, lens, rim, caps); "
+                            f"--clean and --mirror-swap treat such cells as neither hair nor eyewear (fine for a mask or an ear; "
+                            f"list a second hair material under `hair`)."))
     used = set("".join("".join(row) for g in r.grids.values() for row in g))
     unused = [ch for ch in r.legend if ch not in used and ch != "-"]
     if unused and r.grids:
@@ -67,7 +88,8 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
 
     # grids
     if not r.grids:
-        out.append(("error", "[head.grids] no grids at all: `just compare NAME --draft-grid all --clean --apply --mirror-swap`."))
+        out.append(("error", "[head.grids] no grids at all: `just compare NAME --draft-grid all --all-slots --clean --apply` "
+                             "(add `--mirror-swap` only for a five-view mockup of a one-sided haircut)."))
     missing = [f for f in ("down_side_l", "side_l", "up_side_l") if f[:-2] in r.grids and f not in r.grids]
     if missing:
         out.append(("warn", f"[head.grids] no grid for {', '.join(missing)}: the right-facing grid is mirrored, wrong for a "

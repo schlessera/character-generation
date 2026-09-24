@@ -301,9 +301,9 @@ REPLICA_RUNS = [(1, "history-run1"), (2, "history-run2"), (3, "history-run3"), (
 REPLICA_CEILING = 0.9342
 
 
-def _run_scores(folder):
+def _run_scores(folder, character="replica"):
     rows = []
-    for line in (ROOT / "characters/replica" / folder / "NOTES.md").read_text().splitlines():
+    for line in (ROOT / "characters" / character / folder / "NOTES.md").read_text().splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) == 3 and cells[0].isdigit() and cells[2]:
             try:
@@ -366,6 +366,68 @@ def replica_figure():
         for c, fname in enumerate(FACINGS):
             out.alpha_composite(up(idle(rec, fname), s), (lw + c * cw, y))
     save(out, "replica-vs-juno.png")
+
+
+NYX_RUNS = [(1, "history-run1", 0.9352, "run 1: skill v1, Juno's skeleton (18 steps)"), (2, "history-run2", 0.9385, "run 2: v2, rule library (14)"),
+            (3, "history-run3", 0.9397, "run 3: v3 (11)"), (4, "history-run4", 0.9380, "run 4: v4, --try (13)"), (5, "history-run5", 0.9340, "run 5: v5 (9)")]
+
+
+def nyx_chart():
+    """Similarity per step for the five builds of Nyx, each a fresh agent with the skill of that
+    round; the goal is 3% below each run's own palette ceiling (a band, since the ceilings differ)."""
+    W, H = 880, 340
+    L, R, T, B = 56, 250, 44, 40
+    out = Image.new("RGBA", (W, H), BG)
+    d = ImageDraw.Draw(out)
+    d.text((L, 12), "Five rounds on a second character: similarity per step (every run starts at 0.46, Juno's palette on Nyx's mockup)", font=FS, fill=TEXT)
+    runs = [(n, folder, c, name, _run_scores(folder, "nyx")) for n, folder, c, name in NYX_RUNS]
+    n_max = max(st for *_, r in runs for st, _ in r)
+    lo_v, hi_v = 0.84, 0.94
+    X = lambda n: L + (W - L - R) * n / n_max
+    Y = lambda v: T + (H - T - B) * (hi_v - v) / (hi_v - lo_v)
+    grid, ink = (52, 51, 68, 255), DIM
+    v = lo_v
+    while v <= hi_v + 1e-9:
+        d.line([(L, Y(v)), (W - R, Y(v))], fill=grid, width=1)
+        d.text((8, Y(v) - 7), f"{v:.2f}", font=FS, fill=ink)
+        v += 0.01
+    for n in range(0, n_max + 1, 2):
+        d.text((X(n) - 4, H - B + 8), str(n), font=FS, fill=ink)
+    d.text((W - R - d.textlength("step", font=FS), H - 18), "step", font=FS, fill=ink)
+    cs = [c for _, _, c, _, _ in runs]
+    band = (min(cs) * 0.97, max(cs) * 0.97)
+    d.rectangle([L, Y(band[1]), W - R, Y(band[0])], fill=(70, 62, 40, 255))
+    d.text((W - R + 6, Y(band[1]) - 7), f"goal: 3% below each run's ceiling ({min(cs):.3f}-{max(cs):.3f})", font=FS, fill=(255, 200, 80, 255))
+    palette = [(216, 48, 124, 255), (80, 180, 255, 255), (120, 220, 120, 255), (240, 120, 60, 255), (200, 140, 255, 255)]
+    for (n, folder, c, name, rows), col in zip(runs, palette):
+        pts = [(X(st), Y(sc)) for st, sc in rows if sc >= lo_v]
+        d.line(pts, fill=col, width=2)
+        for x, y in pts:
+            d.ellipse([x - 3, y - 3, x + 3, y + 3], fill=col)
+        d.text((L + 8, T + 4 + 16 * (n - 1)), name, font=FS, fill=col)  # top-left: no run is up there before step 3
+    save(out, "nyx-rounds.png")
+
+
+def nyx_figure():
+    """Nyx's eight-view mockup above the first and the shipped build, in every facing."""
+    from chargen.mockup import TURNAROUND_FACINGS, extract, place
+    sprites = extract(ROOT / "characters/nyx/concept/nyx-pixel-mockup.png")
+    mock = dict(zip(TURNAROUND_FACINGS, sprites))
+    rows = [("mockup (image generation)", None), ("run 1, 18 steps", Recipe(ROOT / "characters/nyx/history-run1/final.toml")),
+            ("run 4, 13 steps (shipped)", Recipe(ROOT / "characters/nyx/history-run4/final.toml"))]
+    s, lw = 4, 190
+    cw = 32 * s
+    out = Image.new("RGBA", (lw + len(FACINGS) * cw, 30 + len(rows) * (32 * s + 10)), BG)
+    d = ImageDraw.Draw(out)
+    for c, fname in enumerate(FACINGS):
+        d.text((lw + c * cw + 8, 8), fname.replace("_side", "-side").replace("_l", " (left)"), font=FS, fill=DIM)
+    for r, (name, rec) in enumerate(rows):
+        y = 30 + r * (32 * s + 10)
+        d.text((12, y + 60), name, font=F, fill=TEXT)
+        for c, fname in enumerate(FACINGS):
+            im = place(mock[fname], idle(rows[2][1], fname)) if rec is None else idle(rec, fname)
+            out.alpha_composite(up(im, s), (lw + c * cw, y))
+    save(out, "nyx-runs.png")
 
 
 SSS_STAGES = [("template", "the animated template"), ("labels", "every pixel labeled"),
@@ -584,6 +646,8 @@ def anims_gif():
 def concept_images():
     for src, name, w in [(ROOT / "characters/juno/concept/juno-concept.png", "juno-concept.jpg", 1200),
                          (ROOT / "characters/juno/concept/juno-pixel-mockup.png", "juno-pixel-mockup.jpg", 520),
+                         (ROOT / "characters/nyx/concept/nyx-concept.png", "nyx-concept.jpg", 1200),
+                         (ROOT / "characters/nyx/concept/nyx-pixel-mockup.png", "nyx-pixel-mockup.jpg", 400),
                          (ROOT / "assets/props/concept/rooftop.png", "rooftop-concept.jpg", 1200)]:
         im = Image.open(src).convert("RGB")
         im = im.resize((w, round(im.height * w / im.width)), Image.LANCZOS)
@@ -900,6 +964,8 @@ if __name__ == "__main__":
     iteration_figures()
     replica_chart()
     replica_figure()
+    nyx_chart()
+    nyx_figure()
     semantic_gif()
     debugging_figures()
     variants_figure()

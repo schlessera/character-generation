@@ -1,0 +1,52 @@
+[[rules]]  # 1 hands back from behind
+type = "rows"
+part = "arms"
+from = "bottom"
+n = 1
+facings = ["up"]
+color = "skin.base"
+[[rules]]  # 2 hands a row up
+type = "shift"
+part = "hands"
+dy = -1
+dx = 0
+over = ["arms"]
+[[rules]]  # 3 knee seam down_side
+type = "band"
+part = "leg_l"
+at = 0.0
+facings = ["down_side"]
+color = "glow.base"
+[[rules]]  # 4 lace on each boot, center stripe
+type = "stripe"
+part = "feet"
+each = true
+color = "trim.base"
+[[rules]]  # 5 chrome foot_l
+type = "all"
+part = "foot_l"
+color = "chrome"
+[[rules]]  # 6 chrome foot_l top row
+type = "rows"
+part = "foot_l"
+from = "top"
+n = 1
+color = "chrome.shade"
+[[rules]]  # 7 boot tops grey highlight
+type = "stripe"
+straight = true
+part = "feet"
+each = true
+color = "shirt.base"
+[[rules]]  # 8 boot one row up the right leg
+type = "rows"
+part = "leg_r"
+from = "bottom"
+n = 1
+color = "shoes.base"
+[[rules]]  # 9 lime lace foot_r top row
+type = "band"
+part = "foot_r"
+at = 0.0
+anchor = "center"
+color = "trim.base"

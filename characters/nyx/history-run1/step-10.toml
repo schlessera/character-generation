@@ -1,0 +1,552 @@
+# Nyx "Halo" Ferreira: rooftop drone mechanic. Platinum crop, lime goggles over the eyes (the
+# mockup paints them at eye level; the concept has them pushed up), charcoal respirator, open
+# indigo work coat with lime piping over a grey tee, olive cargo pants, chrome LEFT shin with a
+# lime knee seam, black combat boots. Concept art and pixel mockup (eight views): concept/
+#
+# Facings: down, down_side, side, up_side, up, and the mirrored down_side_l, side_l, up_side_l.
+# Mirroring swaps the anatomical labels and the meaning of front/back. The cyber-shin is
+# one-sided, but it is a PART (leg_l), not a rule on a side: [parts] follows the labels through
+# the mirror, so it stays on her left in every facing without facings lists.
+name = "nyx"
+rule_facing = "body"    # trim follows the body through spinning poses
+emissive = ["glow"]     # goggle lenses, mask LED, knee seam
+emissive_strength = 0.5
+light = { color = "#a8cd35", radius = 18, intensity = 0.15, anchor = "leg_l" }
+
+# Ramps from the mockup (`--hex` on flat areas, most common colours over all eight views).
+# Every legend entry is a FIXED slot: `--draft-grid` picks legend characters by nearest colour.
+[palette]
+skin    = { base = "#d1a77f", shade = "#c49a72", light = "#d4ac85", blush = "#cfa57c" }  # light olive, lit evenly
+hair    = { base = "#f2e7d8", shade = "#bbae9f", light = "#f5ede1", deep = "#a3907b", ink = "#211f1c" }  # platinum
+mask    = { base = "#444343", shade = "#3c3b3b", light = "#4e4d4d", ink = "#211f1c" }   # respirator half-mask
+jacket  = { base = "#483f75", shade = "#3a305c", light = "#4c4177", ink = "#211f1c" }   # indigo work coat
+shirt   = { base = "#42413f", shade = "#3a3938" }                                       # grey tee
+pants   = { base = "#635a3e", shade = "#5d553a", light = "#685f41", ink = "#211f1c" }   # olive cargo
+shoes   = { base = "#23221f", shade = "#1b1b1a", light = "#2e2d2a", ink = "#1b1b1a" }   # black combat boots
+chrome  = { base = "#b5b5b6", shade = "#999895", light = "#f0ede8", ink = "#34383f" }   # the template shades legs: shade is the mockup's main chrome   # the cyber-shin
+trim    = { base = "#9dbf32", shade = "#8dae29" }                                       # lime piping and laces
+glow    = { base = "#a8cd35", shade = "#8dae29", light = "#d6f07a" }                    # lenses, LED, knee seam
+fx      = { base = "#c8f060", shade = "#9dbf32", light = "#eaffb0" }                    # the attack's swing smears
+outline = { base = "#211f1c" }                       # silhouette and the legend's `o`: near black, faintly warm
+visor   = { base = "#1f1e1b" }                       # goggle rims and strap (the clean step keys on `visor`)
+
+# Part/group -> ramp. LATER LINES WIN: groups first, specific parts after.
+[parts]
+head = "skin"
+body = "jacket"
+neck = "skin"        # the mockup shows skin in the coat's V below the mask
+hands = "skin"
+legs = "pants"
+leg_l = "chrome"     # the cyber-shin, anatomical left in every frame (labels survive the mirror)
+feet = "shoes"
+fx = "fx"
+
+[outline]
+color = "outline"
+keep = "kSsbHDiMmnvxcCaAjtTgGl"   # every legend char: the drafted grid already carries the mockup's own outline cells
+
+# ---- silhouette first: `grow` changes the outline, later rules see the grown labels ----------
+# Only where `--widths` shows the mockup 2+ pixels wider. With an eight-view mockup the left 3/4
+# views have their own widths: the far shoulder is symmetric, so it needs a rule per side, and
+# in the mirrored frame the far arm is labelled arm_r.
+[[rules]]  # 3/4 front left: the far sleeve beside the torso (+2/+3 below the shoulder; in down_side
+type = "grow"  # the same grow on arm_l scored 0.0002 worse, so it is not there)
+part = "arm_r"
+sides = ["front"]
+n = 2
+facings = ["down_side_l"]
+color = "jacket.base"
+
+[[rules]]  # front and back: the coat's collar stands up beside the neck, square shoulders (+2 at rows 18-19)
+type = "grow"
+part = "torso"
+sides = ["up", "left", "right"]
+facings = ["down", "up"]
+color = "jacket.base"
+
+[[rules]]  # 3/4: the far boot's toe row (the template draws only the near foot on the last row)
+type = "grow"
+part = "feet"
+sides = ["down"]
+facings = ["down_side", "down_side_l", "up_side", "up_side_l"]
+color = "shoes.base"
+
+# ---- the open coat, front and 3/4 front: pants below the belt, the tee above it -------------
+# The coat hangs open to mid-thigh; the template's torso ends at the hips, so the opening shows
+# the tee (4 rows), the belt (1 row) and the pants (the last 3 rows) in one 4-column strip.
+# Stripes have only `top`, so paint the longest first and cover it from the top.
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = -2
+facings = ["down", "down_side", "down_side_l"]
+color = "pants.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = -1
+facings = ["down", "down_side", "down_side_l"]
+color = "pants.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 0
+facings = ["down", "down_side", "down_side_l"]
+color = "pants.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 1
+facings = ["down", "down_side", "down_side_l"]
+color = "pants.base"
+
+[[rules]]  # the belt
+type = "stripe"
+straight = true
+part = "torso"
+offset = -2
+top = 5
+facings = ["down", "down_side", "down_side_l"]
+color = "outline.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = -1
+top = 5
+facings = ["down", "down_side", "down_side_l"]
+color = "outline.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 0
+top = 5
+facings = ["down", "down_side", "down_side_l"]
+color = "outline.base"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 1
+top = 5
+facings = ["down", "down_side", "down_side_l"]
+color = "outline.base"
+
+[[rules]]  # the tee, three columns; the coat's far edge casts a dark column beside it
+type = "stripe"
+straight = true
+part = "torso"
+offset = -2
+top = 4
+facings = ["down", "down_side", "down_side_l"]
+color = "shirt"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = -1
+top = 4
+facings = ["down", "down_side", "down_side_l"]
+color = "shirt"
+
+[[rules]]
+type = "stripe"
+straight = true
+part = "torso"
+offset = 0
+top = 4
+facings = ["down", "down_side", "down_side_l"]
+color = "shirt"
+
+[[rules]]  # 3/4 front: the far shoulder and upper coat stand out (+3/+4 on the facing side). AFTER the
+# opening stripes: a straight stripe with  takes the median centre of its own rows only, so
+# a grow that widens the top rows first puts the tee one column off the belt and pants strip
+type = "grow"
+part = "torso"
+sides = ["front"]
+n = 3
+facings = ["down_side", "down_side_l"]
+color = "jacket.base"
+
+# ---- the coat's collar hides the neck from the side and behind (front and 3/4 front show the skin V)
+[[rules]]
+type = "all"
+part = "neck"
+ink = true
+facings = ["side", "side_l", "up", "up_side_l"]
+color = "jacket"
+
+[[rules]]  # (up_side scored the ink row better kept)
+type = "all"
+part = "neck"
+facings = ["up_side"]
+color = "jacket"
+
+# ---- hands in the coat pockets (the concept's pose): sleeves over the hands where the mockup
+# shows no hand; the front and back keep the template's hands (the mockup paints them there)
+[[rules]]
+type = "all"
+part = "hands"
+facings = ["down_side", "side_l"]
+color = "jacket"
+
+[[rules]]
+type = "rows"
+part = "hands"
+from = "top"
+n = 1
+facings = ["side", "up_side", "up_side_l", "down_side_l"]
+color = "jacket"
+
+# ---- the coat's lime hem where the template's torso ends over the legs (profile left; from behind
+# it doubled the legs' hem row into a thick band)
+[[rules]]
+type = "rows"
+part = "torso"
+from = "bottom"
+n = 1
+ink = true
+facings = ["side_l"]
+color = "trim.base"
+
+# ---- sleeves: a lime band round the forearm ---------------------------------------------------
+[[rules]]
+type = "band"
+part = "arms"
+at = 0.5
+facings = ["down", "down_side", "down_side_l", "side"]
+color = "trim.base"
+
+[[rules]]  # profile left: the mockup's band sits higher on the sleeve
+type = "band"
+part = "arms"
+at = 0.3
+facings = ["side_l"]
+color = "trim.base"
+
+[[rules]]  # 3/4 back and profile: the sleeve's dark open end over the hand
+type = "rows"
+part = "hands"
+from = "bottom"
+n = 1
+facings = ["side", "up_side", "up_side_l"]
+color = "outline.base"
+
+[[rules]]  # 3/4 back: the band shows on one sleeve only (the screen-right arm in up_side, its mirror in up_side_l)
+type = "band"
+part = "arm_r"
+at = 0.3
+facings = ["up_side"]
+color = "trim.base"
+
+[[rules]]
+type = "band"
+part = "arm_l"
+at = 0.3
+facings = ["up_side_l"]
+color = "trim.base"
+
+[[rules]]  # back: the lime emblem between the shoulders (the mockup paints a small cross; two pixels read as it)
+type = "band"
+part = "torso"
+at = 0.25
+anchor = "center"
+offset = 0
+straight = true
+facings = ["up", "up_side", "up_side_l"]
+color = "trim.base"
+
+[[rules]]  # back: the lime emblem between the shoulders (the mockup paints a small cross; two pixels read as it)
+type = "band"
+part = "torso"
+at = 0.375
+anchor = "center"
+offset = 0
+straight = true
+facings = ["up", "up_side", "up_side_l"]
+color = "trim.base"
+
+# ---- the cyber-shin: a lime knee seam at the top of the visible leg ---------------------------
+[[rules]]
+type = "band"
+part = "leg_l"
+at = 0.0
+facings = ["down", "down_side", "down_side_l", "side", "side_l"]
+color = "glow.base"
+
+# ---- boots: laced one row up the leg where the mockup shows it (profile left, 3/4 front left)
+[[rules]]
+type = "rows"
+part = "legs"
+from = "bottom"
+n = 1
+facings = ["side_l", "down_side_l"]
+color = "shoes.base"
+
+# ---- profile: the coat's lime collar row and the piping down its front edge (one pixel inside
+# the edge, as in the skeleton: on the edge column the outline pass repaints it)
+[[rules]]
+type = "rows"
+part = "torso"
+from = "top"
+n = 1
+facings = ["side", "side_l"]
+color = "trim.base"
+
+[[rules]]
+type = "stripe"
+part = "torso"
+anchor = "front"
+offset = -1
+facings = ["side", "side_l"]
+color = "trim.base"
+
+# ---- the cyber-leg reaches the ground: the mockup paints no boot on it, one chrome column down the foot
+[[rules]]
+type = "region"
+part = "foot_l"
+anchor = "left"
+facings = ["up_side", "up"]
+color = "chrome"
+
+[[rules]]
+type = "stripe"
+part = "foot_l"
+facings = ["down"]
+color = "chrome"
+
+[[rules]]  # 3/4 front: the shin's polished back edge
+type = "stripe"
+part = "leg_l"
+anchor = "back"
+facings = ["down_side", "down_side_l"]
+color = "chrome.light"
+
+# ---- lime laces: one pixel at the top of the boot where the mockup shows it
+[[rules]]
+type = "band"
+part = "foot_r"
+at = 0.0
+anchor = "center"
+facings = ["down", "down_side", "side_l"]
+color = "trim.base"
+
+[[rules]]
+type = "band"
+part = "foot_l"
+at = 0.0
+anchor = "center"
+facings = ["down_side_l"]
+color = "trim.base"
+
+# ---- from behind the coat falls over the thighs: two leg rows of coat, the lime hem band on the first
+[[rules]]
+type = "rows"
+part = "legs"
+from = "top"
+n = 2
+ink = true
+facings = ["up", "up_side", "up_side_l"]
+color = "jacket"
+
+[[rules]]
+type = "rows"
+part = "legs"
+from = "top"
+n = 1
+ink = true
+facings = ["up", "up_side", "up_side_l"]
+color = "trim.base"
+
+# ---- head grids: `just compare nyx --draft-grid all --clean --apply` (symmetric cut: no --mirror-swap)
+# The clean step keys on these characters: hair kbHDi, lens v, rim = legend entries on `visor`.
+[head.legend]
+b = "hair.base"
+H = "hair.shade"
+D = "hair.deep"
+i = "hair.light"
+k = "hair.ink"      # hair outline
+S = "skin.base"
+s = "skin.shade"
+x = "visor.base"    # goggle rims and strap
+v = "glow.base"     # lens
+M = "mask.base"     # respirator
+m = "mask.shade"
+n = "mask.light"
+o = "outline.base"
+c = "jacket.base"   # the coat's collar where the mockup draws it into the head's bottom rows
+C = "jacket.shade"
+a = "skin.light"    # the rest of the palette's slots that the mockup paints on or beside the head:
+A = "skin.blush"    # the draft picks legend colours only, the ceiling picks from every slot
+j = "jacket.light"
+t = "shirt.base"
+T = "shirt.shade"
+g = "trim.base"
+G = "trim.shade"
+l = "glow.light"
+"-" = "clear"
+
+[head.classes]   # what --clean treats as hair, lens and rim: no shaved texture on a symmetric crop; the mask is its own material
+hair = "kbHDi"
+texture = ""
+lens = "v"
+rim = "x"
+caps = "x"
+
+[head.grids]
+down = """
+....................
+.......xk..kx.......
+.....kxkikbbkkkk....
+....kbbHiHbbHbbk....
+.....kbiHbbbibx.....
+.....biiHbbHbbb.....
+....xbHxxHDkkHbk....
+...xbbkvvkxvvxbbk...
+....xHkxxaSkkxHx....
+....k.MAaSSSST.k....
+....kHxanMtMAkHk....
+....kDTMMMMMttDk....
+.....kxkMtMMmxx.....
+.....xGCxtMkkGk.....
+.....kCgxAAkgCk.....
+....................
+"""
+down_side = """
+....................
+......xb.xb.........
+...kkkkixbbkkkk.....
+...xbbHbHbHbbbk.....
+....kbibbbbbHk......
+...xbbHbibHbbbk.....
+...bbvvt.gv.bbbk....
+...TxvvkkvvxbbHbk...
+...kxkxaAkkHbkbk....
+...kbkgaASADi.Hx....
+....kkanMMAtbDDx....
+....ksMMMMtnaxk.....
+....kxMtMMmtkk......
+....kgCxMmkGjk......
+.....kgkSAxcCck.....
+....................
+"""
+side = """
+....................
+....................
+....kkxkkbkkk.......
+....kibbHbxbbx......
+....kDbbbHHbx.......
+...kbHbbbbbbbk......
+...bbbbbibbHbbx.....
+...kHHbbnkvvTk......
+...xbHbDTkvvkk......
+...HHbDTbDkxk.......
+...xHHTbnASAk.......
+...kHDTbnDDMmT......
+...kxHxDMMMMMk......
+.....kxkxTMMTn......
+......xcgTkxk.......
+....................
+"""
+up_side = """
+....................
+....................
+......kbkxbkkkk.....
+....kxkHbDbHbbk.....
+....kbbbbbbbbk......
+....kHbbbbHbbbk.....
+...tbbbbHbibbbbM....
+...kbbbHbbbibkkn....
+...kbbHibbHHbkx.....
+...bbHbbbbHb.bbk....
+...xDHbbHbHbnbkx....
+...xHDHbDH.sDHk.....
+...kDxHHDntDDkk.....
+......kDCjcjx.......
+......CCCCCCk.......
+....................
+"""
+up = """
+....................
+....................
+....................
+.......xbmxbk.......
+....kkxkikbikkkk....
+....kbbHbHbHbbbk....
+.....kbbbbbbbbx.....
+....kbbbbbHbbbbk....
+....bbbbbHibbHbb....
+....xbbbHbbbbbHk....
+....kbHbbHbbHbbk....
+....kHnbbHbbHHHk....
+....xDHHHHHHHDDk....
+.....kxkHDDHDkk.....
+........D...........
+....................
+"""
+up_side_l = """
+....................
+....................
+......kx..xx........
+...kkkkbbkbxkx......
+...kbbHHbHbHbk......
+....kbbibbHbbx......
+...TbbbHbbbbbbx.....
+..kbbbbbHbbbbbb.....
+...xbbbbbHbbbHk.....
+...xbDibbbHbbT......
+...mnbHbbibHbHk.....
+...kkiDHbHbHDkx.....
+....kbxDHDHDHk......
+....kxcTHkHxkk......
+....kcccCcCk........
+....................
+"""
+side_l = """
+....................
+.....kkkbkkxkk......
+....kbbkbHibik......
+.....xbbHbbHx.......
+....kbbbbbbbbik.....
+....bbn.bibbbbb.....
+....xtvvTkbibHk.....
+....xkvvTMkHbbk.....
+.....kkxDiDDbHH.....
+.....kaASnbtHHk.....
+....kMMMMMbTHnk.....
+....kMMMMtDkHk......
+.....MttTkxkx.......
+.....kkxk.ck........
+......nxGcCk........
+....................
+"""
+down_side_l = """
+....................
+....................
+......kHk..x........
+...kkkxbbkbxkk......
+...kbbbHbHbHbx......
+....kbbbbbbibx......
+...kbbibbbHibbk.....
+..kbbbikkbbkkbb.....
+..bHbbkvvTkvvkx.....
+..kbHDbkkAaxxkk.....
+..kbnbDAaSSDxbk.....
+..knDbnAaMtAkk......
+...xkAtMMMMtDk......
+....xxTMMMMMkk......
+....kjGkTttCgx......
+....................
+"""

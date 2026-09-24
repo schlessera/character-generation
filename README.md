@@ -69,7 +69,7 @@ flowchart LR
 | 2 | [Teaching the AI anatomy](#2--teaching-the-ai-anatomy) | Labeling every pixel of every frame with the body part it belongs to |
 | 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
 | 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
-| 5 | [Closing the gap](#5--closing-the-gap) | A number for "looks like the mockup", 110 steps of optimizing it, then the same loop one level up: agents replaying a skill while another agent revises it |
+| 5 | [Closing the gap](#5--closing-the-gap) | A number for "looks like the mockup", 110 steps of optimizing it, then the same loop one level up: agents replaying a skill while another agent revises it, and once more on a second character to find what the skill had learned about Juno instead of about characters |
 | 6 | [Debugging in plain text](#6--debugging-in-plain-text) | Bugs tracked down with a query and fixed with a few characters |
 | 7 | [Variations for free](#7--variations-for-free) | A new colorway is a ten-line file |
 | 8 | [The AI picks up the pencil](#8--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
@@ -215,8 +215,9 @@ left-facing views show the magenta fringe.
 
 The first recipe got Juno's colors and the broad strokes right, but next to the pixel mockup it was clearly an
 approximation. The question was whether an agent could close that gap by itself, the way a pixel artist would: look,
-compare, fix, look again. The answer took two levels of the same idea: **quantify something visual, then optimize
-for it** — first for the character, then for the process that makes characters.
+compare, fix, look again. The answer took three levels of the same idea: **quantify something visual, then optimize
+for it** — first for the character, then for the process that makes characters, then for the process on a
+character it had never seen.
 
 ### Level one: a number for "looks like the mockup"
 
@@ -307,6 +308,85 @@ review` showed them, and the rewritten skill says to.
 From 110 steps to one command and a review pass. The two levels are the same method — a metric for something
 visual, instruments that show where it leaks, a loop that edits and looks — applied once to a character and once to
 the process, and the second level paid for itself on the first replay.
+
+### Level three: a second character
+
+Five replays on Juno's own mockup proved the loop, not the skill. Every replay had seen the same magenta undercut,
+the same visor, the same cropped bomber and chrome arm, so nobody could tell how much of the skill described *a
+character* and how much described *making characters*. The way to find out was a design that disagrees with Juno on
+every axis the skill might have quietly encoded:
+
+<table>
+<tr>
+<td width="62%"><img src="docs/images/nyx-concept.jpg" alt="Nyx concept art"></td>
+<td><img src="docs/images/nyx-pixel-mockup.jpg" alt="Nyx's pixel mockup, eight views"></td>
+</tr>
+<tr>
+<td><sub>Nyx "Halo" Ferreira, a rooftop drone mechanic: symmetric platinum hair instead of a one-sided undercut,
+goggles and a respirator instead of a visor, an open coat to mid-thigh instead of a cropped jacket, boots instead of
+sneakers, a chrome <em>leg</em> instead of a chrome arm.</sub></td>
+<td><sub>The mockup has all eight facings, so the left-facing views are scored and drafted from their own image
+instead of mirrored. Image generation hit the template's pixel scale once in twelve draws; the other eleven, and
+why they failed, are in <code>characters/nyx/concept/LOG.md</code>.</sub></td>
+</tr>
+</table>
+
+The loop was the same as level two, with the goal fixed at 3% below the palette ceiling and a budget of 30 steps:
+a fresh Opus 5.5 agent builds Nyx from the skill alone, logs every place the skill is wrong or silent, and messages
+the watching session when a tool breaks; the watching session fixes the tool while the run continues, then revises
+the skill and relaunches. Five rounds ([`characters/nyx/ROUNDS.md`](characters/nyx/ROUNDS.md); every round's log,
+snapshots, final recipe and turntable in `characters/nyx/history-runN/`):
+
+| run | skill | steps | goal reached at | final | gap to ceiling | what it taught |
+|---|---|---|---|---|---|---|
+| 1 | v1, Juno's skeleton | 18 | 14 | 0.9075 | 2.96% | the skeleton's rules were Juno's design ("verify" became "rewrite"); the cleanup keyed on her legend letters; `--clean` erased platinum strand texture; seven generator and metric defects |
+| 2 | v2, structure-only skeleton and a rule library | 14 | 8 | 0.9138 | 2.63% | the draft's extra colours coupled the grids to body ramps; the library's facing lists are one mockup's answers; a coat rule on a hand swings with the arm |
+| 3 | v3 | 11 | 8 | 0.9140 | 2.73% | a re-draft after a trim rule lost a row; a stripe on a group is one stripe; parameters wanted per-facing values; nothing could shrink or move a part |
+| 4 | v4, `--try` | 13 | 8 | 0.9151 | 2.44% | one `--try` file of the library did phase 2 in a call; the optimizer lifted the ceiling faster than the score; grows scored after the trim were wrong |
+| 5 | v5 | 9 | 5 | 0.9084 | 2.74% | the library's facing lists were wrong for a third of the rules again, and stripping them before scoring was the step that paid |
+
+<p align="center"><img src="docs/images/nyx-rounds.png" alt="Similarity per step for the five Nyx rounds, with the goal band" width="760"></p>
+
+<p align="center"><img src="docs/images/nyx-runs.png" alt="Nyx's eight-view mockup above the first and the fourth build, in every facing" width="920"></p>
+
+**What was Juno's.** More than expected, and mostly invisible from inside her replays. The skeleton shipped her
+rules as "the rule set", so the first run spent its steps deleting them. The draft cleanup treated `kbHDi` as hair
+and `v` as a lens because those were her letters; on Nyx it rewrote the respirator as hair. `[outline] keep = "kSs"`
+was a hand-drawn-grid setting. "No `_l` twins on grows" was a five-view fact. "The skeleton plus one command reaches
+0.90" was true of a skeleton that already was the character. Even the one-sided logic was hers: a cyber-*leg* needed
+no rule at all, just a `[parts]` line, because the labels follow the mirror.
+
+**What became generic.** The skeleton is now the structure of a recipe with no design in it: a palette in the shape
+of a real one, parts, outline, the head-grid *classes* (`[head.classes]` says which letters are hair, texture, lens
+and rim, so the cleanup no longer assumes them) and an empty rule list. The rules of both characters live in a
+library grouped by garment feature (collar, opening, hem, sleeves, shoes, cyber-limb, animation-only fixes), and the
+skill says outright that a library rule's facings are one mockup's answer. The recipe format gained what the coat
+and the boots needed: `shrink` and `shift` beside `grow`, `each` (a rule per member of a group), `per_facing`
+(one rule, a parameter per view), `anims` (a hem that must not swing with the arm in the run), stripe `offsets`
+per facing, and legend letters as hex literals so a grid never follows a body ramp.
+
+**What did the work.** As in the levels before, the gains came from instruments rather than prose, and each
+instrument came out of a run's log. `--draft-grid --all-slots` lets the draft use every palette slot and reports
+the cells no slot reaches (a shadowed nape, a missing mid-tone). `--try FILE` scores a file of candidate rules on
+the current recipe, each alone and all together, and prints the views where each one gains — run 4 did the whole
+garment phase with it in one call, and run 5 in one step. `--sweep` is the forward search `--ablate` lacked: 1,000
+simple rule shapes on every part in every colour, ranked by gain per view. `--labels VIEW` prints the template's
+body parts under every mockup pixel (the profile hem turned out to sit on the *hand*). `--fit-grid all` traces
+every head grid in parallel and fills the cells the draft leaves where the mockup's head is a pixel off. `just
+step` says which views' placement moved since the last step, `--optimize` prints each move's effect on the ceiling
+beside its effect on the score (a goal relative to the ceiling makes most palette moves a net loss), and `just
+grid` sets one grid row without the string-search accident every run had. Nine defects of the generator and the
+metric were found the same way as in level two, by an agent reading its own text views: the placement shift wrapped
+the sole row to the top of the frame, a straight stripe took its column from its top rows only, `grow` left a
+corner without an outline, the first `shrink` inked only the pixel behind it.
+
+**Where it stands.** Eighteen steps became nine, and the step at which the goal is first met went from 14 to 5.
+The final gap stopped improving after the second round, at 2.4–2.7% below the ceiling, and what remains is the
+design's distance from the mannequin (hands the template draws two pixels wide, a body two pixels narrower than
+the template's), not the skill. Two things are still open: image generation does not take a pixel scale from a
+stated size, a same-scale reference or a mannequin grid, so a usable eight-view mockup is a matter of draws; and
+the metric still rewards single dithered pixels and once punished an outlined corner the picture needed, so the
+human review pass stays part of "done".
 
 ## 6 · Debugging in plain text
 

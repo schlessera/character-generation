@@ -1,0 +1,128 @@
+# Every rule of references/rule-library.md, WITHOUT its facings: `just compare NAME --try
+# .claude/skills/mockup-character/assets/try-library.toml` scores each on the current recipe
+# and prints the views where it gains; keep a rule only where it gains AND the picture agrees
+# (crops --diff), with those views as its `facings`. Ramp names are the skeleton's: rename
+# what the design calls differently. Written from the library by the skill's revision.
+
+[[rules]]
+type = "grow"; part = "arm_l"; sides = ["front"]; n = 2; color = "jacket.base"
+[[rules]]
+type = "grow"; part = "torso"; sides = ["front"]; n = 3; color = "jacket.base"
+[[rules]]
+type = "grow"; part = "torso"; sides = ["front"]; n = 2; color = "jacket.base"
+[[rules]]
+type = "region"; part = "torso"; anchor = "front"; n = 2; skip = 1; top = 2; color = "chrome.base"
+[[rules]]
+type = "grow"; part = "torso"; sides = ["up"]; color = "jacket.base"
+[[rules]]
+type = "grow"; part = "feet"; sides = ["left", "right"]; color = "shoes.base"
+[[rules]]
+type = "grow"; part = "feet"; sides = ["down"]; color = "shoes.base"
+[[rules]]
+type = "grow"; part = "legs"; sides = ["front"]; n = 2; color = "jacket.base"
+[[rules]]
+type = "shrink"; part = "arms+hands"; sides = ["left"]
+[[rules]]
+type = "shrink"; part = "arms+hands"; sides = ["right"]
+[[rules]]
+type = "rows"; part = "arms"; from = "bottom"; n = 1; color = "skin.base"
+[[rules]]
+type = "region"; part = "torso"; anchor = "back"; n = 1; color = "jacket.shade"
+[[rules]]
+type = "rows"; part = "torso"; from = "bottom"; n = 2; color = "jacket.shade"
+[[rules]]
+type = "region"; part = "torso"; anchor = "left"; n = 1; anims = ["idle", "walk", "run", "jump", "rotate", "interact"]; color = "outline.base"
+[[rules]]
+type = "rows"; part = "torso"; from = "top"; n = 1; color = "trim"
+[[rules]]
+type = "all"; part = "neck"; ink = true; color = "trim.base"
+[[rules]]
+type = "region"; part = "neck"; anchor = "back"; n = 2; ink = true; color = "trim.base"
+[[rules]]
+type = "rows"; part = "torso"; from = "top"; n = 1; anims = ["idle", "walk", "run", "jump", "rotate", "interact"]; color = "trim.base"
+[[rules]]
+type = "stripe"; part = "torso"; anchor = "front"; offset = -1; anims = ["idle", "walk", "run", "jump", "rotate", "interact"]; color = "trim.base"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offset = -1; color = "trim.base"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offset = 0; color = "shirt"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offset = 1; color = "trim.base"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offset = -1; top = 2; color = "outline.base"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offset = 0; color = "trim.base"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offset = 1; ink = true; color = "shirt.base"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offset = 2; ink = true; color = "trim.base"
+[[rules]]
+type = "stripe"; part = "torso"; anchor = "front"; offset = -1; color = "trim.base"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; top = 4; color = "shirt"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; skip = 4; top = 1; color = "outline.base"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; skip = 5; color = "pants.base"
+[[rules]]
+type = "stripe"; straight = true; part = "torso"; offsets = [-2, 1]; top = 4; color = "outline.base"
+[[rules]]
+type = "edge"; part = "torso"; touching = "legs"; sides = ["down"]; ink = true; color = "trim.base"
+[[rules]]
+type = "rows"; part = "legs"; from = "top"; n = 2; ink = true; color = "jacket"
+[[rules]]
+type = "rows"; part = "legs"; from = "top"; n = 1; ink = true; color = "trim.base"
+[[rules]]
+type = "rows"; part = "hands"; from = "bottom"; n = 1; anims = ["idle", "walk", "rotate", "interact"]; color = "trim.base"
+[[rules]]
+type = "region"; part = "leg_r"; anchor = "left"; n = 1; color = "trim.base"
+[[rules]]
+type = "edge"; part = "arm_l"; touching = "hand_l"; color = "trim.shade"
+[[rules]]
+type = "region"; part = "hand_l"; anchor = "left"; n = 1; color = "jacket.base"
+[[rules]]
+type = "region"; part = "hand_l"; anchor = "right"; n = 1; color = "jacket.base"
+[[rules]]
+type = "all"; part = "hands"; color = "jacket"
+[[rules]]
+type = "rows"; part = "hands"; from = "top"; n = 1; color = "jacket"
+[[rules]]
+type = "band"; part = "arms"; at = 0.5; anims = ["idle", "walk", "run", "jump", "rotate", "interact"]; color = "trim.base"
+[[rules]]
+type = "band"; part = "arm_r"; at = 0.3; color = "trim.base"
+[[rules]]
+type = "stripe"; part = "hands"; straight = true; each = true; color = "outline.base"
+[[rules]]
+type = "rows"; part = "hands"; from = "bottom"; n = 1; color = "outline.base"
+[[rules]]
+type = "rows"; part = "arms"; from = "top"; n = 1; color = "outline.base"
+[[rules]]
+type = "band"; part = "torso"; at = 0.25; anchor = "center"; straight = true; color = "trim.base"
+[[rules]]
+type = "band"; part = "torso"; at = 0.375; anchor = "center"; straight = true; color = "trim.base"
+[[rules]]
+type = "band"; part = "arm_r"; at = 0.5; color = "chrome.shade"
+[[rules]]
+type = "band"; part = "arm_r"; at = 0.5; anchor = "center"; color = "glow.base"
+[[rules]]
+type = "edge"; part = "arm_r"; touching = "hand_r"; color = "chrome.shade"
+[[rules]]
+type = "band"; part = "arm_r"; at = 1.0; anchor = "center"; color = "glow.base"
+[[rules]]
+type = "all"; part = "arm_r+hand_r"; ink = true; only_if_ink = true; color = "chrome.shade"
+[[rules]]
+type = "band"; part = "leg_l"; at = 0.0; color = "glow.base"
+[[rules]]
+type = "stripe"; part = "leg_l"; anchor = "back"; color = "chrome.light"
+[[rules]]
+type = "region"; part = "foot_l"; anchor = "left"; color = "chrome"
+[[rules]]
+type = "rows"; part = "legs"; from = "bottom"; n = 1; color = "shoes.base"
+[[rules]]
+type = "rows"; part = "feet"; from = "bottom"; n = 1; color = "shoes.shade"
+[[rules]]
+type = "band"; part = "foot_r"; at = 0.0; anchor = "left"; color = "trim.base"
+[[rules]]
+type = "band"; part = "foot_r"; at = 0.0; anchor = "center"; color = "trim.base"
+[[rules]]
+type = "rows"; part = "feet"; from = "bottom"; n = 1; color = "shirt"

@@ -1,0 +1,28 @@
+[[rules]]  # 1
+type = "rows"
+part = "arms"
+from = "bottom"
+n = 1
+facings = ["down_side", "side", "up_side", "down_side_l"]
+color = "outline.base"
+[[rules]]  # 2
+type = "stripe"
+straight = true
+part = "hands"
+each = true
+facings = ["down_side", "up_side", "up_side_l", "down_side_l"]
+color = "outline.base"
+[[rules]]  # 3
+type = "region"
+part = "leg_l"
+anchor = "back"
+n = 1
+facings = ["side", "side_l"]
+color = "outline.base"
+[[rules]]  # 4
+type = "region"
+part = "hand_r"
+anchor = "front"
+n = 1
+facings = ["down_side", "side", "up_side_l"]
+color = "outline.base"

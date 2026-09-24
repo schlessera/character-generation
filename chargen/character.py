@@ -60,6 +60,7 @@ class Frame:
     head: tuple[str, int, int, int] | None  # (facing, x, y, width) of the head template
     facing: str
     duration: int
+    anim: str = ""  # which animation the frame belongs to (rules may list `anims`)
 
 
 def _merge(base: dict, over: dict) -> dict:
@@ -69,16 +70,60 @@ def _merge(base: dict, over: dict) -> dict:
     return out
 
 
+def expand_semicolons(text: str) -> str:
+    """The rule library writes a rule's keys on one line separated by `; ` (not TOML): split
+    such lines, outside quotes, so the snippets paste into a recipe or a --try file as they are."""
+    out = []
+    for line in text.split("\n"):
+        if "; " not in line or not line.lstrip().startswith(("type", "[[")):
+            out.append(line)
+            continue
+        parts, cur, q = [], "", False
+        i = 0
+        while i < len(line):
+            ch = line[i]
+            if ch == '"':
+                q = not q
+            if ch == "#" and not q:
+                cur += line[i:]
+                break
+            if ch == ";" and not q and line[i + 1:i + 2] == " ":
+                parts.append(cur)
+                cur, i = "", i + 2
+                continue
+            cur += ch
+            i += 1
+        parts.append(cur)
+        out.extend(p.strip() for p in parts if p.strip())
+    return "\n".join(out)
+
+
+def load_toml(path: Path) -> dict:
+    try:
+        return tomllib.loads(expand_semicolons(path.read_text()))
+    except tomllib.TOMLDecodeError as e:
+        raise SystemExit(f"{path}: not valid TOML: {e}") from None
+
+
 def load_recipe_data(path: Path) -> dict:
     """TOML recipe; `extends = "other"` deep-merges on top of characters/other/recipe.toml.
     Tables merge key by key, arrays (rules) replace unless `extra_rules` appends."""
-    data = tomllib.loads(path.read_text())
+    data = load_toml(path)
     if "extends" in data:
         base = load_recipe_data(path.parent.parent / data.pop("extends") / "recipe.toml")
         extra = data.pop("extra_rules", [])
         data = _merge(base, data)
         data["rules"] = data.get("rules", []) + extra
     return data
+
+
+# What the head-grid tools may assume about legend characters: `hair` cells are the mane (kept
+# on the last drafted row, the volume `--shift` probes), `texture` a second surface treated like
+# hair when cleaning (a shaved side, a hat band), `lens` the row(s) of an eyepiece (its rows and
+# their neighbours are exempt from the visor cleanup), `rim` the eyepiece's frame characters (moved
+# off other rows by `--clean`), `caps` what `--mirror-swap` puts at a lens's ends. These are Juno's
+# characters; a recipe overrides any of them in `[head.classes]`.
+HEAD_CLASSES = {"hair": "kbHDi", "texture": "uUw", "lens": "v", "rim": "xf", "caps": "x"}
 
 
 class Recipe:
@@ -92,6 +137,7 @@ class Recipe:
         self.outline = self.data.get("outline", {})
         head = self.data.get("head", {})
         self.legend = head.get("legend", {})
+        self.head_classes = {**HEAD_CLASSES, **head.get("classes", {})}
         self.grids = {f: _parse_grid(g) for f, g in head.get("grids", {}).items()}
         missing = [f + "_l" for f in ("down_side", "side", "up_side") if f in self.grids and f + "_l" not in self.grids]
         if missing:  # the mirrored fallback puts an asymmetric haircut on the wrong side
@@ -143,7 +189,7 @@ def build_frames(tpl: Template) -> dict[str, dict[str, list[Frame]]]:
     for anim, dirs in tpl.anims.items():
         out[anim] = {}
         for d, idx in dirs.items():
-            frames = [_frame(tpl, labels, i, d) for i in idx]
+            frames = [replace(_frame(tpl, labels, i, d), anim=anim) for i in idx]
             out[anim][d if anim != "rotate" else "all"] = frames
             if d in ("down_side", "side", "up_side"):
                 out[anim][d + "_l"] = [_mirror(f, tpl.w) for f in frames]
@@ -163,7 +209,7 @@ def _mirror(f: Frame, W: int) -> Frame:
     hf = hf[:-2] if hf.endswith("_l") else (hf + "_l" if hf not in ("down", "up") else hf)
     lab = np.vectorize(lambda c: c.translate(SIDE_SWAP))(f.labels[:, ::-1])
     facing = f.facing + "_l" if f.facing not in ("down", "up") else f.facing
-    return Frame(f.tones[:, ::-1], lab, (hf, W - x - w, y, w), facing, f.duration)
+    return Frame(f.tones[:, ::-1], lab, (hf, W - x - w, y, w), facing, f.duration, f.anim)
 
 
 # ---------------------------------------------------------------- rendering
@@ -192,11 +238,29 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
         if r.data.get("rule_facing") == "body":
             facing = _body_facing(f, facing)
         f = replace(f, facing=facing)
-    for rule in r.rules:
+    rules = []
+    for rule in r.rules:  # `each = true` on a group part: the rule runs once per single part (a stripe
+        if rule.get("each"):  # on `feet` is otherwise one stripe through both feet)
+            from .labels import PARTS  # code -> single part name
+            for code in part_codes(rule["part"]):
+                rules.append({**rule, "part": PARTS.get(code, rule["part"]), "each": False})
+        else:
+            rules.append(rule)
+    for rule in rules:
         if "facings" in rule and f.facing not in rule["facings"]:
+            continue
+        if "per_facing" in rule:  # parameter overrides for this facing: { side_l = { at = 0.3 }, down_side_l = { n = 1, anims = [...] } }
+            rule = {**rule, **rule["per_facing"].get(f.facing, {})}
+        if "anims" in rule and f.anim not in rule["anims"]:  # e.g. profile trim that stacks up in the attack's spin
             continue
         if rule["type"] == "grow":
             f = _grow(rule, f, rgba, r)
+            continue
+        if rule["type"] == "shrink":
+            f = _shrink(rule, f, rgba)
+            continue
+        if rule["type"] == "shift":
+            f = _shift_part(rule, f, rgba)
             continue
         mask = _rule_mask(rule, f)
         for y, x in zip(*np.where(mask)):
@@ -219,7 +283,9 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     if "color" in r.outline:
         a = rgba[..., 3] > 0
         ink = f.tones == TONE_IDS["ink"]
-        edge = ink & a & ~_erode(a) & ~np.isin(painted, list(r.outline.get("keep", "")))
+        keep = r.outline.get("keep", "")
+        keep = "".join(r.legend) if keep == "*" else keep  # "*": every grid cell keeps its colour (drafted grids carry the mockup's own outline)
+        edge = ink & a & ~_erode(a) & ~np.isin(painted, list(keep))
         rgba[edge, :3] = r.color(r.outline["color"], TONE_IDS["base"])
         # `parts`: a part's own line colour (selective outlining: dark trousers edged in a
         # cool black, skin and hair in the warm brown); later entries win, like [parts]
@@ -262,6 +328,7 @@ def _grow(rule: dict, f: Frame, rgba: np.ndarray, r: Recipe) -> Frame:
         sides.append(side)
     for _ in range(rule.get("n", 1)):
         part = np.isin(lab, codes) & (tones > 0)
+        vacated = []
         for side in sides:
             dy, dx = steps[side]
             for y, x in zip(*np.where(part)):
@@ -274,6 +341,80 @@ def _grow(rule: dict, f: Frame, rgba: np.ndarray, r: Recipe) -> Frame:
                     c = r.color(rule["color"], TONE_IDS["base"])
                     rgba[y, x] = (*c, 255)
                     tones[y, x] = TONE_IDS["base"]
+                    vacated.append((y, x))
+        for y, x in vacated:  # a corner: the vacated pixel is still on the silhouette in another
+            if any(not (0 <= y + dy < H and 0 <= x + dx < W) or tones[y + dy, x + dx] == 0  # direction, so it
+                   for dy, dx in steps.values()):                                            # stays an outline pixel
+                tones[y, x] = TONE_IDS["ink"]
+                rgba[y, x] = (47, 37, 34, 255)
+    return replace(f, tones=tones, labels=lab)
+
+
+def _shrink(rule: dict, f: Frame, rgba: np.ndarray) -> Frame:
+    """`shrink`: the inverse of `grow`. Pull a part's silhouette in by `n` pixels on the given
+    `sides` (default all): the part's edge pixels on that side (a transparent neighbour in the
+    side's direction) are erased, and the pixel behind each becomes ink, so the outline pass
+    still finds an edge. Tones and labels shrink with it. A mockup two pixels narrower than the
+    mannequin at the sleeves, for example."""
+    tones, lab = f.tones.copy(), f.labels.copy()
+    codes = list(part_codes(rule["part"]))
+    steps = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
+    H, W = tones.shape
+    sides = []
+    for side in rule.get("sides", list(steps)):
+        if side in ("front", "back"):  # the facing's front side; left facings are mirrored
+            side = "left" if (side == "front") == f.facing.endswith("_l") else "right"
+        sides.append(side)
+    for _ in range(rule.get("n", 1)):
+        for side in sides:
+            dy, dx = steps[side]
+            part = np.isin(lab, codes) & (tones > 0)
+            op = tones > 0  # a snapshot: the edge is judged before anything is erased, or it cascades inward
+            edge = [(y, x) for y, x in zip(*np.where(part))
+                    if not (0 <= y + dy < H and 0 <= x + dx < W and op[y + dy, x + dx])]
+            for y, x in edge:
+                rgba[y, x] = 0
+                tones[y, x], lab[y, x] = 0, "."
+            # every part pixel now on the silhouette becomes ink, whatever direction exposed it
+            # (the template outlines its whole silhouette; the pixel behind, a stair step above, a
+            # row left alone after its neighbours went): the outline pass then draws the edge
+            op = tones > 0
+            part = np.isin(lab, codes) & op
+            for y, x in zip(*np.where(part & (tones != TONE_IDS["ink"]))):
+                if any(not (0 <= y + ey < H and 0 <= x + ex < W) or not op[y + ey, x + ex] for ey, ex in steps.values()):
+                    tones[y, x] = TONE_IDS["ink"]
+                    rgba[y, x] = (47, 37, 34, 255)
+    return replace(f, tones=tones, labels=lab)
+
+
+def _shift_part(rule: dict, f: Frame, rgba: np.ndarray) -> Frame:
+    """`shift`: move a part's pixels by `dy` rows and `dx` columns (facing-aware: `dx` flips on
+    left facings). Pixels land only on transparent pixels or on the part itself; the vacated
+    pixels become transparent; the part's new silhouette is inked. `over` lists parts the moved
+    pixels may cover (`over = ["arms"]`: the hand takes the sleeve's last row). The template's
+    hands sit a row lower than a mockup's, for example (`shift hands dy = -1`)."""
+    tones, lab = f.tones.copy(), f.labels.copy()
+    codes = list(part_codes(rule["part"]))
+    over = set(codes) | set("".join(part_codes(n) for n in rule.get("over", [])))
+    dy = rule.get("dy", 0)
+    dx = rule.get("dx", 0) * (-1 if f.facing.endswith("_l") else 1)
+    H, W = tones.shape
+    part = np.isin(lab, codes) & (tones > 0)
+    src = [(y, x, tones[y, x], lab[y, x], rgba[y, x].copy()) for y, x in zip(*np.where(part))]
+    for y, x, *_ in src:  # vacate
+        tones[y, x], lab[y, x] = 0, "."
+        rgba[y, x] = 0
+    for y, x, t, l, c in src:
+        ny, nx = y + dy, x + dx
+        if 0 <= ny < H and 0 <= nx < W and (tones[ny, nx] == 0 or lab[ny, nx] in over):
+            tones[ny, nx], lab[ny, nx] = t, l
+            rgba[ny, nx] = c
+    op = tones > 0
+    moved = np.isin(lab, codes) & op
+    for y, x in zip(*np.where(moved & (tones != TONE_IDS["ink"]))):
+        if any(not (0 <= y + ey < H and 0 <= x + ex < W) or not op[y + ey, x + ex] for ey, ex in ((-1, 0), (1, 0), (0, -1), (0, 1))):
+            tones[y, x] = TONE_IDS["ink"]
+            rgba[y, x] = (47, 37, 34, 255)
     return replace(f, tones=tones, labels=lab)
 
 
@@ -314,24 +455,33 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
     if kind == "stripe":
         # a vertical line through the part's per-row center (or `anchor` = "left"/"right"
         # or "front"/"back" edge), shifted by `offset` (mirrored on left facings, like the
-        # frame itself); `top` limits it to the part's first n rows
+        # frame itself); `skip` drops the part's first rows, `top`/`bottom` keep the first/last n
         out = np.zeros_like(part)
         anchor = rule.get("anchor", "center")
         if anchor in ("front", "back"):  # the facing's front edge; left facings are mirrored
             anchor = "left" if (anchor == "front") == f.facing.endswith("_l") else "right"
-        rows = np.where(part.any(axis=1))[0][:rule.get("top")]
+        all_rows = np.where(part.any(axis=1))[0]
+        rows = all_rows[rule.get("skip", 0):]  # `skip` drops the part's first rows, then `top` / `bottom` keep the first / last n
+        rows = rows[:rule["top"]] if rule.get("top") else rows
+        rows = rows[-rule["bottom"]:] if rule.get("bottom") else rows
 
         def base_x(y):
             xs = np.where(part[y])[0]
             return {"left": xs[0], "right": xs[-1]}.get(anchor, int(round((xs[0] + xs[-1]) / 2)))
-        # `straight`: one column for the whole part (the median), so a zipper stays a
-        # straight line on twisted poses instead of zig-zagging row by row
-        fixed = int(np.median([base_x(y) for y in rows])) if rule.get("straight") and len(rows) else None
+        # `straight`: one column for the whole part (the median over ALL its rows, so stacked
+        # stripes with different `top`s form one strip even when a grow widens the top rows),
+        # so a zipper stays a straight line on twisted poses instead of zig-zagging row by row
+        fixed = int(np.median([base_x(y) for y in all_rows])) if rule.get("straight") and len(all_rows) else None
+        offsets = rule["offsets"] if "offsets" in rule else [rule.get("offset", 0)]  # `offsets`: several columns in one rule
+        if isinstance(offsets, dict):  # per facing: { "*" = [-2, 1], down_side_l = [-1, 2] }
+            offsets = offsets.get(f.facing, offsets.get("*", [0]))
+        offsets = [offsets] if isinstance(offsets, int) else offsets
         for y in rows:
             base = fixed if fixed is not None else base_x(y)
-            x = base + rule.get("offset", 0) * (-1 if f.facing.endswith("_l") else 1)
-            if 0 <= x < part.shape[1] and part[y, x]:
-                out[y, x] = True
+            for off in offsets:
+                x = base + off * (-1 if f.facing.endswith("_l") else 1)
+                if 0 <= x < part.shape[1] and part[y, x]:
+                    out[y, x] = True
         return out
     if kind == "region":
         # the first `n` pixels of every row from the anchored side ("left"/"right", or the
@@ -348,17 +498,23 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
             out[y, sel] = True
         return out
     if kind == "band":
-        # one row at fraction `at` (0 = top, 1 = bottom) of the part's vertical extent;
-        # with `anchor` only one pixel of that row (placed like a stripe)
+        # `n` rows (default 1) starting at fraction `at` (0 = top, 1 = bottom) of the part's
+        # vertical extent; with `anchor` only `w` pixels (default 1) of those rows, placed like
+        # a stripe (a 3-wide crossbar on an emblem: anchor = "center", w = 3)
         ys = np.where(part.any(axis=1))[0]
         out = np.zeros_like(part)
         if len(ys):
-            y = ys[0] + int(round(rule.get("at", 0.5) * (ys[-1] - ys[0])))
+            y0 = ys[0] + int(round(rule.get("at", 0.5) * (ys[-1] - ys[0])))
+            rows_ = [y for y in range(y0, y0 + rule.get("n", 1)) if y <= ys[-1]]
             if "anchor" in rule:
-                row = np.zeros_like(part)
-                row[y] = part[y]
-                return _rule_mask({**rule, "type": "stripe", "top": None}, f) & row
-            out[y] = part[y]
+                band = np.zeros_like(part)
+                for y in rows_:
+                    band[y] = part[y]
+                w = rule.get("w", 1)
+                offs = [rule.get("offset", 0) + k for k in range(-(w // 2), w - w // 2)]
+                return _rule_mask({**rule, "type": "stripe", "top": None, "offsets": offs}, f) & band
+            for y in rows_:
+                out[y] = part[y]
         return out
     if kind == "all":
         return part

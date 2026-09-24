@@ -1,0 +1,56 @@
+[[rules]]  # 1 far shoulder 3/4 front
+type = "grow"
+part = "torso"
+sides = ["front"]
+n = 3
+facings = ["down_side", "down_side_l"]
+color = "jacket.base"
+[[rules]]  # 2 far shoulder n=2
+type = "grow"
+part = "torso"
+sides = ["front"]
+n = 2
+facings = ["down_side", "down_side_l"]
+color = "jacket.base"
+[[rules]]  # 3 square shoulders up
+type = "grow"
+part = "torso"
+sides = ["up"]
+facings = ["down", "up"]
+color = "jacket.base"
+[[rules]]  # 4 square shoulders sideways front
+type = "grow"
+part = "torso"
+sides = ["up", "left", "right"]
+facings = ["down"]
+color = "jacket.base"
+[[rules]]  # 5 hands a row up in front
+type = "shift"
+part = "hands"
+dy = -1
+dx = 0
+over = ["arms"]
+facings = ["down", "up"]
+[[rules]]  # 6 sleeves in from behind
+type = "shrink"
+part = "arms+hands"
+sides = ["left"]
+facings = ["up", "up_side"]
+[[rules]]  # 7
+type = "shrink"
+part = "arms+hands"
+sides = ["right"]
+facings = ["up", "up_side_l"]
+[[rules]]  # 8 far boot toe row
+type = "grow"
+part = "feet"
+sides = ["down"]
+facings = ["down_side", "down_side_l", "up_side", "up_side_l"]
+color = "shoes.base"
+[[rules]]  # 9 coat skirt over far leg 3/4 front
+type = "grow"
+part = "legs"
+sides = ["front"]
+n = 2
+facings = ["down_side_l"]
+color = "jacket.base"
