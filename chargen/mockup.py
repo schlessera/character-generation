@@ -684,6 +684,38 @@ def apply_legend(recipe_path, entries: dict[str, str], recipe=None) -> None:
     recipe_path.write_text(text[:start] + block + lines + "\n" + text[end:])
 
 
+def apply_classes(recipe_path, recipe, entries: dict[str, str]) -> dict[str, str]:
+    """A new legend letter whose colour came from a ramp that other legend letters of a class
+    reference (a `hair.soft` slot next to `hair.base`) joins that class in the file's
+    [head.classes] block, so `--clean` and `--mirror-swap` treat it as hair. Returns the
+    letters added per class."""
+    text = recipe_path.read_text()
+    start = text.find("[head.classes]")
+    if start < 0:
+        return {}
+    ramp_of = {ch: ref.partition(".")[0] for ch, ref in recipe.legend.items() if not ref.startswith("#") and ref != "clear"}
+    added: dict[str, str] = {}
+    for cls, chars in recipe.head_classes.items():
+        ramps = {ramp_of[c] for c in chars if c in ramp_of}
+        for ch, ref in entries.items():
+            if ref.partition(".")[0] in ramps and ch not in chars:
+                added[cls] = added.get(cls, "") + ch
+    if not added:
+        return {}
+    nxt = text.find("\n[", start + 1)
+    end = len(text) if nxt < 0 else nxt
+    block = text[start:end]
+    lines = []
+    for line in block.split("\n"):
+        key = line.split("=")[0].strip()
+        if key in added and '"' in line:
+            q1 = line.find('"'); q2 = line.find('"', q1 + 1)
+            line = line[:q2] + added[key] + line[q2:]
+        lines.append(line)
+    recipe_path.write_text(text[:start] + "\n".join(lines) + text[end:])
+    return added
+
+
 def draft_grid(recipe, facing: str, placed: np.ndarray, frame, rows: int | None = None,
                chars: str | None = None, extra: dict[str, str] | None = None) -> np.ndarray:
     """A head grid drafted from the mockup: every grid cell that lands on the head, the neck

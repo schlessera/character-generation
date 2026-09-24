@@ -326,7 +326,7 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
     from .mockup import (breakdown, cost_maps, digits, draft_grid, extract, fit_part, grid_text, heat,
                          hex_box, mirror_grid, mockup_facings, palette_fit, palette_letters, place, shift_probe, similarity, slack,
-                         split, text_view, widths, clean_grid, apply_grid, hot_spots, init_palette, unlisted_slots, apply_legend, labels_view)
+                         split, text_view, widths, clean_grid, apply_grid, hot_spots, init_palette, unlisted_slots, apply_legend, labels_view, apply_classes)
     tpl = template()
     r = Recipe(Path(recipe) if recipe else CHARS / name / "recipe.toml")
     src = Path(mockup) if mockup else CHARS / name / "concept" / f"{name}-pixel-mockup.png"
@@ -442,7 +442,11 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     if extra and used_extra:
         print("== legend: slots the drafts used beyond the legend: " + " ".join(f"{c}={extra[c]}" for c in sorted(used_extra)))
         if apply:
-            apply_legend(r.path, {c: extra[c] for c in sorted(used_extra)}, recipe=r)
+            used = {c: extra[c] for c in sorted(used_extra)}
+            apply_legend(r.path, used, recipe=r)
+            added = apply_classes(r.path, r, used)
+            for cls, chars in added.items():
+                print(f"== [head.classes] {cls} += {chars} (from a ramp that class already references)")
     if draft and apply and _pass == 1 and any(f in MOCKUP_FACINGS or f == "all" for f in draft):
         # the mockup's best placement moves once the head is covered: draft again against it
         print("== second pass: the placement changed with the grids, redrafting")

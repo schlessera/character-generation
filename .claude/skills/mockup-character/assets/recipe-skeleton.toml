@@ -46,8 +46,8 @@ visor   = { base = "#1a191d", shade = "#3b3839" }    # eyewear rims; delete if t
 [parts]
 head = "skin"
 body = "jacket"
-neck = "skin"
-hands = "skin"
+neck = "skin"        # a bare neck; a coat collar or a scarf: the garment's ramp (`--init-palette` shows the neck's median)
+hands = "skin"       # bare hands; hidden in pockets or gloved: the garment's ramp
 legs = "pants"
 feet = "shoes"
 # "arm_r+hand_r" = "chrome"    # a one-sided limb: anatomical side, every frame
