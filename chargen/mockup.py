@@ -868,15 +868,19 @@ def sweep_candidates(recipe, parts=None) -> list[dict]:
         {"type": "grow", "sides": ["front"]}, {"type": "grow", "sides": ["back"]},
         {"type": "shrink", "sides": ["front"]}, {"type": "shrink", "sides": ["back"]},
     ]
+    colours: list[tuple[str, tuple]] = []  # one candidate per distinct colour (a tee, a mask and a rim
+    for ramp, slots in recipe.ramps.items():  # in the same grey are one candidate, named for the first)
+        if ramp == "fx" or "base" not in slots:
+            continue
+        if not any(_redmean(np.array(slots["base"], float), np.array(c, float)) < 20 for _, c in colours):
+            colours.append((ramp, slots["base"]))
     out = []
     for part in (parts or SWEEP_PARTS):
         for shape in shapes:
             if shape["type"] == "shrink":
                 out.append({**shape, "part": part})
                 continue
-            for ramp in recipe.ramps:
-                if ramp == "fx":
-                    continue
+            for ramp, _ in colours:
                 out.append({**shape, "part": part, "color": f"{ramp}.base"})
     return out
 
