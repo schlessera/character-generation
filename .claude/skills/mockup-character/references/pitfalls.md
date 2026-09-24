@@ -85,6 +85,33 @@ Each one cost at least a step, some cost ten. Read before editing `[parts]`, gri
   the head turns before the body, and `rule_facing = "head"` followed the head; `"body"` takes
   front/back from the arms' order in the labels.
 
+## Found by the second character (Nyx, run 1: eight views, a coat, a cyber-leg, goggles and a mask)
+
+- The skeleton used to be Juno's finished rule set: "verify" became "rewrite" on a coat. It has
+  no rules now; the library has both characters' rules per feature.
+- `--clean` cost 0.007 on spiky platinum hair (the "speckles" were the strand texture) and its
+  last-row pass deleted the coat's collar once the coat was in the legend. Both passes are
+  score-gated per view now; the print says what it skipped.
+- The legend must hold every material the mockup paints in the grid's rows, not only the head's
+  (coat collar, tee, lime): the draft picks legend colours only while the ceiling uses every
+  slot. `--all-slots` adds the missing ones (+0.0033 on Nyx).
+- `[outline] keep = "kSs"` is a hand-drawn-grid setting; drafted grids carry the mockup's own
+  outline: `keep = "*"`.
+- `grow torso up` in every facing (the "square shoulders") left unoutlined corner pixels (fixed
+  in the generator); sideways from behind it scored nothing and drew shoulder boards.
+- `shrink` exists now; before it, `color = "clear"` on an edge rule did the job in two rules. It
+  cannot tell a one-sided limb from the body: shrinking the legs' front edge in profile erased
+  the cyber-shin (a +0.004 rejected on sight).
+- `stripe straight` with `top` took its median over the top rows only, so a grow that widened
+  them put the tee a column off the pants (fixed: median over all rows).
+- The similarity shifted the placed mockup with `np.roll`: the sole row wrapped to row 0 in every
+  view whenever the best placement was one row down (fixed: zero-filled shift, ~+0.005).
+- `--init-palette` grouped by Juno's parts (the chrome arm); it groups by the recipe's `[parts]`.
+- A goal met by +0.0001 flipped to short after a generator fix: leave margin.
+- Twelve draws of gpt-image-2 gave one sheet at the template's pixel scale (concept/LOG.md of
+  the character): the model anchors on detail, not on a stated pitch; check the extracted views'
+  size against the template (25 tall) before anything else.
+
 ## Score reading
 
 - The metric tolerates one pixel of drift in any direction. A width difference of +1 is already

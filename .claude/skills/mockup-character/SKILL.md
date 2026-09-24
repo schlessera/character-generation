@@ -1,6 +1,6 @@
 ---
 name: mockup-character
-description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (0.90 similarity in one to five steps; the goal is a percentage below the measured palette ceiling). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, visor, collar, jacket, sleeves, shoes or turn-around — even if they don't say "recipe" or "mockup". It encodes what 110 iteration steps on Juno and four replays by fresh agents taught (the last one probed how far the rule system can go at all): the order of work that pays, the instruments to read, the rule patterns per facing, and the mistakes not to repeat.
+description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (the goal is a percentage below the measured palette ceiling; a design like the ones done before reaches it in six to eighteen steps). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, eyewear, mask, collar, coat, jacket, sleeves, shoes, cyber-limb or turn-around — even if they don't say "recipe" or "mockup". It encodes what 110 iteration steps on Juno, five replays on her mockup and one build of a second character (Nyx: symmetric hair, goggles and a mask, a long coat, a cyber-leg, boots, eight mockup views) taught: the order of work that pays, the instruments to read, the rule patterns per garment feature, and the mistakes not to repeat.
 ---
 
 # Character from a pixel mockup
@@ -11,101 +11,89 @@ is the reference: five views stacked vertically (down, down_side, side, up_side,
 the turn-around's order (down, down_side, side, up_side, up, up_side_l, side_l, down_side_l).
 `just compare NAME` counts the views, snaps them to their pixel grid and scores each against its
 facing's render. With eight views the three left-facing views are scored and drafted from the
-mockup like the others; nothing is mirrored and `--mirror-swap` does nothing. Measured path: the skeleton
-recipe plus one `--draft-grid all` command reaches 0.90; a review pass, a trim check from all
-eight angles and the last thousandths take three to five steps more.
+mockup like the others; nothing is mirrored and `--mirror-swap` does nothing.
 
-Read `references/playbook.md` for the phases in detail (rule snippets per facing, the near-side
-table for the left-facing grids), `references/instruments.md` for what each `compare` flag shows,
-`references/pitfalls.md` before touching grids, `[parts]`, grow rules or a fit table. The skeleton
-and these references are self-contained; do not start from another character's finished recipe,
-the skeleton is the distilled version of it.
+Read `references/playbook.md` for the phases in detail, `references/rule-library.md` for every
+rule that held on the two finished characters, grouped by garment feature, `references/instruments.md`
+for what each `compare` flag shows, `references/pitfalls.md` before touching grids, `[parts]`,
+grow or shrink rules or a fit table. The skeleton (`assets/recipe-skeleton.toml`) is the structure
+of a recipe with no design in it; do not start from another character's finished recipe.
 
 ## What makes this fast
 
-1. **The skeleton already contains the rule set** (`assets/recipe-skeleton.toml`): collar per
-   facing, zipper per facing, hem before zipper, sleeves and fingertips, sneakers, cyber-arm,
-   the 3/4 silhouette grows, `fx` mapped. Its palette is Juno's. On a design like hers most of
-   phase 3 and 4 is verification; on a different design, delete what the design lacks and refit
-   the colours — the structure still applies.
-2. **Head grids are drafted, not drawn.** `just compare NAME --draft-grid VIEW` quantizes the
-   mockup's head to the legend's colours at every grid cell and prints a ready grid; each view
-   went from ~0.6 to ~0.9 on its first paste in both replays. `--draft-grid VIEW_l
-   [--mirror-swap]` drafts a left-facing grid from its twin. Hand transcription from the text
-   view — Juno's method — is where the time went.
+1. **The structure is given, the design is not.** The skeleton has the palette in the shape of a
+   real one, the parts, the outline, the head classes and legend, and no rules. Refit every ramp
+   from the mockup, map the parts the design has (a one-sided limb is a `[parts]` line: labels
+   follow the mirror), then add rules feature by feature from the library. Measured: with no
+   body rules the drafted heads alone give 0.84 on a coat-and-boots design; the rules for the
+   coat, sleeves, boots and shin took it to 0.90 in eleven more steps.
+2. **Head grids are drafted, not drawn.** `just compare NAME --draft-grid all --all-slots --clean
+   --apply` quantizes each mockup view's head to the palette (every slot, adding legend letters
+   for the ones the legend lacks: a collar, a mask, a tee reach into the head's rows), cleans
+   what cleaning does not cost, and writes the grids twice (the placement moves once the head is
+   covered). One command: ~0.6 → ~0.84–0.91 depending on how much of the design is body.
 3. **Read text, not just pictures.** `--text VIEW` (palette letters), `--hex VIEW y0,y1,x0,x1`
-   (raw colours), `--digits`, `--widths`: the structural mistakes (a jacket-coloured neck, a
-   shading rule overpainting the collar, an arm flush against the torso) were only visible there.
-4. **Know the ceiling and where the room is.** `--ceiling` moves when ramps are added, so run it
+   (raw colours), `--digits`, `--widths`: structural mistakes (a jacket-coloured neck, a shading
+   rule overpainting the collar, a stripe one column off) are only visible there.
+4. **Score per view, then judge on crops.** One variant scored across all views gives per-facing
+   answers in one call: a rule that gains in three views and loses in two wants `facings`.
+   `--sweep` does this for ~1,400 simple rule shapes at once; `--ablate` for each rule you have.
+   Every pick then goes through `just crops --diff` and `--hex`: the score rewards dithering and
+   punished a corner outline that the picture needed.
+5. **Know the ceiling and where the room is.** `--ceiling` moves when ramps are added, so run it
    at the end too; `--slack` names the part with room; `--split` says whether the silhouette is
-   done (0.99+ means it is). Without these the loop chases the mockup's noise.
+   done (0.99+ means it is); `--oracle` says the most any rule could add per part.
 
 ## Workflow
 
-Work in a branch. `just step NAME "what changed" --goal 4` after every change: it scores, appends
-the row to `history/NOTES.md` (four decimals), snapshots every fifth step, and reports the goal.
-The goal is not a fixed number: it is a distance below the palette ceiling (the mockup quantized
-to the recipe's palette, scored against itself — the most this palette could express). Palette
-moves lift the ceiling as much as the score, so only structure closes the gap; that is the
-point of measuring it this way. What the percentages mean, measured: **4%** and **3%** are one command
-(the drafted grids on the current skeleton); a reviewed, finished character sits near 2.4%; **2.4%** is the most anyone has
-reached with rules that hold in every frame (run 4, ten steps); **1%** is where a despeckled
-pixel copy of the mockup's own body lands — reachable only by tracing the body, which breaks
-the other 243 frames. Set 4 for done, 3 for polish; do not chase lower. `just review NAME` after every
-visible change: one image with the eight facings at 12×, torso and feet crops, the turn-around
-and the angled animations. `just lint NAME` before any scoring. Commit per phase; `just smoke`
-at the end. Human complaints outrank the score: a bent collar, a low visor, small shoes and a
-jacket that looked broken from 3/4 cost nothing on the metric and were the most visible faults.
+Work in a branch. `just step NAME "what changed" --goal 3` after every change: it scores, appends
+the row to `history/NOTES.md`, snapshots every fifth step, and reports the goal. The goal is not
+a fixed number: it is a distance below the palette ceiling (the mockup quantized to the recipe's
+palette, scored against itself). Palette moves lift the ceiling as much as the score, so only
+structure closes the gap. Measured: **3%** took one command on Juno's mockup and 14 steps on Nyx's;
+**2.4%** is the most anyone reached with rules that hold in every frame; **1%** is where a pixel
+copy of the mockup's own body lands, reachable only by tracing, which breaks the other frames.
+Leave 0.001 of margin over the line: a generator fix took a +0.0001 pass back. `just review NAME`
+after every visible change; `just lint NAME` before any scoring; commit per phase; `just smoke` at
+the end. Human complaints outrank the score.
 
-### Step 0 — set up and lint
+### Step 0 — set up, palette, parts
 
-- `characters/NAME/concept/NAME-pixel-mockup.png` (five views on a plain background) and
-  `NAME-concept.png`. Copy `assets/recipe-skeleton.toml` to `characters/NAME/recipe.toml`, set
-  `name`. `just lint NAME` (parts order, one-sided rules with mirrored facings, legend, grids).
-  `just step NAME "skeleton" --goal 4` → about 0.64 and the ceiling.
-- Palette check: `just compare NAME --init-palette --quiet` gives the median mockup colour per
-  body part and template tone (reliable before grids exist for the body; the head is not). Compare
-  with the skeleton's ramps; refit the ramps that differ (large flat areas; a `~` means two
-  populations, look with `--hex VIEW y0,y1,x0,x1`). On a design like Juno's nothing changes.
+- `characters/NAME/concept/NAME-pixel-mockup.png` and `NAME-concept.png`. Copy the skeleton to
+  `characters/NAME/recipe.toml`, set `name`. `just step NAME "skeleton" --goal 3`: the number is
+  the palette's distance from the design (0.64 on a palette that fits, 0.41 on one that does not).
+- Palette: the most common colours of the extracted mockup views, `--hex` on flat areas, then
+  `--init-palette` once `[parts]` names this design's parts (it groups by them). Every slot
+  refit; ramps the design lacks deleted; materials it has added. Parts: groups first, specific
+  parts after; a one-sided limb as a part line.
+- `just lint NAME`.
 
 ### Step 1 — all head grids in one command
 
-`just compare NAME --draft-grid all --clean --apply --mirror-swap --quiet`: the five mockup views
-are drafted (nearest legend colour per cell on the head), cleaned (visor characters off the rim
-and lens rows, lone speckles, the row below the jaw keeps hair only) and written into the recipe
-— twice, because the mockup's placement over the render moves once the head is covered and the
-second pass aligns to the final one (+0.003 on the replay); the three left-facing views come
-from their twins, mirrored, with the shaved side put back on her own side using the frame's
-labels (the fuller arm is the near one; drop `--mirror-swap` for a symmetric cut). Score:
-~0.908 on the replay, past the 3% goal.
-Then `just review NAME` and look, first at the heads row (24×): the three left views are drafts
-of a different kind (a mirror with the mane put back on her own side) and are where the
-non-metric risk lives — a character facing screen-right shows the camera her *right* side, so the
-left-facing views show her left; the playbook's table says what each must show. Fix what you see
-by editing the grid rows; `just heads NAME` shows the template alignment. The visor row per angle
-comes out of the draft: check, do not move.
+`just compare NAME --draft-grid all --all-slots --clean --apply --quiet` (`--mirror-swap` only
+for a five-view mockup of a one-sided haircut). Then `just review NAME`: the heads row at 24×.
+Fix what you see by editing grid rows; `just heads NAME` shows the template alignment. Re-draft
+one view at a time later if its placement moved (after grows or shrinks), not all: the others
+come back equal or worse.
 
-### Step 2 — trim and silhouette check (1–3 steps)
+### Step 2 — silhouette and the garment, feature by feature (3–10 steps)
 
-The skeleton's rules are the Juno answers; `just crops NAME --box 17,31 --diff --recipe
-variant.toml` shows every changed pixel from all eight angles when you try one. Check the collar
-(straight rows), zipper offsets per facing, the split hem, cuffs, fingertips, the flank region.
-`--widths` per view: grow only where the mockup is 2+ wider, with a name; `--split` should show
-silhouettes at 0.99+. One-sided features must not carry `_l` twins (lint says so).
+`--widths` per view; grow or shrink only for 2+, each with a name, in both 3/4 views when the
+feature is symmetric. Then one feature at a time from the rule library (collar, opening, hem,
+sleeves, shoes, limb details), each as a variant scored across the views (`--recipe`), each
+kept where it has a reading and looks right on `just crops NAME --box 17,31 --diff`. `--split`
+should show silhouettes at 0.99+ when this is done.
 
-### Step 3 — the last thousandths (0–2 steps)
+### Step 3 — the last thousandths (1–4 steps)
 
-`--oracle` first: it copies the mockup's pixels over the render per part and reports the gain —
-where the remaining gap lives and the most any rule could add (torso+arms on Juno's mockup,
-the head is done). Then `--slack`, `--fit-part CODES`, and rule ablation: drop a skeleton rule
-in a variant and score; a rule that scores better removed is a Juno detail this mockup lacks —
-confirm with `--hex` before deleting. `--fit`/`--optimize` last; they lift the ceiling too. `--hot 20` lists the costliest pixels: scattered
-single pixels at cost ~1 mean nothing big is left. `--fit-grid` is a diagnostic; if it finds
-nothing, or only speckles, the grids are done. A fix to an unscored view (a left grid) can go on
-the previous row with `just step ... --amend`.
+`--oracle` (where the gap lives), `--slack`, `--sweep 20` (forward search; every pick confirmed
+on crops and `--hex`), `--ablate` (a rule that scores better removed is a detail this mockup
+lacks; confirm before deleting), `--optimize --min-gain 0.0004` last (moves with a reading only).
+`--hot 20`: scattered singles at cost ~1 mean nothing big is left.
 
 ### Done when
 
-`just step ... --goal 4` says REACHED, `--split` shows silhouettes at 0.99+, `just lint` is
-clean, and `just review NAME` shows nothing a person would complain about from any of the eight
-sides or in the attack, jump and run. Then `just smoke`, `just media`, and update README/notes.
+`just step ... --goal 3` says REACHED with margin, `--split` shows silhouettes at 0.99+, `just
+lint` is clean, and `just review NAME` shows nothing a person would complain about from any of
+the eight sides or in the attack, jump and run (a rule may take `anims` to stay out of the
+attack's spin). Then `just smoke`, `just turntable NAME`, `just media`, and update README/notes.

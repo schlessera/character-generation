@@ -761,12 +761,16 @@ def hot_spots(views, n: int = 20) -> list[str]:
     return out
 
 
-def init_palette(views, tone_ids: dict) -> list[str]:
+def init_palette(views, tone_ids: dict, parts: dict | None = None) -> list[str]:
     """Per body part and template tone, the median mockup colour under the render's pixels
-    (before any head grid exists the body parts are reliable, the head is not). Emits the
-    lines a [palette] block needs. `views` = [(facing, placed, labels, tones)]."""
-    from .labels import PARTS
-    groups = {"skin (hand_l)": "l", "torso": "T", "arm_l": "L", "arm_r+hand_r": "Rr", "legs": "PQ", "feet": "pq", "neck": "N"}
+    (before any head grid exists the body parts are reliable, the head is not). Grouped by
+    the recipe's own [parts] lines when given (this design's parts, not another character's),
+    else by single parts. `views` = [(facing, placed, labels, tones)]."""
+    from .character import part_codes
+    if parts:
+        groups = {name: part_codes(name) for name in parts if name not in ("head", "fx")}
+    else:
+        groups = {"neck": "N", "torso": "T", "arm_l": "L", "hand_l": "l", "arm_r": "R", "hand_r": "r", "leg_l": "Q", "leg_r": "P", "feet": "pq"}
     names = {v: k for k, v in tone_ids.items()}
     out = [f"{'part':14} {'tone':6} {'n':>4}  median   spread"]
     for label, codes in groups.items():
@@ -820,4 +824,75 @@ def ablate(recipe, sprites, renders_for) -> list[str]:
     out = [f"{'without':>8}  rule  (gain when removed; base {base:.4f})"]
     for d, i, t, p, c, f in rows:
         out.append(f"{d:+8.4f}  {i:3d}  {t} {p} {c} {f if f else ''}")
+    return out
+
+
+# ---------------------------------------------------------------- forward rule search
+
+SWEEP_PARTS = ["torso", "neck", "arm_l", "arm_r", "hand_l", "hand_r", "leg_l", "leg_r", "foot_l", "foot_r", "arms", "hands", "legs", "feet"]
+
+
+def sweep_candidates(recipe, parts=None) -> list[dict]:
+    """Simple rule shapes on every part in every ramp's base colour: the forward search that
+    `--ablate` (backward) lacks. Each is appended after the recipe's rules, so it paints last."""
+    shapes = [
+        {"type": "rows", "from": "top", "n": 1}, {"type": "rows", "from": "bottom", "n": 1},
+        {"type": "band", "at": 0.5}, {"type": "stripe", "straight": True},
+        {"type": "region", "anchor": "front", "n": 1}, {"type": "region", "anchor": "back", "n": 1},
+        {"type": "grow", "sides": ["front"]}, {"type": "grow", "sides": ["back"]},
+        {"type": "shrink", "sides": ["front"]}, {"type": "shrink", "sides": ["back"]},
+    ]
+    out = []
+    for part in (parts or SWEEP_PARTS):
+        for shape in shapes:
+            if shape["type"] == "shrink":
+                out.append({**shape, "part": part})
+                continue
+            for ramp in recipe.ramps:
+                if ramp == "fx":
+                    continue
+                out.append({**shape, "part": part, "color": f"{ramp}.base"})
+    return out
+
+
+_SWEEP: dict = {}
+
+
+def _sweep_init(recipe, frames, sprites, base):
+    _SWEEP.update(recipe=recipe, frames=frames, sprites=sprites, base=base)
+
+
+def _sweep_one(rule):
+    from .character import render_frame
+    r, frames, sprites, base = _SWEEP["recipe"], _SWEEP["frames"], _SWEEP["sprites"], _SWEEP["base"]
+    r.rules = r.rules + [rule]
+    try:
+        return [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, frames, base)]
+    finally:
+        r.rules = r.rules[:-1]
+
+
+def sweep(recipe, sprites, frames, facings, n: int = 20, parts=None, workers: int | None = None) -> list[str]:
+    """Score every candidate rule across the views and print the best: mean gain over all views,
+    the gain if the rule were limited to the views where it helps (with those facings), and
+    the rule. A pick is a candidate to confirm on `just crops --diff` and in `--hex`, not a
+    result; a rule that gains on one view and loses on its mirror usually wants `facings`."""
+    import os
+    from multiprocessing import Pool
+    from .character import render_frame
+    base = [similarity(sp, render_frame(recipe, fr)) for sp, fr in zip(sprites, frames)]
+    cands = sweep_candidates(recipe, parts)
+    workers = workers or max(1, min(8, (os.cpu_count() or 2) - 1))
+    with Pool(workers, initializer=_sweep_init, initargs=(recipe, frames, sprites, base)) as pool:
+        deltas = pool.map(_sweep_one, cands, chunksize=8)
+    rows = []
+    for rule, d in zip(cands, deltas):
+        pos = [f for f, v in zip(facings, d) if v > 0.0005]
+        rows.append((float(np.mean(d)), float(sum(max(v, 0) for v in d) / len(d)), pos, rule))
+    rows.sort(key=lambda r: -r[1])
+    out = [f"{len(cands)} candidates over {len(facings)} views ({workers} workers); base mean {np.mean(base):.4f}",
+           f"{'mean':>8} {'if limited':>10}  facings where it gains                rule"]
+    for mean, lim, pos, rule in rows[:n]:
+        desc = " ".join(f"{k}={v}" for k, v in rule.items() if k != "type")
+        out.append(f"{mean:+8.4f} {lim:+10.4f}  {','.join(pos) or '-':38} {rule['type']} {desc}")
     return out

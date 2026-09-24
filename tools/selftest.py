@@ -33,7 +33,7 @@ def main():
                      "mockup hex", "costliest", "palette from the mockup", "ceiling ", "goal "):
             if want not in out:
                 fails.append(f"compare flag output missing: {want!r}")
-        rc, out = run("compare", NAME, "--quiet", "--draft-grid", "all", "--clean", "--apply", "--mirror-swap")
+        rc, out = run("compare", NAME, "--quiet", "--draft-grid", "all", "--all-slots", "--clean", "--apply", "--mirror-swap")
         if out.count("written to") != 13 or "second pass" not in out:  # 5 in the first pass, 8 in the second
             fails.append(f"draft-grid all wrote {out.count('written to')} grids, expected 5 + 8 over two passes")
         rc, out = run("compare", NAME, "--quiet", "--shift", "--chars", "kbHDi", "--fit-grid", "down", "--chars", "kbHDi", "--optimize")
@@ -52,8 +52,11 @@ def main():
         rc, out = run("step", NAME, "drafted", "--goal", "4")
         rc, out2 = run("step", NAME, "drafted again", "--goal", "4", "--amend")
         rows = [l for l in (CHAR / "history/NOTES.md").read_text().splitlines() if l.startswith("| 0")]
-        if len(rows) != 1 or "REACHED" not in out2:
+        if len(rows) != 1 or "goal: ceiling" not in out2:
             fails.append("step/--amend/--goal did not behave: " + out2)
+        rc, out = run("compare", NAME, "--quiet", "--sweep", "3", "--sweep-parts", "feet")
+        if "candidates over" not in out:
+            fails.append("--sweep printed no table")
     finally:
         shutil.rmtree(CHAR, ignore_errors=True)
         for f in (ROOT / "build/preview").glob(f"{NAME}*"):

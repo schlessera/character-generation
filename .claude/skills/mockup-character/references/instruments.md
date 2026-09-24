@@ -34,10 +34,11 @@ says what they mean for this recipe. All flags combine; `--quiet` drops the loss
 | `--fit-grid VIEW… [--chars …]` | the head grid traced cell by cell to the mockup, only changes that gain | a diagnostic; look at the cells before applying |
 | `--recipe PATH` | score a variant file instead of the character's recipe | every experiment |
 | `--oracle` | per part, the gain from copying the mockup's quantized pixels over the render | where the gap lives; the most any rule set could add |
+| `--sweep N [--sweep-parts P,P]` | forward search: ~1,400 simple rule shapes (rows, band, stripe, region, grow, shrink on every part in every ramp) each scored across all views, the N best with the mean gain, the gain if limited to the views where it helps, and those facings; ~12 s | after the design's own rules: what a per-facing trim is still worth; every pick goes through `crops --diff` and `--hex` before it stays |
 | `--ablate` | score gain from removing each rule, sorted | candidates for details the mockup lacks; confirm with `--hex` |
 | `--goal PCT` | the ceiling, the threshold PCT percent below it, and whether the mean reaches it | the definition of done |
 | `--hot N` | the N costliest pixels: view, row, col, mockup letter, render letter, cost | a "nothing big is left" check: scattered singles at cost ~1 mean done |
-| `--init-palette` | median mockup colour per body part and template tone (body only; the head needs grids) | a new design's palette before the grids |
+| `--init-palette` | median mockup colour per template tone for each line of the recipe's own `[parts]` (body only; the head needs grids); `~` marks two populations | a new design's palette, after `[parts]` names its parts and before the grids |
 | `--draft-grid … --all-slots` | the draft may also pick every palette slot the legend does not reference (a coat collar in the head's last rows, skin light, trim); with `--apply` the new letters are appended to `[head.legend]`. The ceiling quantizes to every slot, so a short legend is a built-in gap | step 1, on any design whose legend was written before the mockup was read |
 | `--draft-grid … --clean --apply` | `--clean`: rim chars off the non-lens rows, then lone speckles and the hair-only last row — each of those two kept per view only where it does not lower the score (the print says what it skipped); `--apply`: write into the recipe, in two passes (the placement moves once the head is covered) | step 1 in one command |
 

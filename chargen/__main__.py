@@ -218,7 +218,10 @@ def cmd_step(name, message, snapshot=False, goal=None, amend=False):
         from .mockup import ceiling, palette_letters
         cs = float(np.mean([ceiling(sp, palette_letters(r)) for sp in sprites]))
         thr = cs * (1 - goal / 100)
-        print(f"goal: ceiling {cs:.4f}, within {goal:g}% = {thr:.4f}: " + (f"REACHED (+{mean - thr:.4f})" if mean >= thr else f"short by {thr - mean:.4f}"))
+        margin = mean - thr
+        status = (f"REACHED (+{margin:.4f})" + (", a thin margin: a generator fix can take it back, leave 0.001 or more" if margin < 0.001 else "")
+                  if margin >= 0 else f"short by {-margin:.4f}")
+        print(f"goal: ceiling {cs:.4f}, within {goal:g}% = {thr:.4f}: " + status)
 
 
 def cmd_heads(name):
@@ -263,7 +266,7 @@ def cmd_labels(anims=()):
 
 def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
                 split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False, mirror_swap=False, apply=False, clean=False, hot=0,
-                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False, all_slots=False):
+                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False, all_slots=False, sweep_=0, sweep_parts=None):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
@@ -392,6 +395,11 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
         print(f"== {hot} costliest pixels (single scattered pixels at cost ~1 mean nothing big is left)")
         print("\n".join(hot_spots(hot_views, hot)))
+    if sweep_:
+        from .mockup import sweep
+        idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
+        print("== sweep: candidate rules appended after yours, per-view gains (confirm picks on crops --diff)")
+        print("\n".join(sweep(r, sprites, idle, MOCKUP_FACINGS, n=sweep_, parts=sweep_parts.split(",") if sweep_parts else None)))
     if ablate_:
         from .mockup import ablate
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
@@ -404,7 +412,7 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     if init_pal:
         from .catalog import TONE_IDS
         print("== palette from the mockup, per body part and template tone")
-        print("\n".join(init_palette(pal_views, TONE_IDS)))
+        print("\n".join(init_palette(pal_views, TONE_IDS, r.parts)))
     out = BUILD / "preview" / f"{name}_compare.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(out)
@@ -490,6 +498,8 @@ def main():
     c.add_argument("--ablate", action="store_true", help="drop each rule in turn and score (candidates to confirm with --hex)")
     c.add_argument("--min-gain", type=float, default=0.0015, help="--optimize keeps a move only above this gain (0.0004 for the last thousandths; it raises the ceiling too)")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
+    c.add_argument("--sweep", type=int, default=0, metavar="N", help="forward rule search: score simple rule shapes on every part in every ramp, print the N best with per-view gains")
+    c.add_argument("--sweep-parts", metavar="P,P", help="with --sweep: only these parts (default: every part and group)")
     c.add_argument("--all-slots", action="store_true", help="with --draft-grid: also offer every palette slot the legend lacks (letters appended to the legend with --apply)")
     a = ap.parse_args()
     if a.cmd == "build":
@@ -512,7 +522,7 @@ def main():
         cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
                     slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part, draft=a.draft_grid,
                     hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet,
-                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate, all_slots=a.all_slots)
+                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate, all_slots=a.all_slots, sweep_=a.sweep, sweep_parts=a.sweep_parts)
     else:
         cmd_labels(a.anims)
 

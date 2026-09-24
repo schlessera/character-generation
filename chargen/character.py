@@ -60,6 +60,7 @@ class Frame:
     head: tuple[str, int, int, int] | None  # (facing, x, y, width) of the head template
     facing: str
     duration: int
+    anim: str = ""  # which animation the frame belongs to (rules may list `anims`)
 
 
 def _merge(base: dict, over: dict) -> dict:
@@ -153,7 +154,7 @@ def build_frames(tpl: Template) -> dict[str, dict[str, list[Frame]]]:
     for anim, dirs in tpl.anims.items():
         out[anim] = {}
         for d, idx in dirs.items():
-            frames = [_frame(tpl, labels, i, d) for i in idx]
+            frames = [replace(_frame(tpl, labels, i, d), anim=anim) for i in idx]
             out[anim][d if anim != "rotate" else "all"] = frames
             if d in ("down_side", "side", "up_side"):
                 out[anim][d + "_l"] = [_mirror(f, tpl.w) for f in frames]
@@ -173,7 +174,7 @@ def _mirror(f: Frame, W: int) -> Frame:
     hf = hf[:-2] if hf.endswith("_l") else (hf + "_l" if hf not in ("down", "up") else hf)
     lab = np.vectorize(lambda c: c.translate(SIDE_SWAP))(f.labels[:, ::-1])
     facing = f.facing + "_l" if f.facing not in ("down", "up") else f.facing
-    return Frame(f.tones[:, ::-1], lab, (hf, W - x - w, y, w), facing, f.duration)
+    return Frame(f.tones[:, ::-1], lab, (hf, W - x - w, y, w), facing, f.duration, f.anim)
 
 
 # ---------------------------------------------------------------- rendering
@@ -205,6 +206,8 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     for rule in r.rules:
         if "facings" in rule and f.facing not in rule["facings"]:
             continue
+        if "anims" in rule and f.anim not in rule["anims"]:  # e.g. profile trim that stacks up in the attack's spin
+            continue
         if rule["type"] == "grow":
             f = _grow(rule, f, rgba, r)
             continue
@@ -232,7 +235,9 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
     if "color" in r.outline:
         a = rgba[..., 3] > 0
         ink = f.tones == TONE_IDS["ink"]
-        edge = ink & a & ~_erode(a) & ~np.isin(painted, list(r.outline.get("keep", "")))
+        keep = r.outline.get("keep", "")
+        keep = "".join(r.legend) if keep == "*" else keep  # "*": every grid cell keeps its colour (drafted grids carry the mockup's own outline)
+        edge = ink & a & ~_erode(a) & ~np.isin(painted, list(keep))
         rgba[edge, :3] = r.color(r.outline["color"], TONE_IDS["base"])
         # `parts`: a part's own line colour (selective outlining: dark trousers edged in a
         # cool black, skin and hair in the warm brown); later entries win, like [parts]
@@ -371,13 +376,15 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
     if kind == "stripe":
         # a vertical line through the part's per-row center (or `anchor` = "left"/"right"
         # or "front"/"back" edge), shifted by `offset` (mirrored on left facings, like the
-        # frame itself); `top` limits it to the part's first n rows
+        # frame itself); `skip` drops the part's first rows, `top`/`bottom` keep the first/last n
         out = np.zeros_like(part)
         anchor = rule.get("anchor", "center")
         if anchor in ("front", "back"):  # the facing's front edge; left facings are mirrored
             anchor = "left" if (anchor == "front") == f.facing.endswith("_l") else "right"
         all_rows = np.where(part.any(axis=1))[0]
-        rows = all_rows[:rule.get("top")]
+        rows = all_rows[rule.get("skip", 0):]  # `skip` drops the part's first rows, then `top` / `bottom` keep the first / last n
+        rows = rows[:rule["top"]] if rule.get("top") else rows
+        rows = rows[-rule["bottom"]:] if rule.get("bottom") else rows
 
         def base_x(y):
             xs = np.where(part[y])[0]

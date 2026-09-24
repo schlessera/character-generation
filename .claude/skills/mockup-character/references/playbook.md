@@ -1,8 +1,16 @@
 # Playbook: phases in detail
 
 Contents: 1 palette · 2 head grids · 3 trim per facing · 4 silhouette · 5 last thousandths ·
-6 checks and hygiene. Rule syntax is in `chargen/character.py` (`_rule_mask`, `_grow`); the
-recipe format is the skeleton itself, `assets/recipe-skeleton.toml`.
+6 checks and hygiene. Rule syntax is in `chargen/character.py` (`_rule_mask`, `_grow`,
+`_shrink`); the recipe format is the skeleton itself, `assets/recipe-skeleton.toml`; the rules
+themselves, per garment feature and per character, are in `rule-library.md`. The snippets below
+are Juno's answers, kept as worked examples of the reasoning; Nyx's are in the library.
+
+**Per-view scoring, the method that found most of Nyx's rules.** A variant with one candidate
+rule, scored with `--recipe`, prints eight numbers; each view only sees its own facing's rules,
+so one call says in which facings the rule is right. A rule that gains in three views and loses
+in two gets those three in `facings`. `--sweep` runs this for every simple shape on every part.
+The score is the filter, not the judge: each pick goes to `just crops --diff` and `--hex`.
 
 ## 1 · Palette and outline
 
@@ -114,7 +122,10 @@ type = "region"; part = "neck"; anchor = "back"; n = 2; ink = true; facings = ["
 Not `edge torso touching neck`: the neck's boundary is a U and the band bends. Not corner tips
 plus flaps in front: they read as a W.
 
-**Zipper / opening.** Front: stripes at −1 (edge), 0 (shirt), +1 (edge), `straight = true`, plus a
+**Zipper / opening.** A stripe takes `skip` (drop the part's first rows), `top` and `bottom`
+(keep the first/last n); a straight stripe's column is the median over the whole part, so stacked
+stripes with different rows stay one strip (Nyx's open coat: tee for four rows, belt, pants).
+Front: stripes at −1 (edge), 0 (shirt), +1 (edge), `straight = true`, plus a
 one-row skin dip at the top (offset 0, `top = 1`, `skin.shade`). 3/4: 0 (edge), 1 (shirt, `ink =
 true`), 2 (edge, `ink = true`) — the chest front projects toward the facing side and the far edge
 lands on the template's interior ink column, which rules skip unless told to paint ink. Profile:
@@ -156,7 +167,10 @@ normal failure.
 
 `compare NAME --widths`: per row, mockup vs render extents and the difference per side. The metric
 forgives one pixel of drift, so a +1 is already matched; growing for it overshoots and loses (a
-general jacket-bulk grow dropped the score 0.007). Grow only for ≥2, with a name:
+general jacket-bulk grow dropped the score 0.007). Grow only for ≥2, with a name. With an eight-view mockup every view is scored, so the left 3/4
+views get their own grows: a far shoulder is symmetric and needs `down_side` AND `down_side_l`,
+and in the mirrored frame the far arm is `arm_r`. The "no `_l` twins" rule below is for
+one-sided features (the cyber-arm) and for five-view mockups where the left views are unscored:
 
 - 3/4 front: `grow arm_l front n=2` and `hand_l front n=2` (the far sleeve beside the torso),
   `grow torso front n=2` (the far shoulder above it);
@@ -185,6 +199,12 @@ mean cost; `--digits VIEW` shows the cost per pixel (9 = nothing similar within 
 hot spot can be read against the `--text` rows. Then the finer optimizer pass.
 
 ## 6 · Checks and hygiene
+
+- Rules may list `anims`; the attack's spinning frames take the profile facing and stack
+  profile trim (cuff, piping, hem) into a hook — exclude `attack` on those rules if the review
+  row shows it.
+- A goal met by less than 0.001 is not met: a generator fix (there were four during one run)
+  moves scores by that much. Re-score after every tool change (`NOTES.md` notes the step).
 
 - Snapshots `history/step-NN.toml` every five steps, `NOTES.md` one row per step with the score.
 - Every five steps `just preview NAME` (all animations) and zoomed crops of walk, run, jump and
