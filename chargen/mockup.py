@@ -519,9 +519,8 @@ def mirror_grid(recipe, facing: str, template_width: int, swap: bool = False) ->
                 xs = np.where(stub[y])[0]
                 for x in xs[:2]:
                     out[y, x] = g[y, x]
-        else:  # up_side_l: her right (shaved) is the near side, where it was on screen
-            for y, x in zip(*np.where(stub)):
-                out[y, x] = g[y, x]
+        else:  # up_side_l: her right is screen-right in both 3/4-back views and the head template
+            return g.copy()  # is symmetric there, so the unmirrored up_side grid is the answer
     return out
 
 
@@ -669,4 +668,24 @@ def init_palette(views, tone_ids: dict) -> list[str]:
             spread = _redmean(np.repeat(med[None].astype(float), len(a), 0), a).std()
             out.append(f"{label:14} {tone:6} {len(px):4d}  #{med[0]:02x}{med[1]:02x}{med[2]:02x}  {spread:5.0f}{' ~' if spread > 80 else ''}")
     out.append("(~ = wide: two populations, or trim on that part's tone (caps on the feet, glow on the arm): read --hex on a box; the head needs its grids first)")
+    return out
+
+
+def oracle(views, pal, groups=None) -> list[str]:
+    """Where the remaining gap lives: for each body-part group, copy the mockup's pixels
+    (quantized to the palette) over the render on that part's mask and score again. The gain
+    is what a pixel-perfect version of that part would be worth; the rest is the metric's
+    tolerance and the mockup's noise. `views` = [(facing, sprite, placed, rend, labels)]."""
+    groups = groups or {"head": "H", "torso+arms": "TRLrl", "legs+feet": "PQpq", "body": "NTRLrlPQpq"}
+    out = [f"{'part':12} {'gain':>8}   (mean over views; the whole-body figure is the most any rule set could add)"]
+    for name, codes in groups.items():
+        gains = []
+        for facing, sprite, placed, rend, labels in views:
+            base = similarity(sprite, rend)
+            q = quantized(placed, pal)
+            r2 = rend.copy()
+            m = np.isin(labels, list(codes)) & (q[..., 3] > 0)
+            r2[m] = q[m]
+            gains.append(similarity(sprite, r2) - base)
+        out.append(f"{name:12} {np.mean(gains):+8.4f}")
     return out

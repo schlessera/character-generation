@@ -1,6 +1,6 @@
 ---
 name: mockup-character
-description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (0.90 similarity in one to five steps; the goal is a percentage below the measured palette ceiling). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, visor, collar, jacket, sleeves, shoes or turn-around — even if they don't say "recipe" or "mockup". It encodes what 110 iteration steps on Juno and three replays by fresh agents (12, 10 and 6 steps) taught: the order of work that pays, the instruments to read, the rule patterns per facing, and the mistakes not to repeat.
+description: Turn a character's concept art and pixel mockup into a finished recipe for this repo's semantic sprite skinning generator (characters/NAME/recipe.toml), then iterate it against the mockup with `just compare` until it matches as closely as the rule system allows (0.90 similarity in one to five steps; the goal is a percentage below the measured palette ceiling). Use this whenever the user adds a new character, has a mockup or concept image to turn into a sprite, wants to "iterate on" or "improve" a character against its mockup, asks to raise the similarity score, or reports a visual problem with a character's hair, visor, collar, jacket, sleeves, shoes or turn-around — even if they don't say "recipe" or "mockup". It encodes what 110 iteration steps on Juno and four replays by fresh agents taught (the last one probed how far the rule system can go at all): the order of work that pays, the instruments to read, the rule patterns per facing, and the mistakes not to repeat.
 ---
 
 # Character from a pixel mockup
@@ -42,8 +42,13 @@ the skeleton is the distilled version of it.
 Work in a branch. `just step NAME "what changed" --goal 4` after every change: it scores, appends
 the row to `history/NOTES.md` (four decimals), snapshots every fifth step, and reports the goal.
 The goal is not a fixed number: it is a distance below the palette ceiling (the mockup quantized
-to the recipe's palette, scored against itself — the most this palette could express). Within
-4% is done; Juno sits at 2.6%, the two replays at 3.1% and 3.8%. `just review NAME` after every
+to the recipe's palette, scored against itself — the most this palette could express). Palette
+moves lift the ceiling as much as the score, so only structure closes the gap; that is the
+point of measuring it this way. What the percentages mean, measured: **4%** is one command
+(the drafted grids); **3%** is a reviewed, finished character; **2.4%** is the most anyone has
+reached with rules that hold in every frame (run 4, ten steps); **1%** is where a despeckled
+pixel copy of the mockup's own body lands — reachable only by tracing the body, which breaks
+the other 243 frames. Set 4 for done, 3 for polish; do not chase lower. `just review NAME` after every
 visible change: one image with the eight facings at 12×, torso and feet crops, the turn-around
 and the angled animations. `just lint NAME` before any scoring. Commit per phase; `just smoke`
 at the end. Human complaints outrank the score: a bent collar, a low visor, small shoes and a
@@ -64,9 +69,12 @@ jacket that looked broken from 3/4 cost nothing on the metric and were the most 
 
 `just compare NAME --draft-grid all --clean --apply --mirror-swap --quiet`: the five mockup views
 are drafted (nearest legend colour per cell on the head), cleaned (visor characters off the rim
-and lens rows, lone speckles, the row below the jaw keeps hair only) and written into the recipe;
-the three left-facing views are mirrored from their twins about the template width with mane
-and shaved side swapped (drop `--mirror-swap` for a symmetric cut). Score: ~0.90 on the replay.
+and lens rows, lone speckles, the row below the jaw keeps hair only) and written into the recipe
+— twice, because the mockup's placement over the render moves once the head is covered and the
+second pass aligns to the final one (+0.003 on the replay); the three left-facing views come
+from their twins (the 3/4 mirrored with a far-edge strip of shaved side, the profile mirrored
+all mane, the 3/4-back unmirrored since her right is screen-right in both; drop `--mirror-swap`
+for a symmetric cut). Score: ~0.905 on the replay.
 Then `just review NAME` and look, first at the heads row (24×): the three left views are drafts
 of a different kind (a mirror with the mane put back on her own side) and are where the
 non-metric risk lives — a character facing screen-right shows the camera her *right* side, so the
@@ -84,8 +92,11 @@ silhouettes at 0.99+. One-sided features must not carry `_l` twins (lint says so
 
 ### Step 3 — the last thousandths (0–2 steps)
 
-`--slack` (parts with room), `--fit-part CODES`, then `--fit`/`--optimize` — palette instruments
-only make sense now that the head is covered. `--hot 20` lists the costliest pixels: scattered
+`--oracle` first: it copies the mockup's pixels over the render per part and reports the gain —
+where the remaining gap lives and the most any rule could add (torso+arms on Juno's mockup,
+the head is done). Then `--slack`, `--fit-part CODES`, and rule ablation: drop a skeleton rule
+in a variant and score; a rule that scores better removed is a Juno detail this mockup lacks —
+confirm with `--hex` before deleting. `--fit`/`--optimize` last; they lift the ceiling too. `--hot 20` lists the costliest pixels: scattered
 single pixels at cost ~1 mean nothing big is left. `--fit-grid` is a diagnostic; if it finds
 nothing, or only speckles, the grids are done. A fix to an unscored view (a left grid) can go on
 the previous row with `just step ... --amend`.

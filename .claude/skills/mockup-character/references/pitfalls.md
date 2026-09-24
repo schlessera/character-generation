@@ -71,6 +71,20 @@ Each one cost at least a step, some cost ten. Read before editing `[parts]`, gri
   a patch had left the per-view tail of `compare` under the wrong `if` — `just selftest` exists
   because of that one.
 
+- Run 4 (goal 1% below the ceiling, 10 steps to 2.39%): the honest ceiling. Its measurements:
+  a despeckled quantized mockup scores 0.9247, the 1% line; the body oracle (pixel copy of the
+  body) despeckled scores 0.9273. So 1% is tracing. What it found on the way, all in the skeleton
+  now: draft twice (placement moves with the grids); `up_side_l` is `up_side` unmirrored; the
+  profile zipper one pixel inside the front edge (on the edge the outline pass repaints it, and a
+  straight median column only exists near the hem); the far cuff limited to the sleeve's outer
+  end; square shoulders (`grow torso up`); per-part outline (`[outline] parts`, the joggers in
+  cool black); the forearm glint only where the arm is nearest; the collar's inner edges shadowed
+  for two rows in front; the near-arm seam continuing past the hand; and the metric rewards
+  dithering (single hem pixels flipped to jacket gain because the neighbours still match) — never
+  apply a per-pixel gain map. The attack's second frame had the back collar across the chest:
+  the head turns before the body, and `rule_facing = "head"` followed the head; `"body"` takes
+  front/back from the arms' order in the labels.
+
 ## Score reading
 
 - The metric tolerates one pixel of drift in any direction. A width difference of +1 is already

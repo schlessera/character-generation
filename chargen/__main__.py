@@ -234,7 +234,7 @@ def cmd_labels(anims=()):
 
 def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
                 split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False, mirror_swap=False, apply=False, clean=False, hot=0,
-                init_pal=False, goal=None):
+                init_pal=False, goal=None, oracle_=False, _pass=1):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
@@ -255,6 +255,7 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     part_pairs: dict[str, list] = {}
     hot_views: list = []
     pal_views: list = []
+    oracle_views: list = []
     from .mockup import quantize
     for i, (sprite, facing) in enumerate(zip(sprites, MOCKUP_FACINGS)):
         fr = frames[anim][facing][frame]
@@ -312,9 +313,16 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
             sheet.alpha_composite(im.resize((cell, cell), Image.NEAREST), (gap + i * (cell + gap), gap + j * (cell + gap)))
         hot_views.append((facing, placed, rend, cr, cm, pal))
         pal_views.append((facing, placed, fr.labels, fr.tones))
+        oracle_views.append((facing, sprite, placed, rend, fr.labels))
     for facing in draft:  # left facings: mirrored from their right-facing twin
         if facing.endswith("_l") or (facing == "all" and False):
             pass
+    if draft and apply and _pass == 1 and any(f in MOCKUP_FACINGS or f == "all" for f in draft):
+        # the mockup's best placement moves once the head is covered: draft again against it
+        print("== second pass: the placement changed with the grids, redrafting")
+        return cmd_compare(name, mockup, recipe, anim, frame, text, fit, optimize, ceil, fit_grid, chars, widths_, digits_,
+                           slack_, split_, shift_, fit_part_, draft, hex_, quiet, mirror_swap, apply, clean, hot, init_pal,
+                           goal, oracle_, _pass=2)
     if draft and apply:  # the right twins may have just been written: reload them
         r = Recipe(r.path)
     lefts = [f for f in ("down_side_l", "side_l", "up_side_l") if f in draft or ("all" in draft and f[:-2] in r.grids)]
@@ -333,6 +341,10 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
         print(f"== {hot} costliest pixels (single scattered pixels at cost ~1 mean nothing big is left)")
         print("\n".join(hot_spots(hot_views, hot)))
+    if oracle_:
+        from .mockup import oracle
+        print("== oracle: gain from a pixel copy of the mockup, per part")
+        print("\n".join(oracle(oracle_views, pal)))
     if init_pal:
         from .catalog import TONE_IDS
         print("== palette from the mockup, per body part and template tone")
@@ -415,6 +427,7 @@ def main():
     c.add_argument("--hot", type=int, default=0, metavar="N", help="the N costliest pixels over all views")
     c.add_argument("--init-palette", action="store_true", help="median mockup colour per body part and tone (before grids)")
     c.add_argument("--goal", type=float, metavar="PCT", help="report the target as PCT percent below the palette ceiling")
+    c.add_argument("--oracle", action="store_true", help="gain from a pixel copy of the mockup per body part: where the gap lives")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
     a = ap.parse_args()
     if a.cmd == "build":
@@ -435,7 +448,7 @@ def main():
         cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
                     slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part, draft=a.draft_grid,
                     hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet,
-                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal)
+                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle)
     else:
         cmd_labels(a.anims)
 

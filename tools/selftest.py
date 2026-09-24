@@ -34,8 +34,8 @@ def main():
             if want not in out:
                 fails.append(f"compare flag output missing: {want!r}")
         rc, out = run("compare", NAME, "--quiet", "--draft-grid", "all", "--clean", "--apply", "--mirror-swap")
-        if out.count("written to") != 8:
-            fails.append(f"draft-grid all wrote {out.count('written to')} grids, expected 8")
+        if out.count("written to") != 13 or "second pass" not in out:  # 5 in the first pass, 8 in the second
+            fails.append(f"draft-grid all wrote {out.count('written to')} grids, expected 5 + 8 over two passes")
         rc, out = run("compare", NAME, "--quiet", "--shift", "--chars", "kbHDi", "--fit-grid", "down", "--chars", "kbHDi", "--optimize")
         for want in ("best grid shift", "fit-grid down", "optimize:"):
             if want not in out:

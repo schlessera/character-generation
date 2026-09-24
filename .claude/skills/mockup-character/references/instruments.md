@@ -30,10 +30,11 @@ says what they mean for this recipe. All flags combine; `--quiet` drops the loss
 | `--shift [--chars kbHDi]` | best one-pixel offset per head grid (of the given cells only) with its gain | hair volume direction; act by adding hair, not by shifting |
 | `--fit-grid VIEW… [--chars …]` | the head grid traced cell by cell to the mockup, only changes that gain | a diagnostic; look at the cells before applying |
 | `--recipe PATH` | score a variant file instead of the character's recipe | every experiment |
+| `--oracle` | per part, the gain from copying the mockup's quantized pixels over the render | where the gap lives; the most any rule set could add |
 | `--goal PCT` | the ceiling, the threshold PCT percent below it, and whether the mean reaches it | the definition of done |
 | `--hot N` | the N costliest pixels: view, row, col, mockup letter, render letter, cost | a "nothing big is left" check: scattered singles at cost ~1 mean done |
 | `--init-palette` | median mockup colour per body part and template tone (body only; the head needs grids) | a new design's palette before the grids |
-| `--draft-grid … --clean --apply` | `--clean`: visor chars off the rim/lens rows, lone speckles, hair-only last row; `--apply`: write into the recipe | step 1 in one command |
+| `--draft-grid … --clean --apply` | `--clean`: visor chars off the rim/lens rows, lone speckles, hair-only last row; `--apply`: write into the recipe, in two passes (the placement moves once the head is covered) | step 1 in one command |
 
 Other commands:
 

@@ -1,6 +1,6 @@
 # Juno "Static" Okafor: rooftop data courier. Concept art: concept/
 name = "Juno"
-rule_facing = "head"   # trim follows the body through the spinning attack
+rule_facing = "body"   # trim follows the body through the spinning attack (front/back from the arms, side from the head)
 emissive = ["cyan"]    # ramps that glow: the visor lens and the cyber-arm's joints stay lit in the dark
 emissive_strength = 0.5  # how self-lit they are: 0 = lit like the rest of her, 1 = full brightness
 emissive_parts = { "arm_r+hand_r" = 1.0 }  # the cyber-arm's joints glow at full brightness

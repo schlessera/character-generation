@@ -183,9 +183,15 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
                 continue  # keep template ink (outlines, eyes) unless the ramp defines one
             rgba[y, x, :3] = ramp_slot(r.ramps[ramp], t)
     # 2. rules. With `rule_facing = "head"` they follow the tracked head's facing, so
-    #    trim turns with the body in spinning poses (the attack) instead of staying put.
-    if r.data.get("rule_facing") == "head" and f.head:
-        f = replace(f, facing=f.head[0])
+    #    trim turns with the body in spinning poses (the attack) instead of staying put;
+    #    with `"body"` the head's side is kept but front/back comes from the labels (her
+    #    right arm left of her left arm means she faces the camera), so a head that turns
+    #    before the body does not put the back collar across her chest.
+    if r.data.get("rule_facing") in ("head", "body") and f.head:
+        facing = f.head[0]
+        if r.data.get("rule_facing") == "body":
+            facing = _body_facing(f, facing)
+        f = replace(f, facing=facing)
     for rule in r.rules:
         if "facings" in rule and f.facing not in rule["facings"]:
             continue
@@ -215,7 +221,28 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
         ink = f.tones == TONE_IDS["ink"]
         edge = ink & a & ~_erode(a) & ~np.isin(painted, list(r.outline.get("keep", "")))
         rgba[edge, :3] = r.color(r.outline["color"], TONE_IDS["base"])
+        # `parts`: a part's own line colour (selective outlining: dark trousers edged in a
+        # cool black, skin and hair in the warm brown); later entries win, like [parts]
+        for name, ref in r.outline.get("parts", {}).items():
+            m = edge & np.isin(f.labels, list(part_codes(name))) & (painted == ".")
+            rgba[m, :3] = r.color(ref, TONE_IDS["base"])
     return rgba
+
+
+def _body_facing(f: Frame, head_facing: str) -> str:
+    """The head's facing with its front/back taken from the arms' order in the labels."""
+    xr = np.where(np.isin(f.labels, ["R", "r"]) & (f.tones > 0))[1]
+    xl = np.where(np.isin(f.labels, ["L", "l"]) & (f.tones > 0))[1]
+    if not len(xr) or not len(xl):
+        return head_facing
+    d = xl.mean() - xr.mean()  # > 0: her right is on the left, she faces the camera
+    left = head_facing.endswith("_l")
+    base = head_facing[:-2] if left else head_facing
+    if d > 1.5 and base in ("up", "up_side"):
+        base = {"up": "down", "up_side": "down_side"}[base]
+    elif d < -1.5 and base in ("down", "down_side"):
+        base = {"down": "up", "down_side": "up_side"}[base]
+    return base + ("_l" if left and base != "down" and base != "up" else "")
 
 
 def _grow(rule: dict, f: Frame, rgba: np.ndarray, r: Recipe) -> Frame:
