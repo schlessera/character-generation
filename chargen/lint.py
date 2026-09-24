@@ -35,7 +35,7 @@ def lint(path: Path, tpl) -> list[tuple[str, str]]:
         out.append(("warn", "[parts] `fx` is not mapped: the attack's swing smears render as dark blobs. Add `fx = \"...\"`."))
 
     # rules
-    known = {"edge", "rows", "stripe", "band", "all", "region", "grow", "shrink"}
+    known = {"edge", "rows", "stripe", "band", "all", "region", "grow", "shrink", "shift"}
     for i, rule in enumerate(r.rules):
         tag = f"rule {i + 1} ({rule.get('type')} {rule.get('part')})"
         if rule.get("type") not in known:

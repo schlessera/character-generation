@@ -12,6 +12,20 @@ relaunches. Per round: `history-runN/` (NOTES.md, AGENT-LOG.md, snapshots, `fina
 
 | 2 | v2 (structure-only skeleton, rule library, --all-slots, --sweep, shrink) | 14 of 30 | 0.9138 | 0.9385 | 2.63% | step 8 (thin), step 10 with margin | `--all-slots` coupled grids to body ramps (twice poisoned a palette experiment); the library's facing lists are one mockup's answers; a coat rule on a hand swings with the arm (needs `anims`); the placement moves after a grow and the grid should be re-drafted then; no labels view for the body; the open-coat strip wanted per-facing offsets |
 
+| 3 | v3 (hex-literal legend letters, --labels, per-facing offsets, placement warning) | 11 of 30 | 0.9140 | 0.9397 | 2.73% | step 8 (+0.0016) | the library's open-coat strip transferred unchanged (+0.0145); a re-draft after a hand rule cost 0.006 (the tool now keeps a re-draft only where it scores); lint misfired on symmetric groups; `--fit-grid all` was silent and paid +0.003 on uncleaned drafts; a stripe on a group is one stripe (`each`); parameters other than offset wanted per-facing values (`per_facing`); the back shrink erased the hands; no way to move a part (`shift`) |
+
+## Revision after run 3 (skill v4)
+
+Tooling: `--try FILE` (candidate rules scored per view, alone and together); a re-draft over an
+existing grid is written only where it scores; the post-apply score is re-read from the file;
+the placement warning ignores views without a grid at the previous step; `--fit-grid all` and
+`--fit-grid --apply` (last row kept); lint's one-sided check skips groups naming both sides;
+`each = true` (a rule per single part of a group; the sweep uses it); `per_facing` parameter
+overrides on any rule; a `shift` rule with `over`; `just crops` shows the mockup as its first
+row; `--clean`'s print is one short line per skipped view; skin gets an `ink` slot.
+Skill: `--hex` ranges end-exclusive and `--init-palette` limits stated; library notes on the
+lapel columns, the back shrink and the hands, `each`, `per_facing`, `shift`.
+
 ## Revision after run 2 (skill v3)
 
 Tooling: `--all-slots` writes hex literals into the legend (no coupling) and skips near-legend

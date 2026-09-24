@@ -224,6 +224,9 @@ def render_frame(r: Recipe, f: Frame) -> np.ndarray:
         if rule["type"] == "shrink":
             f = _shrink(rule, f, rgba)
             continue
+        if rule["type"] == "shift":
+            f = _shift_part(rule, f, rgba)
+            continue
         mask = _rule_mask(rule, f)
         for y, x in zip(*np.where(mask)):
             t = f.tones[y, x]
@@ -346,6 +349,37 @@ def _shrink(rule: dict, f: Frame, rgba: np.ndarray) -> Frame:
                 if any(not (0 <= y + ey < H and 0 <= x + ex < W) or not op[y + ey, x + ex] for ey, ex in steps.values()):
                     tones[y, x] = TONE_IDS["ink"]
                     rgba[y, x] = (47, 37, 34, 255)
+    return replace(f, tones=tones, labels=lab)
+
+
+def _shift_part(rule: dict, f: Frame, rgba: np.ndarray) -> Frame:
+    """`shift`: move a part's pixels by `dy` rows and `dx` columns (facing-aware: `dx` flips on
+    left facings). Pixels land only on transparent pixels or on the part itself; the vacated
+    pixels become transparent; the part's new silhouette is inked. `over` lists parts the moved
+    pixels may cover (`over = ["arms"]`: the hand takes the sleeve's last row). The template's
+    hands sit a row lower than a mockup's, for example (`shift hands dy = -1`)."""
+    tones, lab = f.tones.copy(), f.labels.copy()
+    codes = list(part_codes(rule["part"]))
+    over = set(codes) | set("".join(part_codes(n) for n in rule.get("over", [])))
+    dy = rule.get("dy", 0)
+    dx = rule.get("dx", 0) * (-1 if f.facing.endswith("_l") else 1)
+    H, W = tones.shape
+    part = np.isin(lab, codes) & (tones > 0)
+    src = [(y, x, tones[y, x], lab[y, x], rgba[y, x].copy()) for y, x in zip(*np.where(part))]
+    for y, x, *_ in src:  # vacate
+        tones[y, x], lab[y, x] = 0, "."
+        rgba[y, x] = 0
+    for y, x, t, l, c in src:
+        ny, nx = y + dy, x + dx
+        if 0 <= ny < H and 0 <= nx < W and (tones[ny, nx] == 0 or lab[ny, nx] in over):
+            tones[ny, nx], lab[ny, nx] = t, l
+            rgba[ny, nx] = c
+    op = tones > 0
+    moved = np.isin(lab, codes) & op
+    for y, x in zip(*np.where(moved & (tones != TONE_IDS["ink"]))):
+        if any(not (0 <= y + ey < H and 0 <= x + ex < W) or not op[y + ey, x + ex] for ey, ex in ((-1, 0), (1, 0), (0, -1), (0, 1))):
+            tones[y, x] = TONE_IDS["ink"]
+            rgba[y, x] = (47, 37, 34, 255)
     return replace(f, tones=tones, labels=lab)
 
 

@@ -81,23 +81,39 @@ def cmd_crops(name, recipes_, box, diff=False):
     s, w, h = 16, 20, y1 - y0
     cw, ch = w * s + 6, h * s + 6
     from PIL import ImageDraw
-    out = Image.new("RGBA", (len(FACINGS) * cw, len(paths) * ch), (60, 62, 80, 255))
+    # the mockup's views, placed on the current render, as the first row (the reference to judge against)
+    mock = {}
+    src = CHARS / name / "concept" / f"{name}-pixel-mockup.png"
+    if src.exists():
+        from .mockup import extract, mockup_facings, place
+        sprites = extract(src)
+        r0 = Recipe(paths[0])
+        for sp, f in zip(sprites, mockup_facings(len(sprites))):
+            mock[f] = place(sp, render_frame(r0, frames["idle"][f][0]))
+    rows_n = len(paths) + (1 if mock else 0)
+    out = Image.new("RGBA", (len(FACINGS) * cw, rows_n * ch), (60, 62, 80, 255))
     d = ImageDraw.Draw(out)
+    if mock:
+        for i, f in enumerate(FACINGS):
+            if f in mock:
+                out.alpha_composite(Image.fromarray(mock[f]).crop((6, y0, 6 + w, y1)).resize((w * s, h * s), Image.NEAREST), (i * cw, 0))
+        d.text((4, 2), "mockup", fill=(255, 255, 255, 255))
     base = {}
     for j, p in enumerate(paths):
         r = Recipe(p)
+        jj = j + (1 if mock else 0)
         for i, f in enumerate(FACINGS):
             px = render_frame(r, frames["idle"][f][0])
             im = Image.fromarray(px).crop((6, y0, 6 + w, y1)).resize((w * s, h * s), Image.NEAREST)
-            out.alpha_composite(im, (i * cw, j * ch))
+            out.alpha_composite(im, (i * cw, jj * ch))
             if j == 0:
                 base[f] = px
             elif diff:  # outline every pixel that differs from the current recipe
                 dm = (px != base[f]).any(-1)
                 for y, x in zip(*np.where(dm[y0:y1, 6:6 + w])):
-                    d.rectangle([i * cw + x * s, j * ch + y * s, i * cw + (x + 1) * s - 1, j * ch + (y + 1) * s - 1],
+                    d.rectangle([i * cw + x * s, jj * ch + y * s, i * cw + (x + 1) * s - 1, jj * ch + (y + 1) * s - 1],
                                 outline=(255, 64, 200, 255), width=2)
-        d.text((4, j * ch + 2), p.stem if j else "current", fill=(255, 255, 255, 255))
+        d.text((4, jj * ch + 2), p.stem if j else "current", fill=(255, 255, 255, 255))
     dest = BUILD / "preview" / f"{name}_crops.png"
     dest.parent.mkdir(parents=True, exist_ok=True)
     out.save(dest)
@@ -351,7 +367,7 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
                 best = max(cands, key=lambda c: (round(c[0], 6), c[1], c[2]))  # ties go to the fuller cleanup
                 g = best[3]
                 skipped = [n for n, on in (("speckle", best[1]), ("last-row", best[2])) if not on]
-                note = "cleaned; " if not skipped else f"cleaned without the {' and '.join(skipped)} pass ({full - best[0]:+.4f} with it); "
+                note = "cleaned; " if not skipped else f"rim pass only, {' and '.join(skipped)} skipped ({full - best[0]:+.4f}); "
             print(f"== {facing}: drafted grid ({note}nearest legend colour per cell)")
             print(grid_text(g))
             far = getattr(draft_grid, "far", [])

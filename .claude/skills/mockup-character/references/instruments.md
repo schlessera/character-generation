@@ -63,7 +63,8 @@ Other commands:
 - `just heads NAME` — each facing's head template rows beside its grid, with the grid↔frame
   column and row offsets in the header.
 - `just crops NAME --box y0,y1 [--recipe v.toml …] [--diff]` — the eight idle facings cropped to
-  frame rows y0..y1 at 16×; the current recipe is always the first row, one more row per
+  frame rows y0..y1 at 16×; the mockup's views (placed on the render) are the first row, the
+  current recipe the second, one more row per
   `--recipe` variant (`17,31` torso, `24,32` feet, `4,20` head); `--diff` outlines every pixel a
   variant changes. The fastest way to judge a trim change from every angle.
 - `just preview NAME [anims…]` — contact sheet of every animation × facing (`build/preview/NAME.png`,

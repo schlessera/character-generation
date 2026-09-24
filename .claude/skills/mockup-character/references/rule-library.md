@@ -53,7 +53,10 @@ type = "rows"; part = "arms"; from = "bottom"; n = 1; facings = ["up"]; color = 
 A grow placed before a straight stripe moves the stripe: the median column is taken over the
 widened part (Nyx's opening strip shifted by one column in 3/4 front with the far-shoulder grow
 first: -0.004; the picture was right with the grow first, and per-facing `offsets` settle it).
-Shrink erases the part's edge pixels on that side and inks the new silhouette. It cannot tell a
+`shift` moves a part (`type = "shift"`, `part`, `dy`, `dx`; `dx` flips on left facings): the
+template's hands hang a row lower than both mockups' (`shift hands dy = -1, over = ["arms"]` in
+front: the hand takes the sleeve's last row); pixels land only on transparent pixels, the part
+itself or the parts in `over`, the vacated ones go transparent, the new silhouette is inked. Shrink erases the part's edge pixels on that side and inks the new silhouette. It cannot tell a
 one-sided feature from the body: shrinking the legs' front edge in profile erased Nyx's cyber-shin.
 Judge every silhouette change on `just crops NAME --box 17,31 --diff`.
 
