@@ -69,7 +69,7 @@ flowchart LR
 | 2 | [Teaching the AI anatomy](#2--teaching-the-ai-anatomy) | Labeling every pixel of every frame with the body part it belongs to |
 | 3 | [Pixels as text](#3--pixels-as-text) | Why every image here is also a text file |
 | 4 | [Dressing the mannequin](#4--dressing-the-mannequin) | A character is a recipe that renders onto all frames at once |
-| 5 | [Closing the gap](#5--closing-the-gap) | 25 rounds of the agent comparing its render to the mockup, and where it stopped paying off |
+| 5 | [Closing the gap](#5--closing-the-gap) | 40 rounds of the agent comparing its render to the mockup: where it stopped paying off, and what got it moving again |
 | 6 | [Debugging in plain text](#6--debugging-in-plain-text) | Bugs tracked down with a query and fixed with a few characters |
 | 7 | [Variations for free](#7--variations-for-free) | A new colorway is a ten-line file |
 | 8 | [The AI picks up the pencil](#8--the-ai-picks-up-the-pencil) | Why concept art can't just be shrunk into pixel art |
@@ -239,11 +239,11 @@ flowchart LR
 Every five steps the recipe was saved to `characters/juno/history/step-NN.toml`, so each stage of the progression is
 rebuilt from source like every other image here:
 
-<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after 0, 5, 10, 15, 20 and 25 iteration steps, in five views" width="920"></p>
+<p align="center"><img src="docs/images/juno-iteration.png" alt="Pixel mockup, then Juno after 0, 5, 10, 15, 20, 25, 30, 35 and 40 iteration steps, in five views" width="920"></p>
 
 <p align="center"><img src="docs/images/juno-iteration-heads.png" alt="Head close-ups (front, profile, back) across the same steps" width="920"></p>
 
-What each block of five steps did (the full log, step by step, is
+What each block of five steps did in the first run (the full log, step by step, is
 [`characters/juno/history/NOTES.md`](characters/juno/history/NOTES.md)):
 
 | steps | focus | similarity |
@@ -259,10 +259,12 @@ The similarity score is deliberately coarse. It lets every opaque pixel look for
 in the other image, so it forgives one-pixel drift but not a wrong shape or color. A perfect 1.0 is out of reach for
 reasons explained below.
 
-<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767" width="720"></p>
+<p align="center"><img src="docs/images/juno-similarity.png" alt="Similarity to the mockup per saved step: 0.614, 0.706, 0.752, 0.768, 0.766, 0.767, then 0.836, 0.848, 0.867" width="720"></p>
 
-The curve shows the returns diminishing. Shape (steps 1–5) and color (6–10) were the big wins. After step 15 the score
-is flat, and it's worth looking at why, because most of the remaining gap can't be closed by more iterations.
+The first 25 steps show the returns diminishing. Shape (steps 1–5) and color (6–10) were the big wins. After step 15
+the score was flat, and it's worth looking at why, because most of the remaining gap can't be closed by iterating the
+same way. (A second run, steps 26–40, then changed the instruments rather than the recipe, and moved the score again.
+That comes [after the analysis](#the-second-run-better-instruments).)
 
 **The two images follow different rules.** Juno is built by a rule system: the template's five tones, recolored
 through a small palette, plus geometric rules keyed to body-part labels. The mockup was painted by an image model that
@@ -311,6 +313,39 @@ Some details needed new capabilities in the generator, and the agent added them 
 - `[outline] keep` lists the head-grid colors that keep their own color on the silhouette (the ear, the hair outline).
 
 All of these are opt-in, so the earlier snapshots still render exactly as they did.
+
+### The second run: better instruments
+
+The first run ended with the score flat and the conclusion above: the remaining gap was structural. A second run of
+fifteen steps (26–40) tested that conclusion by changing what the agent could *see* before changing the recipe.
+`just compare` grew four instruments:
+
+- a **loss table per body part** (head, torso, cyber-arm, feet…), in score points, per view, so the biggest leak has a
+  name rather than a feeling;
+- **heat-map rows** below the side-by-side, the render dimmed with its unmatched pixels in red, and the same for the
+  mockup;
+- `--text VIEW`: the mockup and the render as text, `mockup | render`, every pixel written as a recipe palette letter
+  (`H` hair base, `H-` hair shade, `t` stubble, `r` orange, `##` outline, `??` nothing close). The mockup becomes
+  something an agent can read *as a head grid*, row by row, and copy from;
+- `--fit`: for every color in the render, the median mockup color underneath it. A palette suggestion table.
+
+The first thing the fit table said was that the mockup's outline is a warm dark brown (`#241a17`), not the near-black
+the recipe used. That one line was worth more than the previous ten steps (0.767 → 0.800). Then the text view showed
+what the loop had been unable to see in a side-by-side image: the visor sits one row lower on the same-height head,
+the whole back of the head is shaved down to the jaw in profile, the pants are the jacket's grey, the collar is open
+from the front, the sneakers are white high-tops with orange caps rather than orange soles. Each head grid was
+redrawn from the text view, offset by offset.
+
+| steps | focus | similarity |
+|---|---|---|
+| 26–30 | **what the fit table said.** Warm outline, grey pants, a palette refit, the open collar, the visor's grey rim, white high-tops | 0.836 |
+| 31–35 | **head grids read off the text view.** Profile, front and 3/4 redrawn: shaved side down to the jaw, hair from the crown, an outlined ear, a brow row over the visor; the visor on the same head row in every facing | 0.848 |
+| 36–40 | **the back views and the trim.** Back grids redrawn, the hem painted over the template's ink edge, collar tips at the jacket's corners, a second palette pass | 0.867 |
+
+The ceiling argument still holds: the mockup reduced to its own best 30 colors scores about 0.88, and step 40 is at
+0.867. What changed is that the agent could now find the rest of the way by itself, because the reference was in a
+form it reads well. The human-flagged issues of the first run (strand direction, a visor too wide) were all things a
+text diff makes obvious.
 
 ## 6 · Debugging in plain text
 

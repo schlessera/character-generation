@@ -51,4 +51,9 @@ grid) and `--fit` (the median mockup color under every render color).
 | 33 | 3/4 grid redrawn the same way; the mockup's head is two columns wider on the shaved side there, the grid extends it by one | 0.848 |
 | 34 | the visor sits on the same head row in every facing (the mockup has it a row higher in profile than from the front; consistency wins in the turn-around); brow row over the eyes in profile and the left-facing grids | 0.848 |
 | 35 | all animations checked; snapshot | 0.848 |
+| 36 | back and 3/4-back grids redrawn from the text view: the hair a row shorter with a dark bottom edge over the neck, the shaved side wider, an ear from behind, strands as shade rather than deep | 0.862 |
+| 37 | jacket hem paints over the template's ink edge (it was patchy where the template draws the jacket's bottom line in ink); the 3/4 collar open like the front (a far zipper edge was tried: the 3/4 torso is five pixels wide, the far edge is its outline) | 0.863 |
+| 38 | second `--fit` pass: pants shade, orange shade and shoe shade nudged toward the mockup (chrome and cyan variants tried, no gain, kept) | 0.867 |
+| 39 | orange collar tips at the jacket's top corners, where the mockup has them, instead of only beside the neck | 0.867 |
+| 40 | all animations checked, README figures regenerated; snapshot | 0.867 |
 
