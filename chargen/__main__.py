@@ -189,16 +189,23 @@ def cmd_turntable(name, scale=8, ms=220, anims=("idle",)):
 
 def cmd_step(name, message, snapshot=False, goal=None, amend=False):
     """Score the recipe, append a row to history/NOTES.md, snapshot every fifth step."""
-    from .mockup import extract, mockup_facings, similarity
+    from .mockup import extract, mockup_facings, placement, similarity
     tpl = template()
     r = Recipe(CHARS / name / "recipe.toml")
     frames = build_frames(tpl)
     sprites = extract(CHARS / name / "concept" / f"{name}-pixel-mockup.png")
     MOCKUP_FACINGS = mockup_facings(len(sprites))
-    scores = [similarity(sp, render_frame(r, frames["idle"][f][0])) for sp, f in zip(sprites, MOCKUP_FACINGS)]
+    renders = [render_frame(r, frames["idle"][f][0]) for f in MOCKUP_FACINGS]
+    scores = [similarity(sp, im) for sp, im in zip(sprites, renders)]
     mean = float(np.mean(scores))
     hist = CHARS / name / "history"
     hist.mkdir(exist_ok=True)
+    # the mockup's placement per view: a grid drafted before it moved is a pixel off now
+    pl_file = hist / "placement.json"
+    pl_now = {f: list(placement(sp, im)) for f, sp, im in zip(MOCKUP_FACINGS, sprites, renders)}
+    pl_old = json.loads(pl_file.read_text()) if pl_file.exists() else {}
+    moved = [f for f in pl_now if f in pl_old and pl_old[f] != pl_now[f] and f in r.grids]
+    pl_file.write_text(json.dumps(pl_now))
     notes = hist / "NOTES.md"
     text = notes.read_text() if notes.exists() else ""
     rows = [l for l in text.splitlines() if l.startswith("| ") and l.split("|")[1].strip().isdigit()]
@@ -214,6 +221,9 @@ def cmd_step(name, message, snapshot=False, goal=None, amend=False):
         (hist / f"step-{n:02d}.toml").write_text((CHARS / name / "recipe.toml").read_text())
         print(f"snapshot history/step-{n:02d}.toml")
     print(f"step {n}: {mean:.4f}  (" + "  ".join(f"{f}={v:.4f}" for f, v in zip(MOCKUP_FACINGS, scores)) + ")")
+    if moved:
+        print("placement moved since the last step in " + ", ".join(moved) + ": re-draft those grids "
+              "(`--draft-grid VIEW --all-slots --clean --apply`), the old draft is a pixel off")
     if goal is not None:
         from .mockup import ceiling, palette_letters
         cs = float(np.mean([ceiling(sp, palette_letters(r)) for sp in sprites]))

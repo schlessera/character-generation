@@ -164,6 +164,28 @@ def cost_maps(sprite: np.ndarray, render: np.ndarray) -> tuple[np.ndarray, np.nd
     return best[1], best[2], best[3]
 
 
+def placement(sprite: np.ndarray, render: np.ndarray) -> tuple[int, int]:
+    """Where the mockup view lands on the frame (row, col of its top-left) at the best shift.
+    It moves when the render's silhouette changes (a grow, a shrink, a drafted head), and a
+    grid drafted before the move is one pixel off afterwards: `just step` reports the change."""
+    H, W = render.shape[:2]
+    h, w = sprite.shape[:2]
+    ys = np.where(render[..., 3].any(1))[0]
+    xs = np.where(render[..., 3].any(0))[0]
+    oy = int(ys[-1] + 1 - h)
+    ox = int(round((xs[0] + xs[-1]) / 2 - w / 2)) + 1
+    base = place(sprite, render)
+    best = None
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            m = _shift(base, dy, dx)
+            c1, c2 = _cost(m, render), _cost(render, m)
+            sc = 1 - (c1.sum() + c2.sum()) / max(len(c1) + len(c2), 1)
+            if best is None or sc > best[0]:
+                best = (sc, dy, dx)
+    return oy + best[1], ox + best[2]
+
+
 def heat(cost: np.ndarray, under: np.ndarray) -> np.ndarray:
     """RGBA heat map: the image `under` dimmed, with its cost painted red on top."""
     out = under.copy()
@@ -893,13 +915,24 @@ def _sweep_init(recipe, frames, sprites, base):
 
 
 def _sweep_one(rule):
-    from .character import render_frame
+    from .character import _rule_mask, part_codes, render_frame
     r, frames, sprites, base = _SWEEP["recipe"], _SWEEP["frames"], _SWEEP["sprites"], _SWEEP["base"]
     r.rules = r.rules + [rule]
     try:
-        return [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, frames, base)]
+        deltas = [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, frames, base)]
     finally:
         r.rules = r.rules[:-1]
+    covers = []  # views where the rule repaints a whole part: a one-column cyber-shin vanished that way
+    if rule["type"] not in ("grow", "shrink"):
+        codes = list(part_codes(rule["part"]))
+        for i, fr in enumerate(frames):
+            m = _rule_mask({**rule, "ink": True}, fr)
+            for c in codes:
+                part = (fr.labels == c) & (fr.tones > 0)
+                if part.sum() and (m & part).sum() == part.sum():
+                    covers.append(i)
+                    break
+    return deltas, covers
 
 
 def sweep(recipe, sprites, frames, facings, n: int = 20, parts=None, workers: int | None = None) -> list[str]:
@@ -916,13 +949,15 @@ def sweep(recipe, sprites, frames, facings, n: int = 20, parts=None, workers: in
     with Pool(workers, initializer=_sweep_init, initargs=(recipe, frames, sprites, base)) as pool:
         deltas = pool.map(_sweep_one, cands, chunksize=8)
     rows = []
-    for rule, d in zip(cands, deltas):
+    for rule, (d, covers) in zip(cands, deltas):
         pos = [f for f, v in zip(facings, d) if v > 0.0005]
-        rows.append((float(np.mean(d)), float(sum(max(v, 0) for v in d) / len(d)), pos, rule))
+        cov = [facings[i] for i in covers if facings[i] in pos]
+        rows.append((float(np.mean(d)), float(sum(max(v, 0) for v in d) / len(d)), pos, cov, rule))
     rows.sort(key=lambda r: -r[1])
     out = [f"{len(cands)} candidates over {len(facings)} views ({workers} workers); base mean {np.mean(base):.4f}",
-           f"{'mean':>8} {'if limited':>10}  facings where it gains                rule"]
-    for mean, lim, pos, rule in rows[:n]:
+           f"{'mean':>8} {'if limited':>10}  facings where it gains                rule   (! = repaints a whole part there: check the feature is still visible)"]
+    for mean, lim, pos, cov, rule in rows[:n]:
         desc = " ".join(f"{k}={v}" for k, v in rule.items() if k != "type")
-        out.append(f"{mean:+8.4f} {lim:+10.4f}  {','.join(pos) or '-':38} {rule['type']} {desc}")
+        out.append(f"{mean:+8.4f} {lim:+10.4f}  {','.join(pos) or '-':38} {rule['type']} {desc}"
+                   + (f"   ! whole part in {','.join(cov)}" if cov else ""))
     return out

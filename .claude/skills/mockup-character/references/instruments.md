@@ -53,6 +53,9 @@ Other commands:
   heads at 24× (look here first), torso and feet crops at 16×, the turn-around and walk/run/jump/
   attack in the angled views at 6× → `build/preview/NAME_review.png`.
 - `just step NAME "message" [--goal PCT] [--snapshot] [--amend]` — score, append the NOTES row (or
+  replace the last one with `--amend`), snapshot every fifth step, and say in which views the
+  mockup's placement moved since the last step (a grow, a shrink, a new head): those grids want
+  a re-draft, one view at a time. Details of the row: score, append the NOTES row (or
   replace the last one — message and all — with `--amend`), snapshot every fifth step; with `--goal`, the ceiling and
   the threshold.
 - `just selftest` — every command and flag on a scratch copy; run it after touching `chargen/`.
