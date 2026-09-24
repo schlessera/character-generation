@@ -59,12 +59,9 @@ keep = "*"          # every grid cell keeps its colour on the silhouette edge: a
 
 # ---- rules: none yet. Order: grow/shrink -> shading -> collar -> hem -> opening -> sleeves ->
 # shoes -> limb details. Take each from references/rule-library.md; `--widths` before any grow.
-# Example of the syntax (a cuff):
-# [[rules]]
-# type = "edge"
-# part = "arm_l"
-# touching = "hand_l"
-# color = "trim.shade"
+# Syntax of one rule (a cuff), each key on its own line under a double-bracket rules header:
+#   type = "edge", part = "arm_l", touching = "hand_l", color = "trim.shade"
+# (the header itself is not written here: scripts that split the file on it would count it)
 
 # ---- head grids: `just compare NAME --draft-grid all --all-slots --clean --apply` -------------
 # (add --mirror-swap only for a FIVE-view mockup of a one-sided haircut). Grid = head template

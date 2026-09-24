@@ -93,6 +93,9 @@ type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; skip
 type = "stripe"; straight = true; part = "torso"; offsets = [-2, -1, 0, 1]; skip = 5; facings = ["down", "down_side", "down_side_l"]; color = "pants.base"
 ```
 A straight stripe's column is the median over the whole part, so stacked stripes stay one strip.
+`offset` and `offsets` may be a table keyed by facing with `"*"` as the default (Nyx's strip sits
+one column further toward the far side in 3/4 front left: `offsets = { "*" = [-2, -1, 0, 1],
+down_side_l = [-1, 0, 1, 2] }`), so one rule set serves every facing.
 
 ## Hem
 

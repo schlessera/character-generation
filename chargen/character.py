@@ -394,6 +394,9 @@ def _rule_mask(rule: dict, f: Frame) -> np.ndarray:
         # so a zipper stays a straight line on twisted poses instead of zig-zagging row by row
         fixed = int(np.median([base_x(y) for y in all_rows])) if rule.get("straight") and len(all_rows) else None
         offsets = rule["offsets"] if "offsets" in rule else [rule.get("offset", 0)]  # `offsets`: several columns in one rule
+        if isinstance(offsets, dict):  # per facing: { "*" = [-2, 1], down_side_l = [-1, 2] }
+            offsets = offsets.get(f.facing, offsets.get("*", [0]))
+        offsets = [offsets] if isinstance(offsets, int) else offsets
         for y in rows:
             base = fixed if fixed is not None else base_x(y)
             for off in offsets:
