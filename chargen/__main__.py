@@ -369,7 +369,8 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
                 skipped = [n for n, on in (("speckle", best[1]), ("last-row", best[2])) if not on]
                 note = "cleaned; " if not skipped else f"rim pass only, {' and '.join(skipped)} skipped ({full - best[0]:+.4f}); "
             print(f"== {facing}: drafted grid ({note}nearest legend colour per cell)")
-            print(grid_text(g))
+            if not (quiet and apply):  # written to the file anyway: --quiet skips the grid text
+                print(grid_text(g))
             far = getattr(draft_grid, "far", [])
             if len(far) >= 3:  # the nearest colour is a poor one: the palette lacks a colour the mockup paints here
                 med = np.median(np.array(far), 0).astype(int)

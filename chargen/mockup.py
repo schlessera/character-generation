@@ -677,7 +677,7 @@ def apply_legend(recipe_path, entries: dict[str, str], recipe=None) -> None:
     end = len(text) if nxt < 0 else nxt
     block = text[start:end].rstrip("\n")
     if recipe is not None:
-        lines = "".join('\n{} = "#{:02x}{:02x}{:02x}"   # {} at draft time (--all-slots); a literal, so the grid keeps this colour'
+        lines = "".join('\n{} = "#{:02x}{:02x}{:02x}"   # --all-slots: the nearest slot was {}; a literal (the grid keeps this colour); rename or move it to the ramp it depicts'
                         .format(ch, *recipe.color(ref, 1), ref) for ch, ref in entries.items())
     else:
         lines = "".join(f'\n{ch} = "{ref}"' for ch, ref in entries.items())

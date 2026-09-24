@@ -19,7 +19,9 @@ emissive_strength = 0.5
 # light = { color = "#3ff0ff", radius = 24, intensity = 0.2, anchor = "arm_r+hand_r" }   # a light the part casts
 
 # Ramps. Template tones pick slots: base, shade, light, blush, ink. Without `ink` the template's
-# ink stays (outlines, eyes). These values are placeholders in the shape of a real palette (Juno's);
+# ink stays (outlines, eyes). Any other slot name is allowed (`deep`, `dark`, `soft`): the
+# template never picks it, but a legend letter or a rule's `ramp.slot` can, so a colour the
+# draft reports as missing goes on the ramp it belongs to (`hair.dark`, `skin.deep`). These values are placeholders in the shape of a real palette (Juno's);
 # read the mockup's colours (`--hex VIEW y0,y1,x0,x1` on flat areas, `--init-palette` after
 # [parts]) and replace every slot. A ramp the design lacks: delete it. A material it has and
 # this list lacks (a mask, a coat, a tee): add one. Every legend entry below is a FIXED slot
