@@ -202,9 +202,10 @@ def cmd_step(name, message, snapshot=False, goal=None, amend=False):
     hist.mkdir(exist_ok=True)
     # the mockup's placement per view: a grid drafted before it moved is a pixel off now
     pl_file = hist / "placement.json"
-    pl_now = {f: list(placement(sp, im)) for f, sp, im in zip(MOCKUP_FACINGS, sprites, renders)}
+    pl_now = {f: list(placement(sp, im)) + [f in r.grids] for f, sp, im in zip(MOCKUP_FACINGS, sprites, renders)}
     pl_old = json.loads(pl_file.read_text()) if pl_file.exists() else {}
-    moved = [f for f in pl_now if f in pl_old and pl_old[f] != pl_now[f] and f in r.grids]
+    moved = [f for f in pl_now if f in pl_old and pl_old[f][:2] != pl_now[f][:2] and pl_now[f][2]
+             and len(pl_old[f]) > 2 and pl_old[f][2]]  # (a view drafted since the last step moved by design)
     pl_file.write_text(json.dumps(pl_now))
     notes = hist / "NOTES.md"
     text = notes.read_text() if notes.exists() else ""
@@ -276,7 +277,7 @@ def cmd_labels(anims=()):
 
 def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), fit=False, optimize=False, ceil=False, fit_grid=(), chars=None, widths_=False, digits_=(), slack_=False,
                 split_=False, shift_=False, fit_part_=None, draft=(), hex_=None, quiet=False, mirror_swap=False, apply=False, clean=False, hot=0,
-                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False, all_slots=False, sweep_=0, sweep_parts=None, labels_=()):
+                init_pal=False, goal=None, oracle_=False, _pass=1, min_gain=0.0015, ablate_=False, all_slots=False, sweep_=0, sweep_parts=None, labels_=(), try_=None):
     """Mockup (snapped to its pixel grid) above the render: whole figures, head close-ups,
     then heat maps of where the score is lost. `text` prints the given views as text,
     mockup | render in the recipe's palette letters; `fit` suggests palette moves."""
@@ -413,6 +414,25 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         print("legend: " + " ".join(f"{l.strip()}=#{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c, l in pal))
         print(f"== {hot} costliest pixels (single scattered pixels at cost ~1 mean nothing big is left)")
         print("\n".join(hot_spots(hot_views, hot)))
+    if try_:
+        import tomllib
+        print(f"== try: rules from {try_} appended after the recipe's, per-view gain vs the recipe")
+        extra_rules = tomllib.loads(Path(try_).read_text()).get("rules", [])
+        idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
+        base = [similarity(sp, render_frame(r, fr)) for sp, fr in zip(sprites, idle)]
+        rules0 = r.rules
+        rows = []
+        for i, rule in enumerate(extra_rules):  # each rule alone, then all together
+            r.rules = rules0 + [rule]
+            d = [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)]
+            rows.append((f"rule {i + 1}: {rule.get('type')} {rule.get('part')} {rule.get('color', '')}", d))
+        if len(extra_rules) > 1:
+            r.rules = rules0 + extra_rules
+            rows.append(("all together", [similarity(sp, render_frame(r, fr)) - b for sp, fr, b in zip(sprites, idle, base)]))
+        r.rules = rules0
+        print(f"{'':44}" + "".join(f"{f:>12}" for f in MOCKUP_FACINGS) + f"{'mean':>10}")
+        for label, d in rows:
+            print(f"{label[:44]:44}" + "".join(f"{v:+12.4f}" for v in d) + f"{np.mean(d):+10.4f}")
     if sweep_:
         from .mockup import sweep
         idle = [frames[anim][f][frame] for f in MOCKUP_FACINGS]
@@ -464,7 +484,11 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
         moves = optimize_palette(r, sprites, lambda rec: [render_frame(rec, fr) for fr in idle],
                                  radius=28 if min_gain >= 0.001 else 20, step=8 if min_gain >= 0.001 else 4, min_gain=min_gain)
         print("optimize: " + (", ".join(f"{a}.{b} {c} -> {d} (+{g:.3f})" for a, b, c, d, g in moves) or "no move gains"))
-    print("similarity " + "  ".join(f"{f}={v:.4f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.4f}")
+    if draft and apply:  # the scores above were taken before this pass wrote its grids: re-score the file
+        r2 = Recipe(r.path)
+        scores = [similarity(sp, render_frame(r2, frames[anim][f][frame])) for sp, f in zip(sprites, MOCKUP_FACINGS)]
+    print("similarity " + "  ".join(f"{f}={v:.4f}" for f, v in zip(MOCKUP_FACINGS, scores)) + f"  mean={np.mean(scores):.4f}"
+          + ("  (after the grids were written)" if draft and apply else ""))
     if quiet:
         return
     # loss per body part, in score points (render side + mockup side), per view then mean
@@ -516,6 +540,7 @@ def main():
     c.add_argument("--ablate", action="store_true", help="drop each rule in turn and score (candidates to confirm with --hex)")
     c.add_argument("--min-gain", type=float, default=0.0015, help="--optimize keeps a move only above this gain (0.0004 for the last thousandths; it raises the ceiling too)")
     c.add_argument("--chars", help="legend characters --fit-grid may use (default: all)")
+    c.add_argument("--try", dest="try_", metavar="FILE", help="a TOML file with [[rules]]: each appended to the recipe alone, then all together, with the per-view gains")
     c.add_argument("--labels", nargs="*", default=(), metavar="VIEW", help="print the frame's body-part labels and tones beside the mockup (or 'all')")
     c.add_argument("--sweep", type=int, default=0, metavar="N", help="forward rule search: score simple rule shapes on every part in every ramp, print the N best with per-view gains")
     c.add_argument("--sweep-parts", metavar="P,P", help="with --sweep: only these parts (default: every part and group)")
@@ -541,7 +566,7 @@ def main():
         cmd_compare(a.name, a.mockup, a.recipe, text=a.text, fit=a.fit, optimize=a.optimize, ceil=a.ceiling, fit_grid=a.fit_grid, chars=a.chars, widths_=a.widths, digits_=a.digits,
                     slack_=a.slack, split_=a.split, shift_=a.shift, fit_part_=a.fit_part, draft=a.draft_grid,
                     hex_=(a.hex[0], tuple(int(v) for v in a.hex[1].split(","))) if a.hex else None, quiet=a.quiet,
-                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate, all_slots=a.all_slots, sweep_=a.sweep, sweep_parts=a.sweep_parts, labels_=a.labels)
+                    mirror_swap=a.mirror_swap, apply=a.apply, clean=a.clean, hot=a.hot, init_pal=a.init_palette, goal=a.goal, oracle_=a.oracle, min_gain=a.min_gain, ablate_=a.ablate, all_slots=a.all_slots, sweep_=a.sweep, sweep_parts=a.sweep_parts, labels_=a.labels, try_=a.try_)
     else:
         cmd_labels(a.anims)
 

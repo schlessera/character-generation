@@ -57,6 +57,10 @@ def main():
         rc, out = run("compare", NAME, "--quiet", "--sweep", "3", "--sweep-parts", "feet")
         if "candidates over" not in out:
             fails.append("--sweep printed no table")
+        (CHAR / "try.toml").write_text('[[rules]]\ntype = "rows"\npart = "feet"\nfrom = "bottom"\nn = 1\ncolor = "shoes.shade"\n')
+        rc, out = run("compare", NAME, "--quiet", "--try", str(CHAR / "try.toml"))
+        if "rule 1:" not in out:
+            fails.append("--try printed no row")
     finally:
         shutil.rmtree(CHAR, ignore_errors=True)
         for f in (ROOT / "build/preview").glob(f"{NAME}*"):

@@ -62,9 +62,10 @@ the end. Human complaints outrank the score.
 - `characters/NAME/concept/NAME-pixel-mockup.png` and `NAME-concept.png`. Copy the skeleton to
   `characters/NAME/recipe.toml`, set `name`. `just step NAME "skeleton" --goal 3`: the number is
   the palette's distance from the design (0.64 on a palette that fits, 0.41 on one that does not).
-- Palette: the most common colours of the extracted mockup views, `--hex` on flat areas, then
-  `--init-palette` once `[parts]` names this design's parts (it groups by them). Every slot
-  refit; ramps the design lacks deleted; materials it has added. Parts: groups first, specific
+- Palette: `--hex` over a whole view (front, back, profile: three calls give every slot; the
+  box is end-exclusive), then `--init-palette` once `[parts]` names this design's parts — on a
+  trimmed design it prints `~` on every row and is no help; on a one-material part it is. Every
+  slot refit; ramps the design lacks deleted; materials it has added. Parts: groups first, specific
   parts after; a one-sided limb as a part line.
 - `just lint NAME`.
 
