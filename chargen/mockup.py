@@ -626,8 +626,11 @@ def unlisted_slots(recipe) -> dict[str, str]:
     return out
 
 
-def apply_legend(recipe_path, entries: dict[str, str]) -> None:
-    """Append legend entries at the end of the [head.legend] block of the recipe file."""
+def apply_legend(recipe_path, entries: dict[str, str], recipe=None) -> None:
+    """Append legend entries at the end of the [head.legend] block of the recipe file. With
+    `recipe`, each entry is written as the slot's hex literal with the slot in a comment: the
+    grid then holds the mockup's colour and does not follow a body ramp (a chrome ink used for
+    hair edges recoloured the hair when the chrome moved)."""
     text = recipe_path.read_text()
     start = text.find("[head.legend]")
     if start < 0:
@@ -635,7 +638,11 @@ def apply_legend(recipe_path, entries: dict[str, str]) -> None:
     nxt = text.find("\n[", start + 1)
     end = len(text) if nxt < 0 else nxt
     block = text[start:end].rstrip("\n")
-    lines = "".join(f'\n{ch} = "{ref}"' for ch, ref in entries.items())
+    if recipe is not None:
+        lines = "".join('\n{} = "#{:02x}{:02x}{:02x}"   # {} at draft time (--all-slots); a literal, so the grid keeps this colour'
+                        .format(ch, *recipe.color(ref, 1), ref) for ch, ref in entries.items())
+    else:
+        lines = "".join(f'\n{ch} = "{ref}"' for ch, ref in entries.items())
     recipe_path.write_text(text[:start] + block + lines + "\n" + text[end:])
 
 

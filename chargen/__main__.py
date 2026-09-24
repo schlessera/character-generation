@@ -370,7 +370,7 @@ def cmd_compare(name, mockup=None, recipe=None, anim="idle", frame=0, text=(), f
     if extra and used_extra:
         print("== legend: slots the drafts used beyond the legend: " + " ".join(f"{c}={extra[c]}" for c in sorted(used_extra)))
         if apply:
-            apply_legend(r.path, {c: extra[c] for c in sorted(used_extra)})
+            apply_legend(r.path, {c: extra[c] for c in sorted(used_extra)}, recipe=r)
     if draft and apply and _pass == 1 and any(f in MOCKUP_FACINGS or f == "all" for f in draft):
         # the mockup's best placement moves once the head is covered: draft again against it
         print("== second pass: the placement changed with the grids, redrafting")
